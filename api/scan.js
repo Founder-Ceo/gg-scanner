@@ -1,4 +1,4 @@
-export const config = { runtime: 'edge' };
+export const config = { maxDuration: 120 };
 
 const GG_CONTEXT = `Guest Guide Interactive is a European tourism technology company founded by Walt Cudlip, based in Arezzo, Tuscany. The platform uses AI-driven visitor dispersion technology — operating as an intelligence layer over a verified, locally curated geospatial dataset — to help DMOs redirect visitor flows from overcrowded areas toward under-visited destinations, authentic operators, and off-season periods. The platform's defensive moat is its verified, structured, geospatially addressed POI database (agriturismi, local guides, artisans, cultural sites).
 
@@ -69,20 +69,18 @@ function repairJson(raw) {
   }
 }
 
-export default async function handler(req) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
+    res.status(405).end('Method not allowed'); return;
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured on server' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' }
-    });
+    res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured on server' }); return;
   }
 
   try {
-    const body = await req.json();
+    const body = req.body || {};
     const { sources = [], themes = [] } = body;
 
     const scanPrompt = `You are a senior intelligence analyst for Guest Guide Interactive.
@@ -127,18 +125,10 @@ Format each as: {"type":"market","typeLabel":"Consumer Trend","badge":"badge-mar
 
     const signals = repairJson(jsonText);
 
-    return new Response(JSON.stringify({ signals, researchText }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
+    res.setHeader('Access-Control-Allow-Origin', '*'); res.status(200).json({ signals, researchText }); return;
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    res.status(500).json({ error: err.message }); return;
   }
 }
+
