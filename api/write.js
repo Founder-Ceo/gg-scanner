@@ -1,4 +1,4 @@
-export const config = { runtime: 'edge' };
+export const config = { maxDuration: 60 };
 
 const GG_CONTEXT = `Guest Guide Interactive is a European tourism technology company founded by Walt Cudlip, based in Arezzo, Tuscany. The platform uses AI-driven visitor dispersion technology — operating as an intelligence layer over a verified, locally curated geospatial dataset — to help DMOs redirect visitor flows from overcrowded areas toward under-visited destinations, authentic operators, and off-season periods. Target customers: DMOs and regional tourism boards (Segment A), authentic local operators including agriturismi, guides and artisans (Segment B), travellers seeking authentic experiences (Segment C). Primary markets: Italy (Arezzo-Siena corridor pilot active), DACH region (priority expansion), Netherlands, France. Pre-revenue, actively fundraising €3.5M Seed/Series A. In dialogue with Visit Tuscany and Fondazione Arezzo Intour. Policy alignment: EU Transition Pathway for Tourism, Interreg Central Europe Priority 2, NBTC Perspective 2030, ENIT national frameworks. Core claim: produces redistribution evidence that EU funding bodies require — not just redistribution itself. Governance tool, not a marketing or itinerary tool. Never describe the internal ranking or curation mechanism.`;
 
@@ -51,20 +51,18 @@ async function callAnthropic(apiKey, messages, maxTokens) {
   return data.content?.map(b => b.type === 'text' ? b.text : '').join('') || '';
 }
 
-export default async function handler(req) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
+    res.status(405).end('Method not allowed'); return;
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured on server' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' }
-    });
+    res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured on server' }); return;
   }
 
   try {
-    const body = await req.json();
+    const body = req.body || {};
     const { action, concept, angle, tone, context, brief, headline } = body;
 
     if (action === 'brief') {
@@ -99,10 +97,7 @@ Be specific and intelligent. Write as someone who deeply understands European to
 
       const briefText = await callAnthropic(apiKey, [{ role: 'user', content: prompt }], 1500);
 
-      return new Response(JSON.stringify({ brief: briefText }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      });
+      res.setHeader('Access-Control-Allow-Origin', '*'); res.status(200).json({ brief: briefText }); return;
 
     } else if (action === 'article') {
       const prompt = `You are a specialist content writer for Guest Guide Interactive.
@@ -134,19 +129,13 @@ Start directly with the article title.`;
 
       const articleText = await callAnthropic(apiKey, [{ role: 'user', content: prompt }], 2000);
 
-      return new Response(JSON.stringify({ article: articleText }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      });
+      res.setHeader('Access-Control-Allow-Origin', '*'); res.status(200).json({ article: articleText }); return;
 
     } else {
-      return new Response(JSON.stringify({ error: 'Unknown action' }), { status: 400 });
+      res.status(400).json({ error: 'Unknown action' }); return;
     }
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    res.status(500).json({ error: err.message }); return;
   }
 }
