@@ -1,6 +1,6 @@
-export const config = { runtime: 'edge' };
+export const config = { maxDuration: 10 };
 
-export default async function handler(req) {
+module.exports = async function handler(req, res) {
   const key = process.env.ANTHROPIC_API_KEY;
   
   const result = {
@@ -11,11 +11,5 @@ export default async function handler(req) {
     timestamp: new Date().toISOString()
   };
 
-  return new Response(JSON.stringify(result, null, 2), {
-    status: 200,
-    headers: { 
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*'
-    }
-  });
+  res.setHeader('Access-Control-Allow-Origin', '*'); res.status(200).json(result); return;
 }
