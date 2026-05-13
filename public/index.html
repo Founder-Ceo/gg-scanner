@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Guest Guide Intelligence Scanner v3</title>
+<title>Guest Guide Intelligence Scanner v4</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
   --ink: #0f0e0d;
@@ -17,6 +18,9 @@
   --muted: #7a7268;
   --border: #d4cec4;
   --white: #ffffff;
+  --blue: #1D4A7A;
+  --lblue: #55B8D8;
+  --pink: #CC5B9C;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans',sans-serif; font-weight:300; min-height:100vh; }
@@ -109,11 +113,9 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
 .empty-title { font-family:'Playfair Display',serif; font-size:20px; margin-bottom:7px; color:var(--ink); }
 .empty-sub { font-size:13px; line-height:1.6; max-width:380px; margin:0 auto; }
 
-/* ── ARTICLE WRITER PANEL ── */
+/* ── ARTICLE WRITER ── */
 .writer-layout { display:grid; grid-template-columns:340px 1fr; gap:32px; align-items:start; }
 .writer-sidebar { position:sticky; top:24px; }
-
-/* Step indicator */
 .steps { display:flex; flex-direction:column; gap:0; margin-bottom:24px; }
 .step { display:flex; align-items:flex-start; gap:12px; padding:12px 14px; border:1px solid var(--border); border-bottom:none; background:var(--cream); opacity:.4; transition:all .2s; }
 .step:last-child { border-bottom:1px solid var(--border); }
@@ -123,8 +125,6 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
 .step-done-icon { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--sage); flex-shrink:0; margin-top:1px; }
 .step-label { font-size:12px; font-weight:400; }
 .step-sub { font-size:11px; color:var(--muted); margin-top:2px; }
-
-/* Brief form */
 .form-card { background:white; border:1px solid var(--border); padding:24px; margin-bottom:16px; }
 .form-card-title { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:16px; padding-bottom:8px; border-bottom:1px solid var(--border); }
 .form-group { margin-bottom:18px; }
@@ -135,8 +135,6 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
 .tone-options { display:flex; gap:6px; flex-wrap:wrap; }
 .tone-opt { padding:5px 12px; border:1px solid var(--border); background:var(--paper); font-size:12px; cursor:pointer; transition:all .15s; }
 .tone-opt.selected { background:var(--ink); color:var(--paper); border-color:var(--ink); }
-
-/* Action buttons */
 .action-btn { width:100%; padding:13px; border:none; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:all .2s; margin-bottom:8px; }
 .action-btn-primary { background:var(--rust); color:white; }
 .action-btn-primary:hover { background:#9a3d22; }
@@ -144,9 +142,9 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
 .action-btn-secondary:hover { background:var(--slate); }
 .action-btn-outline { background:transparent; color:var(--ink); border:1px solid var(--border) !important; }
 .action-btn-outline:hover { border-color:var(--ink) !important; }
+.action-btn-save { background:var(--blue); color:white; }
+.action-btn-save:hover { background:#163a61; }
 .action-btn:disabled { background:var(--muted) !important; cursor:not-allowed; }
-
-/* Main content area */
 .content-area { background:white; border:1px solid var(--border); min-height:500px; }
 .content-header { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--cream); }
 .content-label { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); }
@@ -155,16 +153,14 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
 .icon-btn:hover { border-color:var(--ink); color:var(--ink); }
 .icon-btn.primary { background:var(--rust); color:white; border-color:var(--rust); }
 .icon-btn.primary:hover { background:#9a3d22; }
+.icon-btn.save { background:var(--blue); color:white; border-color:var(--blue); }
+.icon-btn.save:hover { background:#163a61; }
 .content-body { padding:24px; font-size:13px; line-height:1.7; min-height:400px; }
 .content-placeholder { color:var(--muted); font-style:italic; text-align:center; padding:60px 20px; }
-
-/* Brief sections */
 .brief-section { margin-bottom:18px; padding-bottom:18px; border-bottom:1px solid var(--cream); }
 .brief-section:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
 .brief-section-title { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--rust); margin-bottom:7px; }
 .brief-section-content { font-size:13px; line-height:1.7; }
-
-/* Headline picker */
 .headline-picker { background:var(--cream); border:1px solid var(--border); padding:20px; margin-bottom:16px; }
 .headline-picker-title { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
 .headline-option { display:flex; align-items:flex-start; gap:10px; padding:10px 14px; background:white; border:1px solid var(--border); cursor:pointer; margin-bottom:6px; transition:all .15s; font-family:'Playfair Display',serif; font-size:15px; line-height:1.35; }
@@ -173,8 +169,6 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
 .headline-radio { width:14px; height:14px; border:2px solid var(--border); border-radius:50%; flex-shrink:0; margin-top:3px; transition:all .15s; }
 .headline-option.selected .headline-radio { background:var(--rust); border-color:var(--rust); }
 .custom-headline-wrap { margin-top:10px; }
-
-/* Article output */
 .article-output { font-family:'IBM Plex Sans',sans-serif; }
 .article-output h1 { font-family:'Playfair Display',serif; font-size:24px; line-height:1.3; margin-bottom:6px; color:var(--ink); }
 .article-output .byline { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); margin-bottom:20px; padding-bottom:14px; border-bottom:2px solid var(--border); }
@@ -183,21 +177,64 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
 .article-output blockquote { border-left:3px solid var(--rust); margin:18px 0; padding:8px 16px; font-style:italic; color:#3a3530; font-size:14px; line-height:1.6; }
 .article-output ul { padding-left:20px; margin-bottom:14px; }
 .article-output li { font-size:13px; line-height:1.7; margin-bottom:5px; }
-
-/* Image placeholder in article */
 .img-placeholder { background:var(--cream); border:1px solid var(--border); border-left:3px solid var(--gold); padding:14px 16px; margin:18px 0; }
 .img-placeholder-label { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; }
 .img-placeholder-note { font-size:12px; color:var(--muted); margin-bottom:8px; font-style:italic; }
 .img-placeholder-prompt { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--slate); line-height:1.5; background:white; border:1px solid var(--border); padding:8px 10px; }
 .img-copy-btn { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase; background:none; border:1px solid var(--border); color:var(--muted); padding:3px 8px; cursor:pointer; margin-top:6px; transition:all .15s; }
 .img-copy-btn:hover { border-color:var(--ink); color:var(--ink); }
-
-/* LinkedIn teaser box */
 .li-teaser { background:#eef3f9; border:2px solid #0a66c2; padding:20px 22px; margin-top:24px; }
 .li-teaser-label { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:#0a66c2; margin-bottom:10px; }
 .li-teaser-content { font-size:13px; line-height:1.7; color:#1a1a2e; }
+.save-toast { position:fixed; bottom:24px; right:24px; background:var(--blue); color:white; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.1em; padding:12px 20px; border-radius:2px; transform:translateY(80px); opacity:0; transition:all .3s; z-index:9999; }
+.save-toast.show { transform:translateY(0); opacity:1; }
 
-/* CALENDAR */
+/* ── ANALYTICS TAB ── */
+.analytics-layout { display:grid; gap:28px; }
+.analytics-kpi-row { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-bottom:8px; }
+.kpi-card { background:white; border:1px solid var(--border); border-top:3px solid var(--rust); padding:18px 20px; }
+.kpi-value { font-family:'Playfair Display',serif; font-size:30px; color:var(--blue); line-height:1; margin-bottom:4px; }
+.kpi-label { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+.kpi-sub { font-size:11px; color:var(--muted); }
+.analytics-table-wrap { background:white; border:1px solid var(--border); overflow:hidden; }
+.analytics-table-header { padding:14px 20px; background:var(--cream); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.analytics-table-title { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); }
+table.at { width:100%; border-collapse:collapse; font-size:12px; }
+table.at th { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; padding:10px 14px; text-align:left; background:var(--ink); color:var(--paper); white-space:nowrap; }
+table.at td { padding:10px 14px; border-bottom:1px solid var(--border); vertical-align:top; }
+table.at tr:hover td { background:var(--cream); }
+table.at tr.record-row td { background:#EEF7FF; }
+table.at tr.anomaly-row td { background:#FFFDE7; }
+table.at tr.estimated-row td { background:#FFF8F8; opacity:.75; }
+.at-title { font-family:'Playfair Display',serif; font-size:13px; line-height:1.3; }
+.at-date { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); white-space:nowrap; }
+.at-num { font-family:'IBM Plex Mono',monospace; font-size:12px; text-align:right; }
+.at-bar-wrap { display:flex; align-items:center; gap:8px; }
+.at-bar { height:4px; background:var(--border); width:80px; border-radius:2px; overflow:hidden; flex-shrink:0; }
+.at-bar-fill { height:100%; background:var(--rust); border-radius:2px; }
+.at-pill { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase; padding:2px 7px; }
+.pill-verified { background:#e8f0e8; color:var(--sage); }
+.pill-estimated { background:#f5ece4; color:#8b5e3c; }
+.pill-record { background:#EEF7FF; color:var(--blue); }
+.pill-anomaly { background:#FFFDE7; color:#8b6914; }
+.expand-row-btn { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); cursor:pointer; background:none; border:none; padding:0; }
+.post-detail-row { display:none; }
+.post-detail-row.open { display:table-row; }
+.post-detail-inner { padding:16px 20px; background:#FAFAF8; border-bottom:1px solid var(--border); }
+.detail-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px 24px; margin-bottom:14px; }
+.detail-item-label { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
+.detail-item-value { font-size:12px; color:var(--ink); line-height:1.4; }
+.detail-notes { background:white; border:1px solid var(--border); border-left:3px solid var(--rust); padding:10px 14px; font-size:12px; line-height:1.6; color:#3a3530; margin-top:8px; }
+
+/* Analytics add-post form */
+.add-post-section { background:white; border:1px solid var(--border); padding:24px; margin-top:24px; }
+.add-post-title { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:18px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+.add-post-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px; }
+.add-post-grid-wide { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+.add-post-btn { padding:11px 20px; background:var(--blue); color:white; border:none; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .2s; }
+.add-post-btn:hover { background:#163a61; }
+
+/* ── CALENDAR ── */
 .cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; padding-bottom:16px; border-bottom:2px solid var(--ink); }
 .cal-title { font-family:'Playfair Display',serif; font-size:26px; }
 .cal-table { width:100%; border-collapse:collapse; font-size:13px; background:white; }
@@ -209,7 +246,7 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
 .sp-ai { background:#fdf6e3; color:#8b6914; }
 .sp-draft { background:#f0eaf0; color:#6b4a8b; }
 
-/* SETTINGS */
+/* ── SETTINGS ── */
 .settings-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
 .settings-card { background:white; border:1px solid var(--border); padding:22px; }
 .settings-card-title { font-family:'Playfair Display',serif; font-size:17px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--border); }
@@ -224,6 +261,17 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
 .about-text { font-size:13px; line-height:1.8; color:#3a3530; max-width:660px; }
 .about-text p { margin-bottom:11px; }
 .divider { height:1px; background:var(--border); margin:20px 0; }
+
+/* ── XLSX UPLOAD ── */
+.upload-zone { border:2px dashed var(--border); padding:28px 20px; text-align:center; cursor:pointer; transition:all .2s; margin-bottom:20px; background:var(--paper); }
+.upload-zone:hover,.upload-zone.drag-over { border-color:var(--rust); background:var(--cream); }
+.upload-zone-icon { font-size:28px; margin-bottom:8px; opacity:.4; }
+.upload-zone-label { font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+.upload-zone-sub { font-size:12px; color:var(--muted); margin-top:5px; }
+.upload-result { font-family:'IBM Plex Mono',monospace; font-size:11px; padding:10px 14px; margin-bottom:16px; border-left:3px solid var(--sage); background:#f0f5f0; color:var(--sage); display:none; }
+.upload-result.error { border-left-color:var(--rust); background:#fef0ec; color:var(--rust); }
+.upload-result.show { display:block; }
+#xlsx-file-input { display:none; }
 </style>
 </head>
 <body>
@@ -246,6 +294,7 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
   <div class="nav-inner">
     <button class="tab-btn active" onclick="switchTab('scanner',this)">Intelligence Feed</button>
     <button class="tab-btn" onclick="switchTab('writer',this)">Article Writer</button>
+    <button class="tab-btn" onclick="switchTab('analytics',this)">Post Analytics</button>
     <button class="tab-btn" onclick="switchTab('calendar',this)">Content Calendar</button>
     <button class="tab-btn" onclick="switchTab('settings',this)">Configuration</button>
   </div>
@@ -302,20 +351,8 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
         <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>UN Tourism Villages</span>
       </div>
       <div class="source-group">
-        <div class="source-group-label">Advocacy &amp; Networks</div>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>ECTN</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>ETOA</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Slow Food Travel</span>
-      </div>
-      <div class="source-group">
-        <div class="source-group-label">Spatial Intelligence</div>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Esri / GIS</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Copernicus EU</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>UN-GGIM</span>
-      </div>
-      <div class="source-group">
         <div class="source-group-label">Consumer Media</div>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Condé Nast Traveller</span>
+        <span class="source-tag selected" onclick="this.classList.toggle('selected')"><span class="dot"></span>Condé Nast Traveller</span>
         <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>NatGeo Traveller</span>
         <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Geo Magazin (DE)</span>
         <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Le Figaro Voyage</span>
@@ -326,7 +363,6 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
         <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>IBISWorld</span>
         <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Our World In Data</span>
         <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Euromonitor</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>WTTC</span>
         <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>McKinsey Travel</span>
       </div>
       <div class="divider"></div>
@@ -345,7 +381,6 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
       <div class="theme-chip" onclick="this.classList.toggle('selected')">🧪 Traveller Research</div>
       <button class="run-btn" id="scan-btn" onclick="runScan()">▶ Run Intelligence Scan</button>
     </div>
-
     <div>
       <div class="results-header">
         <div>
@@ -371,15 +406,11 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
 </div>
 
 <!-- ════════════════════════════════════════════
-     ARTICLE WRITER PANEL  (3-step workflow)
+     ARTICLE WRITER PANEL
 ════════════════════════════════════════════ -->
 <div class="panel" id="panel-writer">
   <div class="writer-layout">
-
-    <!-- LEFT: controls -->
     <div class="writer-sidebar">
-
-      <!-- Step tracker -->
       <div class="steps">
         <div class="step active" id="step-1">
           <span class="step-num">01</span>
@@ -391,11 +422,9 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
         </div>
         <div class="step" id="step-3">
           <span class="step-num">03</span>
-          <div><div class="step-label">Write Article</div><div class="step-sub">LinkedIn + blog + précis</div></div>
+          <div><div class="step-label">Write &amp; Save Article</div><div class="step-sub">LinkedIn + blog + précis + docx</div></div>
         </div>
       </div>
-
-      <!-- Step 1: Brief inputs -->
       <div id="step1-controls">
         <div class="form-card">
           <div class="form-card-title">Article Brief</div>
@@ -431,8 +460,6 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
         </div>
         <button class="action-btn action-btn-primary" id="gen-brief-btn" onclick="generateBrief()">Generate Brief →</button>
       </div>
-
-      <!-- Step 2: Headline picker (hidden until brief done) -->
       <div id="step2-controls" style="display:none;">
         <div class="headline-picker">
           <div class="headline-picker-title">Choose Your Headline</div>
@@ -445,19 +472,15 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
         <button class="action-btn action-btn-secondary" id="write-article-btn" onclick="writeArticle()">Write Article →</button>
         <button class="action-btn action-btn-outline" style="border:1px solid var(--border);" onclick="backToBrief()">← Back to Brief</button>
       </div>
-
-      <!-- Step 3: actions (hidden until article done) -->
       <div id="step3-controls" style="display:none;">
+        <button class="action-btn action-btn-save" onclick="saveAndDownload()">⬇ Save &amp; Download .docx</button>
         <button class="action-btn action-btn-primary" onclick="copyArticle()">Copy Full Article</button>
         <button class="action-btn action-btn-secondary" onclick="copyTeaser()">Copy LinkedIn Précis</button>
         <button class="action-btn action-btn-outline" style="border:1px solid var(--border);" onclick="startOver()">← Start New Article</button>
+        <div id="save-status" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:8px;text-align:center;"></div>
       </div>
-
     </div>
-
-    <!-- RIGHT: content display -->
     <div>
-      <!-- Brief output -->
       <div id="brief-display" class="content-area">
         <div class="content-header">
           <span class="content-label" id="content-label">Article Brief</span>
@@ -467,18 +490,14 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
           </div>
         </div>
         <div class="content-body" id="brief-output">
-          <div class="content-placeholder">
-            Your article brief will appear here.<br><br>
-            Fill in the concept and settings, then click <strong>Generate Brief</strong>.
-          </div>
+          <div class="content-placeholder">Your article brief will appear here.<br><br>Fill in the concept and settings, then click <strong>Generate Brief</strong>.</div>
         </div>
       </div>
-
-      <!-- Article output (hidden until step 3) -->
       <div id="article-display" class="content-area" style="display:none;">
         <div class="content-header">
           <span class="content-label">Article + LinkedIn Précis</span>
           <div class="content-actions">
+            <button class="icon-btn save" onclick="saveAndDownload()">⬇ Save .docx</button>
             <button class="icon-btn" onclick="copyArticle()">Copy Article</button>
             <button class="icon-btn primary" onclick="copyTeaser()">Copy Précis</button>
           </div>
@@ -486,7 +505,95 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
         <div class="content-body" id="article-output"></div>
       </div>
     </div>
+  </div>
+</div>
 
+<!-- ════════════════════════════════════════════
+     ANALYTICS PANEL
+════════════════════════════════════════════ -->
+<div class="panel" id="panel-analytics">
+
+  <div class="results-header">
+    <div>
+      <div class="results-title">Post Performance Analytics</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px;" id="analytics-subtitle">12 posts tracked · Sep 2025 – May 2026 · 8 verified exports</div>
+    </div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);text-align:right;line-height:1.8;">
+      Record: 42,333 impressions (Apr 30)<br>
+      Optimal window: Tue–Thu 07:00–08:30 CET
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  <div class="analytics-kpi-row" id="kpi-row"></div>
+
+  <!-- Performance table -->
+  <div class="analytics-table-wrap">
+    <div class="analytics-table-header">
+      <span class="analytics-table-title">All Posts — Click any row for full demographic breakdown</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);">★★ Record &nbsp;|&nbsp; ~ Estimated &nbsp;|&nbsp; ⚠ Anomaly</span>
+    </div>
+    <table class="at">
+      <thead>
+        <tr>
+          <th style="width:30px;"></th>
+          <th>Title</th>
+          <th>Date</th>
+          <th style="text-align:right;">Impressions</th>
+          <th style="text-align:right;">Reached</th>
+          <th style="text-align:right;">Reactions</th>
+          <th style="text-align:right;">Comments</th>
+          <th style="text-align:right;">Followers</th>
+          <th style="text-align:right;">Links</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="analytics-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Add new post form -->
+  <div class="add-post-section">
+    <div class="add-post-title">Import from LinkedIn Export (.xlsx)</div>
+
+    <!-- Upload zone -->
+    <div class="upload-zone" id="upload-zone"
+         onclick="document.getElementById('xlsx-file-input').click()"
+         ondragover="event.preventDefault();this.classList.add('drag-over')"
+         ondragleave="this.classList.remove('drag-over')"
+         ondrop="handleDrop(event)">
+      <div class="upload-zone-icon">📊</div>
+      <div class="upload-zone-label">Drop LinkedIn Analytics .xlsx here or click to browse</div>
+      <div class="upload-zone-sub">PostAnalytics_WaltCudlip_[ID].xlsx — any version</div>
+    </div>
+    <input type="file" id="xlsx-file-input" accept=".xlsx,.xls" onchange="handleFileUpload(event)">
+    <div class="upload-result" id="upload-result"></div>
+
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);">Or add manually</div>
+
+    <div class="add-post-grid">
+      <div><label class="form-label">Post Title</label><input class="form-input" id="np-title" placeholder="Article title…"></div>
+      <div><label class="form-label">Date</label><input class="form-input" id="np-date" placeholder="e.g. May 13, 2026"></div>
+      <div><label class="form-label">Time Published</label><input class="form-input" id="np-time" placeholder="e.g. 08:15 AM"></div>
+      <div><label class="form-label">Angle / Type</label><input class="form-input" id="np-angle" placeholder="e.g. Policy / News Anchor"></div>
+    </div>
+    <div class="add-post-grid">
+      <div><label class="form-label">Impressions</label><input class="form-input" id="np-impressions" type="number" placeholder="0"></div>
+      <div><label class="form-label">Reached</label><input class="form-input" id="np-reached" type="number" placeholder="0"></div>
+      <div><label class="form-label">Reactions</label><input class="form-input" id="np-reactions" type="number" placeholder="0"></div>
+      <div><label class="form-label">Comments</label><input class="form-input" id="np-comments" type="number" placeholder="0"></div>
+      <div><label class="form-label">Reposts</label><input class="form-input" id="np-reposts" type="number" placeholder="0"></div>
+      <div><label class="form-label">Saves</label><input class="form-input" id="np-saves" type="number" placeholder="0"></div>
+      <div><label class="form-label">Link Clicks</label><input class="form-input" id="np-links" type="number" placeholder="0"></div>
+      <div><label class="form-label">Followers +</label><input class="form-input" id="np-followers" type="number" placeholder="0"></div>
+    </div>
+    <div class="add-post-grid-wide">
+      <div><label class="form-label">Top Locations</label><input class="form-input" id="np-locations" placeholder="e.g. London (9%) / Toronto (8%)…"></div>
+      <div><label class="form-label">Notable Companies</label><input class="form-input" id="np-companies" placeholder="e.g. TUI, Amadeus, Booking.com…"></div>
+    </div>
+    <div style="margin-bottom:14px;"><label class="form-label">Editorial Notes</label><textarea class="form-textarea" id="np-notes" placeholder="Key observations, audience signals, timing notes…" style="min-height:55px;"></textarea></div>
+    <button class="add-post-btn" onclick="addPost()">+ Add Post to Tracker</button>
+    <span id="add-post-status" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--sage);margin-left:16px;"></span>
   </div>
 </div>
 
@@ -497,7 +604,7 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
   <div class="cal-header">
     <div>
       <div class="cal-title">Content Calendar</div>
-      <div style="font-size:13px;color:var(--muted);margin-top:5px;">31 published · 7 in pipeline · Updated Mar 2026</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:5px;">31 published · 7 in pipeline · Updated May 2026</div>
     </div>
     <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);text-align:right;line-height:1.8;">31 Published · 3 Scheduled · 7 In Pipeline</div>
   </div>
@@ -513,7 +620,6 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
 <div class="panel" id="panel-settings">
   <div class="results-header"><div class="results-title">Configuration</div></div>
   <div class="settings-grid">
-
     <div class="settings-card">
       <div class="settings-card-title">Scan Behaviour</div>
       <div class="setting-row"><span>Auto-scan on open</span><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
@@ -534,53 +640,197 @@ main { max-width:1400px; margin:0 auto; padding:36px 40px; }
   <div class="about-card">
     <div class="about-card-title">About this Tool</div>
     <div class="about-text">
-      <p>This is the Guest Guide Intelligence Scanner — a self-contained application that runs in any web browser without an internet connection to this chat. Open the HTML file, and the full workflow is available immediately.</p>
-      <p>The scanner queries live web sources on every run — casting across 80+ sources including EU institutions, national tourism bodies from all 27 EU member states plus UK and Switzerland, consumer magazines (Condé Nast, NatGeo, Geo Magazin, Le Figaro Voyage, Corriere Viaggi), market intelligence firms (IBISWorld, Euromonitor, WTTC, McKinsey), Nordic tourism bodies, rural and LEADER programme sources, spatial intelligence sources, and advocacy networks. Results are current, specific, and dated. The three-step Article Writer produces LinkedIn-optimised articles at Year-11 reading level, 1,000–1,200 words, with photorealistic image prompts and a LinkedIn précis. Parameters are baked in — never re-enter them.</p>
-      <p>Workflow: Run a scan → expand a signal → click an article idea → brief is generated → choose a headline → article is written. Every step happens inside this window.</p>
-      <p style="font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;">v3.0 · Guest Guide Interactive · Vercel Edition · API key managed server-side</p>
+      <p>Guest Guide Intelligence Scanner v4 — Intelligence Feed, Article Writer, Post Analytics, Content Calendar.</p>
+      <p>The scanner queries live web sources on every run across 80+ sources including EU institutions, national tourism bodies, consumer magazines, market intelligence firms, Nordic tourism bodies, rural and LEADER programme sources, and advocacy networks. The three-step Article Writer produces LinkedIn-optimised articles at Year-11 reading level, 1,000–1,200 words, with photorealistic image prompts, LinkedIn précis, and one-click .docx export for direct blog upload.</p>
+      <p>Post Analytics tracks all 12 posts from Sep 2025, with full demographic breakdown per post. Add new posts via the form at the bottom of the Analytics tab. Articles can be saved and downloaded as formatted .docx files directly from the Article Writer.</p>
+      <p style="font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;">v4.0 · Guest Guide Interactive · Vercel Edition · API key managed server-side</p>
     </div>
   </div>
 </div>
+
+<!-- Save toast -->
+<div class="save-toast" id="save-toast">✓ Saved to library</div>
 
 </main>
 
 <script>
 // ═══════════════════════════════════════════════════════════
-// CONSTANTS
+// POST ANALYTICS DATA — verified dataset v4
 // ═══════════════════════════════════════════════════════════
+let POSTS = [{"id":"EST-001","verified":false,"date":"Sep 19, 2025","time":"10:00 AM","title":"Platform Dependency","angle":"Operator / Market Critique","impressions":312,"reached":241,"link_clicks":0,"profile_views":2,"followers":0,"reactions":4,"comments":1,"reposts":0,"saves":0,"sends":0,"top_job_r":"n/a","top_loc_r":"Gold Coast (15.7%)","top_job_c":"n/a","top_loc_c":"n/a","top_industry":"Travel Arrangements","top_seniority":"Senior","top_location":"Gold Coast / Brisbane","notable_companies":"n/a","notes":"ESTIMATED figures — export not recovered. Personal/social audience dominant. Pre-algorithm traction. Wrong geography for GGI thesis."},{"id":"EST-002","verified":false,"date":"Oct 3, 2025","time":"8:30 AM","title":"Spatial Intelligence","angle":"Technology / DMO","impressions":428,"reached":319,"link_clicks":0,"profile_views":3,"followers":1,"reactions":6,"comments":0,"reposts":0,"saves":1,"sends":0,"top_job_r":"n/a","top_loc_r":"London (8.2%)","top_job_c":"n/a","top_loc_c":"n/a","top_industry":"Travel Arrangements","top_seniority":"Senior","top_location":"London / Brisbane","notable_companies":"n/a","notes":"ESTIMATED figures. First London appearance in top locations. Algorithm beginning to recalibrate."},{"id":"EST-003","verified":false,"date":"Oct 17, 2025","time":"9:00 AM","title":"Nordic Tourism","angle":"Regional / Policy","impressions":389,"reached":298,"link_clicks":0,"profile_views":2,"followers":0,"reactions":5,"comments":0,"reposts":1,"saves":0,"sends":0,"top_job_r":"n/a","top_loc_r":"London (9.1%)","top_job_c":"n/a","top_loc_c":"n/a","top_industry":"Travel Arrangements","top_seniority":"Senior","top_location":"London / Stockholm","notable_companies":"n/a","notes":"ESTIMATED figures. First repost. Stockholm in top locations — Nordic relevance confirmed."},{"id":"EST-004","verified":false,"date":"Nov 7, 2025","time":"8:00 AM","title":"Residents as Stakeholders","angle":"Community / DMO","impressions":743,"reached":581,"link_clicks":2,"profile_views":6,"followers":2,"reactions":9,"comments":2,"reposts":1,"saves":2,"sends":1,"top_job_r":"Director","top_loc_r":"Utrecht","top_job_c":"n/a","top_loc_c":"Arezzo","top_industry":"Travel Arrangements (18.4%)","top_seniority":"Senior (28.1%)","top_location":"London / Amsterdam / Paris","notable_companies":"Amadeus","notes":"ESTIMATED figures. TURNING POINT — algorithm finds correct European professional audience. Amadeus first appearance."},{"id":"7419093573054189568","verified":true,"date":"Jan 19, 2026","time":"7:09 PM","title":"Tourism as a Trillion-Dollar Problem Waiting for Tech Solutions","angle":"Technology / Market Framing","impressions":27248,"reached":20349,"link_clicks":87,"profile_views":61,"followers":40,"reactions":95,"comments":37,"reposts":11,"saves":15,"sends":0,"top_job_r":"Founder","top_loc_r":"Greater Toronto Area, Canada","top_job_c":"Founder","top_loc_c":"London Area, United Kingdom","top_industry":"Travel Arrangements","top_seniority":"Senior (30.0%)","top_location":"Toronto (10.5%) / London (5.0%) / Vancouver (3.1%) / Ottawa (2.1%) / New York (2.0%)","notable_companies":"City of Toronto, TUI, Expedia Group, Marriott International","notes":"FORMER RECORD — surpassed by Apr 30 post (42,333). 27,248 impressions. Published 7:09 PM — TIMING FAILURE yet still second highest in dataset. 87 link clicks to GGI website — record website traffic. 40 followers — record single-post gain. 37 comments — record comment count. 11 reposts — record reposts. Toronto dominant (10.5%). Previously estimated at 1,456 — corrected to 27,248."},{"id":"7429923579653435392","verified":true,"date":"Feb 19, 2026","time":"9:30 AM","title":"The Startup Policy Nexus","angle":"Policy / Startup Positioning","impressions":4922,"reached":3420,"link_clicks":9,"profile_views":16,"followers":20,"reactions":23,"comments":9,"reposts":1,"saves":5,"sends":4,"top_job_r":"Founder","top_loc_r":"London Area, United Kingdom","top_job_c":"Production Manager","top_loc_c":"Cork Metropolitan Area","top_industry":"Travel Arrangements (27.7%)","top_seniority":"Senior (28.5%)","top_location":"London (6.7%) / Toronto (2.8%) / Delhi (1.8%) / Sydney (1.6%) / Dublin (1.5%)","notable_companies":"Fáilte Ireland, VisitScotland, TUI, Intrepid Travel, Accor","notes":"VERIFIED. 9:30 AM — acceptable timing. Fáilte Ireland + VisitScotland in company list — DMO bodies reached directly. Cork commenter notable (Irish tourism sector). CXO seniority at 7.1% — C-suite engagement. 20 followers gained."},{"id":"7430551828758487040","verified":false,"date":"Feb 20, 2026","time":"10:00 AM","title":"What Happens When Tourism Is Treated As A… [title partial]","angle":"Unknown — rhetorical/conversational framing","impressions":634,"reached":487,"link_clicks":0,"profile_views":3,"followers":1,"reactions":8,"comments":8,"reposts":0,"saves":1,"sends":0,"top_job_r":"n/a","top_loc_r":"n/a","top_job_c":"n/a","top_loc_c":"n/a","top_industry":"n/a","top_seniority":"n/a","top_location":"n/a","notable_companies":"n/a","notes":"ANOMALY — export not recovered. 1.26% comment rate: highest in full dataset. 8 comments on 634 impressions. Rhetorical question framing drove conversation depth. Replicate this structure."},{"id":"7435392736469430272","verified":true,"date":"Mar 5, 2026","time":"6:36 PM","title":"From Counting Visitors to Controlling Flows","angle":"Policy / Thought Leadership (Flagship)","impressions":1378,"reached":994,"link_clicks":0,"profile_views":1,"followers":1,"reactions":6,"comments":0,"reposts":0,"saves":1,"sends":0,"top_job_r":"Director of Public Policy","top_loc_r":"Greater Milan","top_job_c":"n/a","top_loc_c":"n/a","top_industry":"Travel Arrangements (21.3%)","top_seniority":"Senior (29.2%)","top_location":"London / Zagreb (tied 5.6%)","notable_companies":"Airbnb, Booking.com, Hilton","notes":"VERIFIED. 6:36 PM — TIMING FAILURE. Best audience seniority quality: Director of Public Policy in Milan reacted. Airbnb + Booking.com + Hilton in company list. Would likely have hit 4,000–6,000 impressions at correct timing. Candidate for republication."},{"id":"7441496083819753472","verified":true,"date":"Mar 26, 2026","time":"7:00 AM","title":"European Parliament TRAN Committee Vote","angle":"Policy / Legislative News Anchor","impressions":16326,"reached":12375,"link_clicks":0,"profile_views":18,"followers":4,"reactions":13,"comments":19,"reposts":0,"saves":5,"sends":1,"top_job_r":"Owner","top_loc_r":"Utrecht Area","top_job_c":"Founder","top_loc_c":"Greater Hyderabad Area","top_industry":"Hospitality (20.3%)","top_seniority":"Senior (29.1%)","top_location":"Amsterdam (5.3%) / London (5.2%) / Toronto (3.4%) / Barcelona (2.1%) / Dublin (1.5%)","notable_companies":"Booking.com (1.1%), IHG Hotels & Resorts, Marriott International, Amadeus, Accor","notes":"VERIFIED. 7:00 AM — optimal timing. 16,326 impressions — third highest verified total. 19 comments — record comment count in dataset. Booking.com at 1.1% named %. Amsterdam 5.3% — Booking.com HQ geography. Hospitality overtakes Travel Arrangements as top industry."},{"id":"7441500635671359488","verified":true,"date":"Mar 31, 2026","time":"7:15 AM","title":"UN Best Tourism Villages Competition","angle":"Policy / Rural Tourism / International Recognition","impressions":2003,"reached":1337,"link_clicks":0,"profile_views":6,"followers":6,"reactions":23,"comments":0,"reposts":0,"saves":1,"sends":1,"top_job_r":"Founder","top_loc_r":"Greater Madrid Metropolitan Area","top_job_c":"n/a","top_loc_c":"n/a","top_industry":"Travel Arrangements (28.3%)","top_seniority":"Senior (30.4%)","top_location":"Delhi (2.0%) / Kathmandu (1.9%) / London (1.8%) / Toronto (1.3%) / Johannesburg (1.2%)","notable_companies":"Self Employed only","notes":"VERIFIED. Title confirmed. 7:15 AM — good timing. 23 reactions, 0 comments — awards content drives affirmation not debate. Delhi + Kathmandu + Johannesburg = UN village competition applicant nations. Professor + Lecturer job titles (2.3% each)."},{"id":"7441501520589795328","verified":true,"date":"Apr 2, 2026","time":"7:15 AM","title":"Rural Areas Hold 44% of EU Tourism Beds","angle":"Policy / Regional Distribution / EU Data","impressions":1111,"reached":791,"link_clicks":0,"profile_views":6,"followers":7,"reactions":14,"comments":4,"reposts":0,"saves":1,"sends":2,"top_job_r":"Corporate Sales Specialist","top_loc_r":"Greater Paris Metropolitan Region","top_job_c":"Founder","top_loc_c":"Viljandi","top_industry":"Travel Arrangements (25.3%)","top_seniority":"Senior (28.1%)","top_location":"Paris (3.7%) / London (2.5%) / Brussels (2.4%) / Toronto (2.0%) / Dublin (1.9%)","notable_companies":"Airbnb (3.0%)","notes":"VERIFIED. Title confirmed: Rural Areas Hold 44% of EU Tourism Beds. 7:15 AM — good timing. Airbnb at 3.0% (named %) — highest Airbnb concentration in dataset. Brussels 2.4% — EU data/policy geography. Viljandi commenter (Estonia) — Baltic entry."},{"id":"7455431159905316864","verified":true,"date":"Apr 30, 2026","time":"7:30 AM","title":"The Cheap Alternative Trap (BBC follow-up)","angle":"Overtourism / Structural Critique / News Anchor","impressions":42333,"reached":31424,"link_clicks":85,"profile_views":42,"followers":12,"reactions":36,"comments":11,"reposts":0,"saves":8,"sends":4,"top_job_r":"Project Manager","top_loc_r":"London Area, United Kingdom","top_job_c":"Founder","top_loc_c":"Stuttgart Region, Germany","top_industry":"Travel Arrangements (11.2%)","top_seniority":"Senior (29.9%)","top_location":"Toronto (8.0%) / London (6.6%) / Brussels (2.3%) / Ottawa (2.2%) / Vancouver (2.2%)","notable_companies":"European Commission, TUI, Amadeus, Marriott International, City of Toronto","notes":"VERIFIED — Day 7 final reading. Growth arc: 7,270 (24hr) → 15,602 (48hr) → 24,471 (96hr) → 30,262 (Day 6) → 42,333 (Day 7). +483% from 24hr. EUROPEAN COMMISSION in audience — highest-value institutional signal in dataset. Toronto (8.0%) leads London (6.6%) — Canadian audience structurally dominant. Govt Administration 5.9% — highest in dataset. 85 link clicks — near-matching Jan 19 website record."}];
 
-const ARTICLE_SPEC = `PERMANENT ARTICLE SPECIFICATION — apply to every article you write:
-- Platform: LinkedIn article (published on blog, referenced via LinkedIn excerpt)
-- Reading level: Year 11 / Grade 11 — clear, direct prose. Short sentences. No jargon without explanation. Accessible to non-native English speakers.
-- Length: 1,000–1,200 words (body text only, not counting image notes or précis)
-- Structure: Engaging LinkedIn-style subheadings, punchy intro, clear argument, strong close
-- Voice: First-person-adjacent — authoritative but not academic. Speaks to professionals, not academics.
-- Images: At 2–3 salient points in the article body, insert an image placeholder block in this exact format:
-  :::IMAGE [N] — [one-line description]
-  Note: [2-sentence editorial note on why this image, what it should show]
-  Prompt: [Full photorealistic generation prompt — 16:9, no invented text/signage, no hallucinated places, no compositions an experienced traveller would identify as false]
-  :::
-- After the article body, add a ruled divider (---), then a section titled LINKEDIN PRÉCIS
-- LinkedIn Précis: 120–150 words. High conversion. Opens with a hook, states the problem, teases the insight, ends with a clear call to action linking to the full article. Written in a more personal LinkedIn voice. No hashtags.`;
+const RECORD_ID  = '7455431159905316864';
+const ANOMALY_ID = '7430551828758487040';
+const PREV_REC_ID= '7419093573054189568';
+const maxImpressions = Math.max(...POSTS.map(p => p.impressions));
 
-const GG_CONTEXT = `Guest Guide Interactive is a European tourism technology company founded by Walt Cudlip, based in Arezzo, Tuscany. The platform uses AI-driven visitor dispersion technology — operating as an intelligence layer over a verified, locally curated geospatial dataset — to help DMOs redirect visitor flows from overcrowded areas toward under-visited destinations, authentic operators, and off-season periods. The platform's defensive moat is its verified, structured, geospatially addressed POI database (agriturismi, local guides, artisans, cultural sites) that becomes stronger as more operators contribute data.
+// ═══════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════
+function switchTab(tab, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  btn.classList.add('active');
+}
 
-Target customers: DMOs and regional tourism boards (Segment A), authentic local operators including agriturismi, guides and artisans (Segment B), and travellers seeking authentic experiences (Segment C). Primary markets: Italy (Arezzo-Siena corridor pilot active), DACH region (priority expansion target), Netherlands, France. The company is in Production-Alpha, pre-revenue, actively fundraising (€3.5M Seed/Series A target). Currently in dialogue with Visit Tuscany and Fondazione Arezzo Intour.
+// ═══════════════════════════════════════════════════════════
+// ANALYTICS RENDERING
+// ═══════════════════════════════════════════════════════════
+function renderAnalytics() {
+  renderKPIs();
+  renderAnalyticsTable();
+}
 
-The work is explicitly policy-aligned with: EU Transition Pathway for Tourism, Interreg Central Europe Priority 2 (balanced territorial development), NBTC Perspective 2030 (Netherlands statutory visitor flow management), ENIT national frameworks, and the EU Commissioner Tzitzikostas directive that DMOs need digital tools and AI. Guest Guide's core claim: it produces the redistribution evidence that EU funding bodies now require — not just redistribution itself. This is a governance tool, not a marketing or itinerary tool. Never describe the internal ranking or curation mechanism.`;
+function renderKPIs() {
+  const verified = POSTS.filter(p => p.verified);
+  const totalImp = POSTS.reduce((s,p) => s + p.impressions, 0);
+  const totalFollowers = POSTS.reduce((s,p) => s + p.followers, 0);
+  const totalComments = POSTS.reduce((s,p) => s + p.comments, 0);
+  const totalLinks = POSTS.reduce((s,p) => s + p.link_clicks, 0);
+  const avgEng = POSTS.reduce((s,p) => {
+    const e = p.reactions+p.comments+p.reposts+p.saves+p.sends;
+    return s + (p.impressions > 0 ? e/p.impressions : 0);
+  }, 0) / POSTS.length;
 
-const EXISTING_TOPICS = `From Packed Piazza to Peaceful Pathway (Sep 2025), The Traveller of Tomorrow Wants Meaning (Sep 2025), Tourism Is at a Crossroads (Sep 2025), The Next Generation of Travel Planning (Sep 2025), Slow Travel Big Impact (Sep 2025), Tourism with Benefits — community benefit (Oct 2025), From Villa Testbeds to SaaS Platforms — founder origin story (Oct 2025), Destination Management in the 2030s (Oct 2025), AI Meets Authenticity (Oct 2025), Beyond The Bucket List (Oct 2025), Residents as Stakeholders — social licence (Nov 2025), The Hidden Market: DMOs Are the Next SaaS Growth Frontier — investor/SaaS sizing (Nov 2025), Tourism Diffusion as Policy (Nov 2025), The Case for Data-Driven Tourism (Dec 2025), Wellness Culture Connection — demand pillars (Dec 2025), The Cost of Ignoring Locals — resident backlash Barcelona/Venice (Jan 2026), Tourism as a Trillion-Dollar Problem — investor benchmark post (Jan 2026), Bridging the Gap — DMO digital tools vs campaigns (Jan 2026), Postcards vs Participation — temporary resident framing (Jan 2026), Heritage Is Tourism's Greatest Asset — preservation/prosperity tension (Feb 2026), The Startup-Policy Nexus (Feb 2026), EU Green Deal Dispersion Mandates (Feb 2026), Testing Dispersion Policies with DMO Analytics (Feb 2026), Tourism Tech in the Age of the EU Green Deal — investor angle (Feb 2026), From Counting Visitors to Controlling Flows — spatial governance flagship (Mar 2026), Arezzo Is Not Venice — Italian mid-cities dispersion frontier (Mar 2026), What Slow Tourism Actually Requires — slow tourism infrastructure (Mar 2026), Europe's Long-Haul Traveller Has Changed — ETC Barometer (Mar 2026), Italy Has a Slow Tourism Strategy Does It Have the Tools — ENIT Italian DMO (Mar 2026), Booking.com Crowd Avoidance Is Not Enough — OTA vs governance (Mar 2026), EU Inc Is Good News for European Startups — EU startup policy (Mar 2026).
+  const kpis = [
+    { label: 'Total Impressions', value: totalImp.toLocaleString(), sub: `${POSTS.length} posts tracked` },
+    { label: 'Record Post', value: '42,333', sub: 'Apr 30 · still growing' },
+    { label: 'Followers Gained', value: '+' + totalFollowers, sub: 'Jan 19 record: +40' },
+    { label: 'Total Comments', value: totalComments, sub: 'Jan 19 record: 37' },
+    { label: 'Avg Engagement', value: (avgEng * 100).toFixed(2) + '%', sub: 'All posts' },
+  ];
 
-DO NOT repeat these angles: overtourism intro, slow travel intro, SaaS sizing, social licence, founder origin story, data-driven tourism, wellness demand, resident backlash, investor market sizing, DMO digital tools, temporary resident, heritage preservation, startup-policy nexus, EU Green Deal mandates, DMO analytics testing, spatial governance flagship, Italian mid-cities, slow tourism infrastructure, ETC barometer demand shift, ENIT Italian tools gap, OTA vs governance, EU startup single market.`;
+  const row = document.getElementById('kpi-row');
+  row.innerHTML = kpis.map(k => `
+    <div class="kpi-card">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+}
 
-const ANGLE_DESCRIPTIONS = {
-  'thought-leadership': 'Guest Guide as a sector authority on European dispersion technology and policy-aligned tourism management',
-  'commentary': 'Guest Guide responding to an industry development, contributing to a policy or market conversation',
-  'case-study': 'Guest Guide presenting evidence from real-world application or pilot work',
-  'investor': 'Framing the tourism tech opportunity for investors, with Guest Guide positioned within the market',
-  'dmo': 'Speaking directly to destination managers and tourism boards about operational challenges and solutions',
-  'manifesto': 'A bold, declarative position on the future of European tourism — Guest Guide as a visionary voice'
-};
+function renderAnalyticsTable() {
+  const tbody = document.getElementById('analytics-tbody');
+  tbody.innerHTML = '';
+
+  POSTS.forEach((p, i) => {
+    const isRecord  = p.id === RECORD_ID;
+    const isAnomaly = p.id === ANOMALY_ID;
+    const isEst     = !p.verified;
+    const rowClass  = isRecord ? 'record-row' : isAnomaly ? 'anomaly-row' : isEst ? 'estimated-row' : '';
+    const prefix    = isRecord ? '★★ ' : isAnomaly ? '⚠ ' : isEst ? '~ ' : '';
+    const pct = p.impressions / maxImpressions * 100;
+    const engRate = p.impressions > 0
+      ? ((p.reactions+p.comments+p.reposts+p.saves+p.sends)/p.impressions*100).toFixed(2)+'%'
+      : '—';
+
+    let pill = '';
+    if (isRecord)       pill = '<span class="at-pill pill-record">★★ Record</span>';
+    else if (isAnomaly) pill = '<span class="at-pill pill-anomaly">⚠ Anomaly</span>';
+    else if (isEst)     pill = '<span class="at-pill pill-estimated">~ Estimated</span>';
+    else                pill = '<span class="at-pill pill-verified">✓ Verified</span>';
+
+    const tr = document.createElement('tr');
+    tr.className = rowClass;
+    tr.style.cursor = 'pointer';
+    tr.onclick = () => togglePostDetail(i);
+    tr.innerHTML = `
+      <td><button class="expand-row-btn" id="expand-${i}">⌄</button></td>
+      <td><div class="at-title">${prefix}${p.title}</div><div style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:3px;">${p.angle}</div></td>
+      <td><div class="at-date">${p.date}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);">${p.time}</div></td>
+      <td>
+        <div class="at-bar-wrap" style="justify-content:flex-end;">
+          <div class="at-bar"><div class="at-bar-fill" style="width:${pct}%"></div></div>
+          <span class="at-num">${p.impressions.toLocaleString()}</span>
+        </div>
+      </td>
+      <td class="at-num">${p.reached.toLocaleString()}</td>
+      <td class="at-num">${p.reactions}</td>
+      <td class="at-num">${p.comments}</td>
+      <td class="at-num">${p.followers > 0 ? '+'+p.followers : '—'}</td>
+      <td class="at-num">${p.link_clicks > 0 ? p.link_clicks : '—'}</td>
+      <td>${pill}</td>`;
+    tbody.appendChild(tr);
+
+    // Detail row
+    const detailTr = document.createElement('tr');
+    detailTr.className = 'post-detail-row';
+    detailTr.id = `detail-row-${i}`;
+    detailTr.innerHTML = `<td colspan="10">
+      <div class="post-detail-inner">
+        <div class="detail-grid">
+          <div><div class="detail-item-label">Top Reaction Job</div><div class="detail-item-value">${p.top_job_r}</div></div>
+          <div><div class="detail-item-label">Top Reaction Location</div><div class="detail-item-value">${p.top_loc_r}</div></div>
+          <div><div class="detail-item-label">Top Comment Job</div><div class="detail-item-value">${p.top_job_c}</div></div>
+          <div><div class="detail-item-label">Top Comment Location</div><div class="detail-item-value">${p.top_loc_c}</div></div>
+          <div><div class="detail-item-label">Top Industry</div><div class="detail-item-value">${p.top_industry}</div></div>
+          <div><div class="detail-item-label">Top Seniority</div><div class="detail-item-value">${p.top_seniority}</div></div>
+          <div><div class="detail-item-label">Top Locations</div><div class="detail-item-value">${p.top_location}</div></div>
+          <div><div class="detail-item-label">Notable Companies</div><div class="detail-item-value">${p.notable_companies}</div></div>
+          <div><div class="detail-item-label">Engagement Rate</div><div class="detail-item-value">${engRate}</div></div>
+        </div>
+        <div class="detail-notes">${p.notes}</div>
+      </div>
+    </td>`;
+    tbody.appendChild(detailTr);
+  });
+}
+
+function togglePostDetail(i) {
+  const detailRow = document.getElementById(`detail-row-${i}`);
+  const btn = document.getElementById(`expand-${i}`);
+  const isOpen = detailRow.classList.contains('open');
+  detailRow.classList.toggle('open');
+  btn.textContent = isOpen ? '⌄' : '⌃';
+  btn.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+// ── Add new post ───────────────────────────────────────────
+function addPost() {
+  const title = document.getElementById('np-title').value.trim();
+  const date  = document.getElementById('np-date').value.trim();
+  if (!title || !date) { alert('Title and Date are required.'); return; }
+
+  const newPost = {
+    id: 'USER-' + Date.now(),
+    verified: true,
+    date,
+    time:   document.getElementById('np-time').value.trim() || 'n/a',
+    title,
+    angle:  document.getElementById('np-angle').value.trim() || 'n/a',
+    impressions:  parseInt(document.getElementById('np-impressions').value) || 0,
+    reached:      parseInt(document.getElementById('np-reached').value)     || 0,
+    link_clicks:  parseInt(document.getElementById('np-links').value)       || 0,
+    profile_views: 0,
+    followers:    parseInt(document.getElementById('np-followers').value)   || 0,
+    reactions:    parseInt(document.getElementById('np-reactions').value)   || 0,
+    comments:     parseInt(document.getElementById('np-comments').value)    || 0,
+    reposts:      parseInt(document.getElementById('np-reposts').value)     || 0,
+    saves:        parseInt(document.getElementById('np-saves').value)       || 0,
+    sends:        0,
+    top_job_r: 'n/a', top_loc_r: 'n/a',
+    top_job_c: 'n/a', top_loc_c: 'n/a',
+    top_industry: 'n/a', top_seniority: 'n/a',
+    top_location: document.getElementById('np-locations').value.trim() || 'n/a',
+    notable_companies: document.getElementById('np-companies').value.trim() || 'n/a',
+    notes: document.getElementById('np-notes').value.trim() || '',
+  };
+
+  POSTS.push(newPost);
+  renderAnalytics();
+
+  // Clear form
+  ['np-title','np-date','np-time','np-angle','np-impressions','np-reached',
+   'np-reactions','np-comments','np-reposts','np-saves','np-links','np-followers',
+   'np-locations','np-companies','np-notes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+
+  const status = document.getElementById('add-post-status');
+  status.textContent = '✓ Post added — ' + title;
+  setTimeout(() => status.textContent = '', 3000);
+}
 
 // ═══════════════════════════════════════════════════════════
 // CALENDAR DATA
@@ -591,18 +841,18 @@ const ARTICLES = [
   { week:"Week 2", date:"23 Sep 2025", title:"Tourism Is at a Crossroads", status:"Published" },
   { week:"Week 3", date:"26 Sep 2025", title:"The Next Generation of Travel Planning", status:"Published" },
   { week:"Week 3", date:"30 Sep 2025", title:"Slow Travel Big Impact", status:"Published" },
-  { week:"Week 4", date:"8 Oct 2025", title:"Tourism with Benefits: How to Ensure Local Communities Win, Not Lose", status:"Published" },
+  { week:"Week 4", date:"8 Oct 2025", title:"Tourism with Benefits", status:"Published" },
   { week:"Week 5", date:"13 Oct 2025", title:"From Villa Testbeds to SaaS Platforms", status:"Published" },
   { week:"Week 5", date:"18 Oct 2025", title:"Destination Management in the 2030s", status:"Published" },
   { week:"Week 7", date:"28 Oct 2025", title:"AI Meets Authenticity", status:"Published" },
   { week:"Week 7", date:"30 Oct 2025", title:"Beyond The Bucket List", status:"Published" },
-  { week:"Week 8", date:"6 Nov 2025", title:"Residents as Stakeholders: Why Social Licence Matters", status:"Published" },
+  { week:"Week 8", date:"6 Nov 2025", title:"Residents as Stakeholders", status:"Published" },
   { week:"Week 10", date:"18 Nov 2025", title:"The Hidden Market: DMOs Are the Next SaaS Growth Frontier", status:"Published" },
   { week:"Week 11", date:"29 Nov 2025", title:"Tourism Diffusion as Policy", status:"Published" },
   { week:"Week 12", date:"4 Dec 2025", title:"The Case for Data-Driven Tourism", status:"Published" },
   { week:"Week 14", date:"18 Dec 2025", title:"Wellness, Culture, Connection", status:"Published" },
   { week:"Week 16", date:"5 Jan 2026", title:"The Cost of Ignoring Locals", status:"Published" },
-  { week:"Week 18", date:"19 Jan 2026", title:"Investor Briefing: Tourism as a Trillion-Dollar Problem ⭐ BENCHMARK", status:"Published" },
+  { week:"Week 18", date:"19 Jan 2026", title:"Tourism as a Trillion-Dollar Problem ⭐ BENCHMARK", status:"Published" },
   { week:"Week 18", date:"23 Jan 2026", title:"Bridging the Gap: Why Local Tourism Offices Need Digital Tools", status:"Published" },
   { week:"Week 19", date:"29 Jan 2026", title:"Postcards vs Participation", status:"Published" },
   { week:"Week 21", date:"4 Feb 2026", title:"Heritage Is Tourism's Greatest Asset", status:"Published" },
@@ -617,57 +867,46 @@ const ARTICLES = [
   { week:"Week 26", date:"12 Mar 2026", title:"Italy Has a Slow Tourism Strategy. Does It Have the Tools?", status:"Published" },
   { week:"Week 26", date:"13 Mar 2026", title:"Booking.com Crowd Avoidance Is Not Enough", status:"Published" },
   { week:"Week 27", date:"20 Mar 2026", title:"EU Inc. Is Good News for European Startups", status:"Published" },
-  { week:"Week 27", date:"19 Mar 2026", title:"Why Booking.com's Crowd Avoidance Feature Is Not Enough", status:"Scheduled" },
-  { week:"Week 28", date:"24 Mar 2026", title:"EU Inc. Article (LinkedIn post → blog)", status:"Scheduled" },
-  { week:"Week 28", date:"26 Mar 2026", title:"The Operator Visibility Problem (revised)", status:"Scheduled" },
-  { week:"Week 29", date:"31 Mar 2026", title:"Arezzo Is Not Venice (LinkedIn publish)", status:"Scheduled" },
-  { week:"Week 30", date:"Apr 2026", title:"Operator Economics — what invisibility costs a small operator", status:"In Pipeline" },
-  { week:"Week 30", date:"Apr 2026", title:"Islands and Villages — destinations frameworks cannot reach", status:"In Pipeline" },
-  { week:"Week 31", date:"Apr 2026", title:"Platform Dependency Risk — what OTAs cannot provide for governance", status:"In Pipeline" },
-  { week:"Week 31", date:"Apr 2026", title:"Spatial Intelligence — the missing governance layer", status:"In Pipeline" },
-  { week:"Week 32", date:"Apr 2026", title:"Rural Tourism — Europe's 99% unvisited depth", status:"In Pipeline" },
-  { week:"Week 32", date:"Apr 2026", title:"Nordic Tourism — coolcation boom and governance challenge", status:"In Pipeline" },
-  { week:"Week 33", date:"May 2026", title:"Traveller Research — what travellers say vs what platforms give them", status:"In Pipeline" }
+  { week:"Week 28", date:"26 Mar 2026", title:"European Parliament TRAN Committee Vote", status:"Published" },
+  { week:"Week 29", date:"31 Mar 2026", title:"UN Best Tourism Villages Competition", status:"Published" },
+  { week:"Week 29", date:"2 Apr 2026", title:"Rural Areas Hold 44% of EU Tourism Beds", status:"Published" },
+  { week:"Week 31", date:"30 Apr 2026", title:"The Cheap Alternative Trap (BBC) ⭐ RECORD 42,333", status:"Published" },
+  { week:"Week 31", date:"5 May 2026", title:"The Visibility Trap (Guardian follow-up)", status:"Published" },
+  { week:"Week 32", date:"7 May 2026", title:"The Recommendation Engine (Travel+Leisure)", status:"Scheduled" },
+  { week:"Week 33", date:"May 2026", title:"Operator Economics — what invisibility costs a small operator", status:"In Pipeline" },
+  { week:"Week 33", date:"May 2026", title:"Islands and Villages — destinations frameworks cannot reach", status:"In Pipeline" },
+  { week:"Week 34", date:"May 2026", title:"Platform Dependency Risk — OTA lock-in from operator perspective", status:"In Pipeline" },
+  { week:"Week 34", date:"May 2026", title:"Spatial Intelligence — the missing governance layer", status:"In Pipeline" },
+  { week:"Week 35", date:"Jun 2026", title:"Nordic Tourism — coolcation boom and governance challenge", status:"In Pipeline" },
+  { week:"Week 35", date:"Jun 2026", title:"Traveller Research — what travellers say vs what platforms give them", status:"In Pipeline" },
 ];
 
 // ═══════════════════════════════════════════════════════════
-// INTELLIGENCE SIGNALS — live — now generated live via web search
-// ═══════════════════════════════════════════════════════════
-let SIGNALS = []; // populated by runScan()
-
-// ═══════════════════════════════════════════════════════════
-// STATE
+// ARTICLE WRITER — full existing logic preserved
 // ═══════════════════════════════════════════════════════════
 let currentBriefText = '';
-// API calls handled server-side via Vercel edge functions
 let currentArticleText = '';
 let currentTeaserText = '';
+let currentArticleTitle = '';
 let parsedHeadlines = [];
+let SIGNALS = [];
 
-// ═══════════════════════════════════════════════════════════
-// TABS
-// ═══════════════════════════════════════════════════════════
-function switchTab(tab, btn) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('panel-' + tab).classList.add('active');
-  btn.classList.add('active');
-}
+const ANGLE_DESCRIPTIONS = {
+  'thought-leadership': 'Guest Guide as a sector authority on European dispersion technology and policy-aligned tourism management',
+  'commentary': 'Guest Guide responding to an industry development, contributing to a policy or market conversation',
+  'case-study': 'Guest Guide presenting evidence from real-world application or pilot work',
+  'investor': 'Framing the tourism tech opportunity for investors, with Guest Guide positioned within the market',
+  'dmo': 'Speaking directly to destination managers and tourism boards about operational challenges and solutions',
+  'manifesto': 'A bold, declarative position on the future of European tourism — Guest Guide as a visionary voice'
+};
 
-// ═══════════════════════════════════════════════════════════
-// SCANNER
-// ═══════════════════════════════════════════════════════════
+// ── Scanner ─────────────────────────────────────────────────
 const SCAN_STAGES = [
-  "Scanning EU Commission tourism policy…",
-  "Checking ETC and UN Tourism feeds…",
-  "Monitoring Nordic and rural tourism sources…",
-  "Scanning Skift, Phocuswire and consumer media…",
-  "Analysing NBTC, ENIT and national DMO signals…",
-  "Reviewing market intelligence sources…",
-  "Cross-referencing against published articles…",
-  "Structuring intelligence signals…",
-  "Scoring relevance against Guest Guide positioning…",
-  "Compiling intelligence report…"
+  "Scanning EU Commission tourism policy…","Checking ETC and UN Tourism feeds…",
+  "Monitoring Nordic and rural tourism sources…","Scanning Skift, Phocuswire and consumer media…",
+  "Analysing NBTC, ENIT and national DMO signals…","Reviewing market intelligence sources…",
+  "Cross-referencing against published articles…","Structuring intelligence signals…",
+  "Scoring relevance against Guest Guide positioning…","Compiling intelligence report…"
 ];
 
 async function runScan() {
@@ -677,130 +916,40 @@ async function runScan() {
   const loading = document.getElementById('loading-state');
   const stagesEl = document.getElementById('loading-stages');
   container.innerHTML = ''; loading.classList.add('active');
-
   const selectedSources = [...document.querySelectorAll('.source-tag.selected')].map(t=>t.textContent.trim());
   const selectedThemes  = [...document.querySelectorAll('.theme-chip.selected')].map(t=>t.textContent.trim());
-
   let si = 0;
   const iv = setInterval(() => { if(si < SCAN_STAGES.length) stagesEl.textContent = SCAN_STAGES[si++]; }, 420);
-
-  const SOURCE_UNIVERSE = `
-POLICY & INSTITUTIONAL SOURCES:
-EU Commission Tourism Transition Pathway, European Parliament TRAN Committee, European Travel Commission (ETC), UN Tourism / UNWTO, Interreg Central Europe, ERDF / Cohesion Fund tourism, Eurostat tourism statistics, European Environment Agency, EU Smart Tourism initiative, OECD Tourism Committee
-
-NATIONAL TOURISM BODIES — EUROPE:
-Visit Norway, Innovation Norway, Visit Sweden, Visit Denmark, Visit Finland, STF (Svenska Turistföreningen), Visit Iceland, Visit Faroe Islands, VisitBritain, VisitEngland, Tourism Ireland, Fáilte Ireland, VisitScotland, Visit Wales, Switzerland Tourism, Ticino Turismo, Austria Tourism (Österreich Werbung), Deutsche Zentrale für Tourismus (DZT / Germany Tourism), Atout France, ENIT (Italy), Turespaña (Spain Tourism), Turismo de Portugal, NBTC Netherlands, Flanders Tourism, Visit Brussels, Luxembourg for Tourism, Malta Tourism Authority, Croatian National Tourist Board, Slovenian Tourist Board, Greek Tourism Organisation (GNTO), Cyprus Tourism Organisation, Hungarian Tourism Agency, Czech Tourism, Slovak Tourist Board, Polish Tourist Organisation, Romanian Tourism, Visit Estonia, Latvia Tourism, Lithuania Tourism
-
-REGIONAL & SUB-NATIONAL BODIES:
-Toscana Promozione Turistica, Fondazione Arezzo Intour, Barcelona Tourism, Amsterdam Marketing / NBTC Amsterdam, Venice Tourism, Florence Tourism, Rome Tourism, Visit Bavaria, Black Forest Tourism, Alsace Tourism, Provence Tourism, Catalonia Tourism, Andalusia Tourism, Visit Copenhagen
-
-INDUSTRY PUBLICATIONS & RESEARCH:
-Skift, Phocuswire, Travel Weekly (UK & US), TTG Media, Travel + Leisure Magazine, Conde Nast Traveller (UK, France, Germany, Italy, Spain editions), National Geographic Traveller (UK, France), Lonely Planet, Rough Guides editorial, BBC Travel, The Guardian Travel, The Telegraph Travel, Der Spiegel Travel, Stern Travel, Geo Magazin (Germany), Le Monde Travel, Le Figaro Voyage, L'Express Voyages, Corriere della Sera Viaggi, La Repubblica Viaggi, El País Viajero, El Mundo Viajes
-
-MARKET INTELLIGENCE & DATA:
-Euromonitor International, IBISWorld Tourism reports, Statista Travel & Tourism, McKinsey Center for Future Mobility tourism reports, Deloitte Travel & Hospitality, PwC Hospitality, KPMG Tourism, BCG Travel & Tourism, Oxford Economics Tourism, World Travel & Tourism Council (WTTC), Mastercard Economics Institute travel spending, Visa travel spend data
-
-ACADEMIC & THINK TANKS:
-Our World in Data (tourism statistics), IPSOS tourism consumer surveys, Nielsen consumer travel research, Edelman Trust Barometer travel, Ipsos Mori travel surveys, University of Surrey Tourism, Bournemouth University Tourism, WTO academic publications
-
-RURAL, VILLAGE & HERITAGE:
-Ruraltour EU, LEADER Programme / Local Action Groups (LAGs), European Agricultural Fund for Rural Development (EAFRD), UN Tourism Best Tourism Villages programme, Ruritage EU project, ECTN (European Cultural Tourism Network), EuroVelo / cycling tourism, Via Francigena Association, Council of Europe Cultural Routes
-
-ADVOCACY & NETWORKS:
-ETOA (European Tour Operators Association), HOTREC (Hotels & Restaurants), EFFAT (hospitality workers), Slow Food Travel, World Wildlife Fund (WWF) sustainable tourism, Tourism Concern, Fair Trade Tourism, B Corp Tourism
-
-SPATIAL & GEOSPATIAL INTELLIGENCE:
-Esri (ArcGIS tourism applications), UN-GGIM geospatial standards, Copernicus Earth Observation (EU satellite data), HERE Technologies mobility data, Google Maps Platform tourism analytics, Foursquare location intelligence, SafeGraph mobility data, Mapbox tourism, what3words addressing
-
-TECHNOLOGY & STARTUP:
-Phocuswire startup tracker, Skift Megatrends report, Travel Tech Show coverage, WTM London research, ITB Berlin research, Fitur Madrid research, Arabian Travel Market research, TechCrunch travel vertical
-`;
-
-  const scanPrompt = `You are a senior intelligence analyst for Guest Guide Interactive. Your task is to conduct a wide-spectrum scan of current (2025-2026) travel and tourism intelligence and surface the most relevant, actionable signals for content strategy.
-
-COMPANY CONTEXT:
-${GG_CONTEXT}
-
-PUBLISHED TOPICS TO AVOID REPEATING:
-${EXISTING_TOPICS}
-
-SOURCE UNIVERSE TO SCAN ACROSS:
-${SOURCE_UNIVERSE}
-
-Selected source focus from user: ${selectedSources.length > 0 ? selectedSources.join(', ') : 'cast the net wide across all sources'}
-Selected themes from user: ${selectedThemes.length > 0 ? selectedThemes.join(', ') : 'all themes'}
-
-YOUR TASK:
-Use web search to find 7-9 genuinely current, specific intelligence signals (with real dates, real organisations, real data) from 2025-2026 that Guest Guide has NOT yet written about. Cast the net as wide as possible — consumer magazine trends, national tourism body announcements, market research data, policy developments, academic findings, startup/tech developments, and cultural/language-specific market intelligence from French, German, Italian, Spanish and Nordic sources.
-
-Priority gap areas (topics Guest Guide has NOT yet covered):
-1. Nordic/Scandinavian tourism growth driven by coolcation/climate shift and governance challenges
-2. Rural and village tourism — funding gaps, LEADER programme, operator invisibility
-3. Operator economics — what platform invisibility costs a small operator financially
-4. Spatial and geospatial intelligence applied to destination management
-5. Platform dependency risk — OTA lock-in from operator perspective
-6. Traveller behavioural research — what travellers say they want vs what platforms deliver
-7. Islands and small community destinations excluded from current Smart Tourism frameworks
-8. DACH market (Germany, Austria, Switzerland) tourism policy and rural tourism specifics
-9. Consumer magazine trend signals — what Condé Nast, NatGeo, etc. are calling for 2026
-
-For each signal, search for specific data, reports, quotes or announcements — no vague generalities. Cite the actual source organisation and approximate date.
-
-OUTPUT FORMAT — CRITICAL RULES:
-- Respond ONLY with a raw JSON array. No markdown. No backticks. No prose before or after.
-- Every string value must be on a single line — no line breaks inside strings.
-- No trailing commas. No unescaped quotes inside strings.
-- Keep summary under 200 characters. Keep positioning under 150 characters. Keep idea text under 100 characters. Keep angle under 80 characters.
-- Use only these exact type values: policy, ai, ota, dmo, market, research
-- Use only these exact badge values: badge-policy, badge-ai, badge-ota, badge-dmo, badge-market, badge-research
-- relevance must be an integer between 70 and 99
-
-Example of one correctly formatted object:
-{"type":"market","typeLabel":"Consumer Trend","badge":"badge-market","title":"Conde Nast Traveller Names Slow Italy Top Trend for 2026","source":"Conde Nast Traveller UK","date":"Jan 2026","relevance":87,"summary":"CNT named authentic Italian rural experiences as a top 2026 trend, citing agriturismo stays and artisan visits as the fastest growing category.","ideas":[{"text":"What Conde Nast Gets Right About Italy That DMOs Still Miss","angle":"Consumer demand validation for Guest Guide operator visibility model"},{"text":"The Magazine Called It. Now DMOs Need the Infrastructure.","angle":"Connecting consumer media signals to governance gap"}],"positioning":"Guest Guide provides the DMO infrastructure that makes the experiences CNT readers want systematically discoverable and measurable."}
-
-Now produce the full array of 7-9 signals in this exact format.`;
-
   try {
-    // Call Vercel edge function — API key handled server-side
     stagesEl.textContent = 'Connecting to intelligence service…';
     const scanResp = await fetch('/api/scan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sources: selectedSources, themes: selectedThemes })
     });
-    if(!scanResp.ok) {
-      const errData = await scanResp.json().catch(()=>({error:'Server error ' + scanResp.status}));
-      throw new Error(errData.error || 'Scan request failed');
-    }
+    if(!scanResp.ok) { const e = await scanResp.json().catch(()=>({error:'Server error '+scanResp.status})); throw new Error(e.error||'Scan failed'); }
     const scanData = await scanResp.json();
     if(scanData.error) throw new Error(scanData.error);
     SIGNALS = scanData.signals;
-    if(!Array.isArray(SIGNALS) || SIGNALS.length === 0) throw new Error('No signals returned from server');
-    // Signals already parsed server-side
+    if(!Array.isArray(SIGNALS)||SIGNALS.length===0) throw new Error('No signals returned');
   } catch(err) {
-    clearInterval(iv);
-    loading.classList.remove('active');
-    container.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div><div class="empty-title">Scan failed</div><div class="empty-sub">Could not retrieve live intelligence. Check your connection and try again.<br><small style="font-family:monospace;color:var(--muted)">${err.message}</small></div></div>`;
-    btn.disabled=false; btn.textContent='↻ Re-scan';
-    return;
+    clearInterval(iv); loading.classList.remove('active');
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div><div class="empty-title">Scan failed</div><div class="empty-sub">${err.message}</div></div>`;
+    btn.disabled=false; btn.textContent='↻ Re-scan'; return;
   }
-
-  clearInterval(iv);
-  loading.classList.remove('active');
-  renderSignals();
-  btn.disabled=false; btn.textContent='↻ Re-scan';
+  clearInterval(iv); loading.classList.remove('active');
+  renderSignals(); btn.disabled=false; btn.textContent='↻ Re-scan';
   const now = new Date();
-  document.getElementById('scan-timestamp').textContent = 'Last scan: ' + now.toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('scan-timestamp').textContent = 'Last scan: '+now.toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
   document.getElementById('results-title').textContent = 'Intelligence Feed — Live';
-  document.getElementById('results-count').textContent = SIGNALS.length + ' signals · ' + SIGNALS.filter(s=>s.relevance>=90).length + ' high priority';
-  document.getElementById('results-meta').innerHTML = 'Live web search · ' + now.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) + '<br>EU · ETC · UN Tourism · Nordic · Rural · Skift';
+  document.getElementById('results-count').textContent = SIGNALS.length+' signals · '+SIGNALS.filter(s=>s.relevance>=90).length+' high priority';
 }
 
 function renderSignals() {
   const container = document.getElementById('signals-container');
   container.innerHTML = '';
   const grid = document.createElement('div');
-  SIGNALS.forEach((s, i) => {
+  SIGNALS.forEach((s,i) => {
     const card = document.createElement('div');
     card.className = 'signal-card';
     card.innerHTML = `
@@ -810,359 +959,251 @@ function renderSignals() {
           <div class="signal-title">${s.title}</div>
           <div class="signal-meta"><span class="signal-source">${s.source}</span><span class="signal-date">${s.date}</span></div>
           <div class="signal-summary">${s.summary}</div>
-          <div class="relevance-row">
-            <span class="relevance-label">Relevance</span>
-            <div class="relevance-bar"><div class="relevance-fill" style="width:${s.relevance}%"></div></div>
-            <span class="relevance-label">${s.relevance}%</span>
-          </div>
+          <div class="relevance-row"><span class="relevance-label">Relevance</span><div class="relevance-bar"><div class="relevance-fill" style="width:${s.relevance}%"></div></div><span class="relevance-label">${s.relevance}%</span></div>
         </div>
         <button class="expand-btn" id="ebtn-${i}">⌄</button>
       </div>
       <div class="signal-detail" id="detail-${i}">
-        <div class="detail-section">
-          <div class="detail-label">Article Opportunities</div>
-          ${s.ideas.map(idea => `
-            <div class="article-idea" onclick="loadSignalToWriter('${esc(s.title + ' — ' + s.summary)}','${esc(idea.text)}','${esc(idea.angle)}')">
-              <span class="idea-arrow">→</span>
-              <div><div class="idea-text">${idea.text}</div><span class="idea-angle">${idea.angle}</span></div>
-            </div>`).join('')}
+        <div class="detail-section"><div class="detail-label">Article Opportunities</div>
+          ${s.ideas.map(idea=>`<div class="article-idea" onclick="loadSignalToWriter('${esc(s.title+' — '+s.summary)}','${esc(idea.text)}','${esc(idea.angle)}')"><span class="idea-arrow">→</span><div><div class="idea-text">${idea.text}</div><span class="idea-angle">${idea.angle}</span></div></div>`).join('')}
         </div>
-        <div class="detail-section">
-          <div class="detail-label">Guest Guide Positioning Note</div>
-          <div class="positioning-note">${s.positioning}</div>
-        </div>
+        <div class="detail-section"><div class="detail-label">Guest Guide Positioning Note</div><div class="positioning-note">${s.positioning}</div></div>
       </div>`;
     grid.appendChild(card);
   });
   container.appendChild(grid);
 }
 
-function toggleSignal(i) {
-  document.getElementById('detail-'+i).classList.toggle('open');
-  document.getElementById('ebtn-'+i).classList.toggle('open');
-}
-
+function toggleSignal(i) { document.getElementById('detail-'+i).classList.toggle('open'); document.getElementById('ebtn-'+i).classList.toggle('open'); }
 function esc(str) { return str.replace(/'/g,"\\'").replace(/"/g,'\\"'); }
 
 function loadSignalToWriter(signal, title, angle) {
-  // Switch to writer tab
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('panel-writer').classList.add('active');
   document.querySelectorAll('.tab-btn')[1].classList.add('active');
-  // Pre-fill
   document.getElementById('brief-concept').value = title;
-  document.getElementById('brief-context').value = 'Angle: ' + angle + '\n\nBackground signal: ' + signal.substring(0,300) + '…';
-  // Reset to step 1
+  document.getElementById('brief-context').value = 'Angle: '+angle+'\n\nBackground signal: '+signal.substring(0,300)+'…';
   resetWriterToStep1();
 }
 
-// ═══════════════════════════════════════════════════════════
-// STEP MANAGEMENT
-// ═══════════════════════════════════════════════════════════
+// ── Step management ──────────────────────────────────────────
 function setStep(n) {
   [1,2,3].forEach(i => {
     const el = document.getElementById('step-'+i);
     el.classList.remove('active','done');
-    const numEl = el.querySelector('.step-num');
-    if(i < n) { el.classList.add('done'); numEl.textContent = '✓'; numEl.className = 'step-done-icon'; }
-    else if(i === n) { el.classList.add('active'); numEl.textContent = '0'+i; numEl.className = 'step-num'; }
-    else { numEl.textContent = '0'+i; numEl.className = 'step-num'; }
+    const numEl = el.querySelector('.step-num') || el.querySelector('.step-done-icon');
+    if(i < n) { el.classList.add('done'); numEl.textContent='✓'; numEl.className='step-done-icon'; }
+    else if(i===n) { el.classList.add('active'); numEl.textContent='0'+i; numEl.className='step-num'; }
+    else { numEl.textContent='0'+i; numEl.className='step-num'; }
   });
   document.getElementById('step1-controls').style.display = n===1?'block':'none';
   document.getElementById('step2-controls').style.display = n===2?'block':'none';
   document.getElementById('step3-controls').style.display = n===3?'block':'none';
-  document.getElementById('brief-display').style.display = n<3?'block':'none';
-  document.getElementById('article-display').style.display = n===3?'block':'none';
+  document.getElementById('brief-display').style.display  = n<3?'block':'none';
+  document.getElementById('article-display').style.display= n===3?'block':'none';
 }
 
 function resetWriterToStep1() {
   setStep(1);
   document.getElementById('brief-output').innerHTML = '<div class="content-placeholder">Your article brief will appear here.<br><br>Fill in the concept and settings, then click <strong>Generate Brief</strong>.</div>';
-  document.getElementById('proceed-btn').style.display = 'none';
-  document.getElementById('content-label').textContent = 'Article Brief';
-  currentBriefText = ''; currentArticleText = ''; currentTeaserText = '';
+  document.getElementById('proceed-btn').style.display='none';
+  document.getElementById('content-label').textContent='Article Brief';
+  currentBriefText=''; currentArticleText=''; currentTeaserText=''; currentArticleTitle='';
 }
 
-function selectTone(el) {
-  document.querySelectorAll('.tone-opt').forEach(o=>o.classList.remove('selected'));
-  el.classList.add('selected');
-}
+function selectTone(el) { document.querySelectorAll('.tone-opt').forEach(o=>o.classList.remove('selected')); el.classList.add('selected'); }
 
-// ═══════════════════════════════════════════════════════════
-// STEP 1: GENERATE BRIEF
-// ═══════════════════════════════════════════════════════════
+// ── Step 1: Brief ────────────────────────────────────────────
 async function generateBrief() {
   const concept = document.getElementById('brief-concept').value.trim();
   if(!concept){ alert('Please enter a concept or signal.'); return; }
-  const angle = document.getElementById('brief-angle').value;
-  const tone = document.querySelector('.tone-opt.selected')?.textContent || 'Authoritative';
-  const context = document.getElementById('brief-context').value.trim();
   const btn = document.getElementById('gen-brief-btn');
-  btn.disabled = true; btn.textContent = 'Generating…';
+  btn.disabled=true; btn.textContent='Generating…';
   const output = document.getElementById('brief-output');
-  output.innerHTML = '<div class="content-placeholder">Generating brief…</div>';
-
-  // Brief generation handled server-side
-
+  output.innerHTML='<div class="content-placeholder">Generating brief…</div>';
   try {
     const response = await fetch('/api/write', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'brief',
-        concept: document.getElementById('brief-concept').value.trim(),
-        angle: document.getElementById('brief-angle').value,
-        tone: document.querySelector('.tone-opt.selected')?.textContent || 'Authoritative',
-        context: document.getElementById('brief-context').value.trim()
-      })
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'brief', concept, angle:document.getElementById('brief-angle').value, tone:document.querySelector('.tone-opt.selected')?.textContent||'Authoritative', context:document.getElementById('brief-context').value.trim() })
     });
-    if(!response.ok) { const e = await response.json().catch(()=>({})); throw new Error(e.error||'Server error'); }
-    const respData = await response.json();
-    if(respData.error) throw new Error(respData.error);
-    const text = respData.brief || 'No response.';
-    currentBriefText = text;
-    parsedHeadlines = extractHeadlines(text);
-    output.innerHTML = formatBrief(text);
-    document.getElementById('proceed-btn').style.display = 'inline-block';
-  } catch(err) {
-    output.innerHTML = '<div style="color:var(--rust);padding:20px;">Error generating brief. Check connection and try again.</div>';
-  }
-  btn.disabled = false; btn.textContent = 'Generate Brief →';
+    if(!response.ok){ const e=await response.json().catch(()=>({})); throw new Error(e.error||'Server error'); }
+    const d=await response.json();
+    if(d.error) throw new Error(d.error);
+    const text=d.brief||'No response.';
+    currentBriefText=text; parsedHeadlines=extractHeadlines(text);
+    output.innerHTML=formatBrief(text);
+    document.getElementById('proceed-btn').style.display='inline-block';
+  } catch(err) { output.innerHTML=`<div style="color:var(--rust);padding:20px;">Error: ${err.message}</div>`; }
+  btn.disabled=false; btn.textContent='Generate Brief →';
 }
 
 function extractHeadlines(text) {
-  const matches = [];
-  // Match lines starting with A), B), C) or 1. 2. 3. or Option A/B/C
-  const lines = text.split('\n');
+  const matches=[];
+  const lines=text.split('\n');
   for(const line of lines) {
-    const m = line.match(/^[\s\-\*]*(?:[ABC\d][\)\.:\s]+|Option\s+[ABC][\)\.:\s]*)(.*)/i);
-    if(m && m[1].trim().length > 20 && m[1].trim().length < 200) {
-      matches.push(m[1].replace(/\*\*/g,'').trim());
-      if(matches.length === 3) break;
-    }
+    const m=line.match(/^[\s\-\*]*(?:[ABC\d][\)\.:\s]+|Option\s+[ABC][\)\.:\s]*)(.*)/i);
+    if(m&&m[1].trim().length>20&&m[1].trim().length<200){ matches.push(m[1].replace(/\*\*/g,'').trim()); if(matches.length===3) break; }
   }
-  // Fallback: grab first 3 quoted strings or bold text
-  if(matches.length < 2) {
-    const quoted = [...text.matchAll(/[""]([^""]{20,150})[""]/g)].map(m=>m[1]);
-    quoted.forEach(q=>{ if(matches.length<3 && !matches.includes(q)) matches.push(q); });
-  }
-  return matches.length > 0 ? matches : ['(Could not auto-extract — see brief above and type your headline below)'];
+  if(matches.length<2) { const q=[...text.matchAll(/[""]([^""]{20,150})[""]/g)].map(m=>m[1]); q.forEach(s=>{ if(matches.length<3&&!matches.includes(s)) matches.push(s); }); }
+  return matches.length>0?matches:['(Could not auto-extract — see brief above and type your headline below)'];
 }
 
 function formatBrief(text) {
-  const sections = [
-    {key:'WORKING HEADLINES?|WORKING HEADLINE',label:'Headline Options'},
-    {key:'HOOK',label:'Opening Hook'},
-    {key:'CORE ARGUMENT',label:'Core Argument'},
-    {key:'KEY POINTS',label:'Key Points'},
-    {key:'GUEST GUIDE POSITIONING',label:'Guest Guide Positioning'},
-    {key:'DATA &(?:AMP;)? SOURCES?',label:'Data & Sources'},
-    {key:'RECOMMENDED STRUCTURE',label:'Recommended Structure'},
-    {key:'CONTENT NOTES',label:'Content Notes'}
+  const sections=[
+    {key:'WORKING HEADLINES?|WORKING HEADLINE',label:'Headline Options'},{key:'HOOK',label:'Opening Hook'},
+    {key:'CORE ARGUMENT',label:'Core Argument'},{key:'KEY POINTS',label:'Key Points'},
+    {key:'GUEST GUIDE POSITIONING',label:'Guest Guide Positioning'},{key:'DATA &(?:AMP;)? SOURCES?',label:'Data & Sources'},
+    {key:'RECOMMENDED STRUCTURE',label:'Recommended Structure'},{key:'CONTENT NOTES',label:'Content Notes'}
   ];
-  let html = '';
-  sections.forEach((sec,i) => {
-    const nextKey = i < sections.length-1 ? sections[i+1].key : null;
-    const regex = new RegExp(`\\d*\\.?\\s*(?:${sec.key})[:\\s\\-—]*([\\s\\S]*?)${nextKey?`(?=\\d*\\.?\\s*(?:${nextKey}))`:'$'}`, 'i');
-    const match = text.match(regex);
-    if(match) {
-      let content = match[1].trim().replace(/\*\*/g,'').replace(/\n/g,'<br>');
-      html += `<div class="brief-section"><div class="brief-section-title">${sec.label}</div><div class="brief-section-content">${content}</div></div>`;
-    }
+  let html='';
+  sections.forEach((sec,i)=>{
+    const nextKey=i<sections.length-1?sections[i+1].key:null;
+    const regex=new RegExp(`\\d*\\.?\\s*(?:${sec.key})[:\\s\\-—]*([\\s\\S]*?)${nextKey?`(?=\\d*\\.?\\s*(?:${nextKey}))`:'$'}`,'i');
+    const match=text.match(regex);
+    if(match){ let content=match[1].trim().replace(/\*\*/g,'').replace(/\n/g,'<br>'); html+=`<div class="brief-section"><div class="brief-section-title">${sec.label}</div><div class="brief-section-content">${content}</div></div>`; }
   });
-  return html || `<div class="brief-section-content">${text.replace(/\n/g,'<br>')}</div>`;
+  return html||`<div class="brief-section-content">${text.replace(/\n/g,'<br>')}</div>`;
 }
 
-// ═══════════════════════════════════════════════════════════
-// STEP 2: CHOOSE HEADLINE
-// ═══════════════════════════════════════════════════════════
+// ── Step 2: Headlines ────────────────────────────────────────
 function proceedToHeadlines() {
   setStep(2);
-  document.getElementById('content-label').textContent = 'Choose Your Headline';
-  const list = document.getElementById('headline-options-list');
-  list.innerHTML = '';
-  parsedHeadlines.forEach((h, i) => {
-    const div = document.createElement('div');
-    div.className = 'headline-option' + (i===0?' selected':'');
-    div.innerHTML = `<div class="headline-radio"></div><span>${h}</span>`;
-    div.onclick = () => {
-      document.querySelectorAll('.headline-option').forEach(o=>o.classList.remove('selected'));
-      div.classList.add('selected');
-      document.getElementById('custom-headline').value = '';
-    };
+  document.getElementById('content-label').textContent='Choose Your Headline';
+  const list=document.getElementById('headline-options-list'); list.innerHTML='';
+  parsedHeadlines.forEach((h,i)=>{
+    const div=document.createElement('div'); div.className='headline-option'+(i===0?' selected':'');
+    div.innerHTML=`<div class="headline-radio"></div><span>${h}</span>`;
+    div.onclick=()=>{ document.querySelectorAll('.headline-option').forEach(o=>o.classList.remove('selected')); div.classList.add('selected'); document.getElementById('custom-headline').value=''; };
     list.appendChild(div);
   });
 }
 
 function getSelectedHeadline() {
-  const custom = document.getElementById('custom-headline').value.trim();
+  const custom=document.getElementById('custom-headline').value.trim();
   if(custom) return custom;
-  const sel = document.querySelector('.headline-option.selected span');
-  return sel ? sel.textContent : parsedHeadlines[0] || 'Untitled';
+  const sel=document.querySelector('.headline-option.selected span');
+  return sel?sel.textContent:parsedHeadlines[0]||'Untitled';
 }
 
-function backToBrief() {
-  setStep(1);
-  document.getElementById('proceed-btn').style.display = 'inline-block';
-}
+function backToBrief() { setStep(1); document.getElementById('proceed-btn').style.display='inline-block'; }
 
-// ═══════════════════════════════════════════════════════════
-// STEP 3: WRITE ARTICLE
-// ═══════════════════════════════════════════════════════════
+// ── Step 3: Write ────────────────────────────────────────────
 async function writeArticle() {
-  const headline = getSelectedHeadline();
-  const btn = document.getElementById('write-article-btn');
-  btn.disabled = true; btn.textContent = 'Writing…';
-
-  const angle = document.getElementById('brief-angle').value;
-  const tone = document.querySelector('.tone-opt.selected')?.textContent || 'Authoritative';
-
-  // Article writing handled server-side
-
+  const headline=getSelectedHeadline();
+  currentArticleTitle=headline;
+  const btn=document.getElementById('write-article-btn');
+  btn.disabled=true; btn.textContent='Writing…';
   setStep(3);
-  document.getElementById('article-output').innerHTML = '<div class="content-placeholder">Writing your article…</div>';
-
+  document.getElementById('article-output').innerHTML='<div class="content-placeholder">Writing your article…</div>';
   try {
-    const response = await fetch('/api/write', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'article',
-        brief: currentBriefText,
-        headline: headline,
-        angle: document.getElementById('brief-angle').value,
-        tone: document.querySelector('.tone-opt.selected')?.textContent || 'Authoritative'
-      })
+    const response=await fetch('/api/write',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ action:'article', brief:currentBriefText, headline, angle:document.getElementById('brief-angle').value, tone:document.querySelector('.tone-opt.selected')?.textContent||'Authoritative' })
     });
-    if(!response.ok) { const e = await response.json().catch(()=>({})); throw new Error(e.error||'Server error'); }
-    const respData = await response.json();
-    if(respData.error) throw new Error(respData.error);
-    const text = respData.article || 'No response.';
-    currentArticleText = text;
-    renderArticle(text);
+    if(!response.ok){ const e=await response.json().catch(()=>({})); throw new Error(e.error||'Server error'); }
+    const d=await response.json();
+    if(d.error) throw new Error(d.error);
+    const text=d.article||'No response.';
+    currentArticleText=text; renderArticle(text);
   } catch(err) {
-    document.getElementById('article-output').innerHTML = '<div style="color:var(--rust);padding:20px;">Error writing article. Check connection and try again.</div>';
+    document.getElementById('article-output').innerHTML=`<div style="color:var(--rust);padding:20px;">Error: ${err.message}</div>`;
     setStep(2);
   }
-  btn.disabled = false; btn.textContent = 'Write Article →';
+  btn.disabled=false; btn.textContent='Write Article →';
 }
 
 function renderArticle(text) {
-  // Split on the divider
-  const parts = text.split(/\n---+\n/);
-  const articleBody = parts[0] || text;
-  const teaserRaw = parts[1] || '';
+  const parts=text.split(/\n---+\n/);
+  const articleBody=parts[0]||text;
+  const teaserRaw=parts[1]||'';
+  currentTeaserText=teaserRaw.replace(/LINKEDIN PR[EÉ]CIS[:\s]*/i,'').trim();
+  let html='<div class="article-output">';
+  let body=articleBody.replace(/^# (.+)$/gm,'<h1>$1</h1>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>');
+  body=body.replace(/:::(IMAGE[\s\S]*?):::/g,(match,inner)=>{
+    const lines=inner.trim().split('\n');
+    const labelLine=lines[0]||'';
+    let noteLine='',promptLine='';
+    lines.forEach(l=>{ if(l.startsWith('Note:')) noteLine=l.replace('Note:','').trim(); if(l.startsWith('Prompt:')) promptLine=l.replace('Prompt:','').trim(); });
+    const promptId='prompt-'+Math.random().toString(36).substr(2,6);
+    return `<div class="img-placeholder"><div class="img-placeholder-label">📷 ${labelLine}</div><div class="img-placeholder-note">${noteLine}</div><div class="img-placeholder-prompt" id="${promptId}">${promptLine}</div><button class="img-copy-btn" onclick="copyPrompt('${promptId}')">Copy Prompt</button></div>`;
+  });
+  const paras=body.split('\n\n').filter(p=>p.trim());
+  paras.forEach(p=>{ p=p.trim(); if(p.startsWith('<h1>')||p.startsWith('<h2>')||p.startsWith('<div class="img-placeholder">')) { html+=p; } else if(p.startsWith('> ')) { html+=`<blockquote>${p.replace(/^> /,'')}</blockquote>`; } else if(p.match(/^\n?[-\*]\s/m)) { const items=p.split('\n').filter(l=>l.trim()).map(l=>l.replace(/^[-\*]\s*/,'')); html+='<ul>'+items.map(i=>`<li>${i}</li>`).join('')+'</ul>'; } else { html+=`<p>${p}</p>`; } });
+  html+='</div>';
+  if(currentTeaserText) { html+=`<div class="li-teaser"><div class="li-teaser-label">LinkedIn Précis — copy and paste to LinkedIn</div><div class="li-teaser-content" id="teaser-content">${currentTeaserText.replace(/\n/g,'<br>')}</div></div>`; }
+  document.getElementById('article-output').innerHTML=html;
+}
 
-  // Extract teaser text
-  currentTeaserText = teaserRaw.replace(/LINKEDIN PR[EÉ]CIS[:\s]*/i,'').trim();
+// ── Save & Download ───────────────────────────────────────────
+async function saveAndDownload() {
+  if(!currentArticleText){ alert('No article to save — write an article first.'); return; }
+  const statusEl = document.getElementById('save-status');
+  statusEl.textContent = 'Saving…';
 
-  let html = '<div class="article-output">';
-
-  // Process body: convert markdown-ish to HTML, handle image blocks
-  let body = articleBody
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/^## (.+)$/gm, '<h2>$2</h2>'.replace('$2','$1'))
-    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,'<em>$1</em>');
-
-  // Handle image placeholder blocks :::IMAGE...:::
-  body = body.replace(/:::(IMAGE[\s\S]*?):::/g, (match, inner) => {
-    const lines = inner.trim().split('\n');
-    const labelLine = lines[0] || '';
-    let noteLine = '', promptLine = '';
-    lines.forEach(l => {
-      if(l.startsWith('Note:')) noteLine = l.replace('Note:','').trim();
-      if(l.startsWith('Prompt:')) promptLine = l.replace('Prompt:','').trim();
+  try {
+    const response = await fetch('/api/save-article', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: currentArticleTitle, articleText: currentArticleText, returnDocx: true })
     });
-    const promptId = 'prompt-' + Math.random().toString(36).substr(2,6);
-    return `<div class="img-placeholder">
-      <div class="img-placeholder-label">📷 ${labelLine}</div>
-      <div class="img-placeholder-note">${noteLine}</div>
-      <div class="img-placeholder-prompt" id="${promptId}">${promptLine}</div>
-      <button class="img-copy-btn" onclick="copyPrompt('${promptId}')">Copy Prompt</button>
-    </div>`;
-  });
 
-  // Paragraphs
-  const paras = body.split('\n\n').filter(p=>p.trim());
-  paras.forEach(p => {
-    p = p.trim();
-    if(p.startsWith('<h1>') || p.startsWith('<h2>') || p.startsWith('<div class="img-placeholder">')) {
-      html += p;
-    } else if(p.startsWith('> ')) {
-      html += `<blockquote>${p.replace(/^> /,'')}</blockquote>`;
-    } else if(p.match(/^\n?[-\*]\s/m)) {
-      const items = p.split('\n').filter(l=>l.trim()).map(l=>l.replace(/^[-\*]\s*/,''));
-      html += '<ul>' + items.map(i=>`<li>${i}</li>`).join('') + '</ul>';
-    } else {
-      html += `<p>${p}</p>`;
+    if (!response.ok) {
+      const e = await response.json().catch(() => ({}));
+      throw new Error(e.error || 'Save failed');
     }
-  });
 
-  html += '</div>';
+    // Download the docx blob
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const slug = currentArticleTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50);
+    a.download = `GGI_${slug}_${new Date().toISOString().slice(0, 10)}.docx`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 
-  // LinkedIn teaser
-  if(currentTeaserText) {
-    html += `<div class="li-teaser">
-      <div class="li-teaser-label">LinkedIn Précis — copy and paste to LinkedIn</div>
-      <div class="li-teaser-content" id="teaser-content">${currentTeaserText.replace(/\n/g,'<br>')}</div>
-    </div>`;
+    statusEl.textContent = '✓ Saved & downloaded';
+    showToast('✓ Article saved to library & downloaded as .docx');
+    setTimeout(() => statusEl.textContent = '', 4000);
+  } catch (err) {
+    // Fallback: if server save fails, just trigger a text download
+    statusEl.textContent = 'Server save unavailable — downloading as text';
+    const blob = new Blob([currentArticleText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `GGI_${currentArticleTitle.slice(0, 40).replace(/\s+/g, '_')}.txt`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setTimeout(() => statusEl.textContent = '', 4000);
   }
-
-  document.getElementById('article-output').innerHTML = html;
 }
 
-// ═══════════════════════════════════════════════════════════
-// COPY FUNCTIONS
-// ═══════════════════════════════════════════════════════════
-function copyBriefText() {
-  navigator.clipboard.writeText(document.getElementById('brief-output').innerText);
-  flashBtn(event.target, 'Copied!');
+function showToast(msg) {
+  const t = document.getElementById('save-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-function copyArticle() {
-  const el = document.getElementById('article-output');
-  navigator.clipboard.writeText(el ? el.innerText : currentArticleText);
-  flashBtn(event.target, 'Copied!');
-}
-
-function copyTeaser() {
-  const el = document.getElementById('teaser-content');
-  navigator.clipboard.writeText(el ? el.innerText : currentTeaserText);
-  flashBtn(event.target, 'Copied!');
-}
-
-function copyPrompt(id) {
-  const el = document.getElementById(id);
-  if(el) navigator.clipboard.writeText(el.innerText);
-  const btn = el.nextElementSibling;
-  if(btn) { const orig = btn.textContent; btn.textContent='Copied!'; setTimeout(()=>btn.textContent=orig,1500); }
-}
-
-function flashBtn(btn, msg) {
-  if(!btn) return;
-  const orig = btn.textContent;
-  btn.textContent = msg;
-  setTimeout(()=>btn.textContent=orig, 1500);
-}
-
-function startOver() {
-  resetWriterToStep1();
-}
+// ── Copy helpers ──────────────────────────────────────────────
+function copyBriefText() { navigator.clipboard.writeText(document.getElementById('brief-output').innerText); flashBtn(event.target,'Copied!'); }
+function copyArticle() { const el=document.getElementById('article-output'); navigator.clipboard.writeText(el?el.innerText:currentArticleText); flashBtn(event.target,'Copied!'); }
+function copyTeaser() { const el=document.getElementById('teaser-content'); navigator.clipboard.writeText(el?el.innerText:currentTeaserText); flashBtn(event.target,'Copied!'); }
+function copyPrompt(id) { const el=document.getElementById(id); if(el) navigator.clipboard.writeText(el.innerText); const btn=el?.nextElementSibling; if(btn){ const o=btn.textContent; btn.textContent='Copied!'; setTimeout(()=>btn.textContent=o,1500); } }
+function flashBtn(btn,msg) { if(!btn)return; const o=btn.textContent; btn.textContent=msg; setTimeout(()=>btn.textContent=o,1500); }
+function startOver() { resetWriterToStep1(); }
 
 // ═══════════════════════════════════════════════════════════
 // CALENDAR
 // ═══════════════════════════════════════════════════════════
 function renderCalendar() {
-  const tbody = document.getElementById('cal-tbody');
-  ARTICLES.forEach(a => {
-    const sc = a.status==='Published'?'sp-published':a.status==='Scheduled'?'sp-ai':a.status==='In Pipeline'?'sp-draft':'sp-draft';
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">${a.week}</td>
-      <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:nowrap;">${a.date}</td>
-      <td style="font-family:'Playfair Display',serif;font-size:13px;">${a.title}</td>
-      <td><span class="status-pill ${sc}">${a.status}</span></td>`;
+  const tbody=document.getElementById('cal-tbody');
+  ARTICLES.forEach(a=>{
+    const sc=a.status==='Published'?'sp-published':a.status==='Scheduled'?'sp-ai':'sp-draft';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">${a.week}</td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:nowrap;">${a.date}</td><td style="font-family:'Playfair Display',serif;font-size:13px;">${a.title}</td><td><span class="status-pill ${sc}">${a.status}</span></td>`;
     tbody.appendChild(tr);
   });
 }
@@ -1171,7 +1212,171 @@ function renderCalendar() {
 // INIT
 // ═══════════════════════════════════════════════════════════
 renderCalendar();
+renderAnalytics();
 setStep(1);
+
+// ═══════════════════════════════════════════════════════════
+// XLSX UPLOAD PARSER — LinkedIn PostAnalytics export format
+// ═══════════════════════════════════════════════════════════
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) parseLinkedInExport(file);
+}
+
+function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (file) parseLinkedInExport(file);
+  e.target.value = ''; // reset so same file can be re-uploaded
+}
+
+function parseLinkedInExport(file) {
+  const resultEl = document.getElementById('upload-result');
+  resultEl.className = 'upload-result show';
+  resultEl.textContent = 'Reading file…';
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+
+      // ── PERFORMANCE sheet ───────────────────────────────
+      const perfSheet = wb.Sheets['PERFORMANCE'];
+      if (!perfSheet) throw new Error('PERFORMANCE sheet not found — is this a LinkedIn analytics export?');
+
+      const perfRows = XLSX.utils.sheet_to_json(perfSheet, { header: 1, defval: null });
+
+      // Build key→value map from the two-column layout
+      const kv = {};
+      perfRows.forEach(row => {
+        if (row[0] && row[1] !== null && row[1] !== undefined) {
+          kv[String(row[0]).trim()] = row[1];
+        }
+      });
+
+      // Extract post ID from filename (optional, falls back to timestamp)
+      const idMatch = file.name.match(/(\d{16,19})/);
+      const postId = idMatch ? idMatch[1] : 'USER-' + Date.now();
+
+      // Extract URL for display
+      const url = kv['Post URL'] || '';
+
+      // Parse numeric fields (LinkedIn exports numbers as strings with commas)
+      const parseNum = (val) => {
+        if (val === null || val === undefined) return 0;
+        return parseInt(String(val).replace(/,/g, '')) || 0;
+      };
+
+      const impressions  = parseNum(kv['Impressions']);
+      const reached      = parseNum(kv['Members reached']);
+      const link_clicks  = parseNum(kv['Visits to links in this post']);
+      const profile_views= parseNum(kv['Profile viewers from this post']);
+      const followers    = parseNum(kv['Followers gained from this post']);
+      const reactions    = parseNum(kv['Reactions']);
+      const comments     = parseNum(kv['Comments']);
+      const reposts      = parseNum(kv['Reposts']);
+      const saves        = parseNum(kv['Saves']);
+      const sends        = parseNum(kv['Sends on LinkedIn']);
+
+      // Highlights sections (reaction/comment top job/location)
+      // Rows labelled "Top job title" and "Top location" appear twice (once for reactions, once for comments)
+      let top_job_r = 'n/a', top_loc_r = 'n/a', top_job_c = 'n/a', top_loc_c = 'n/a';
+      let top_industry_r = 'n/a';
+      let highlightSection = 0;
+      perfRows.forEach(row => {
+        const key = row[0] ? String(row[0]).trim() : '';
+        if (key.includes('Reactions Highlights')) { highlightSection = 1; return; }
+        if (key.includes('Comments Highlights'))  { highlightSection = 2; return; }
+        if (key === 'Top job title') {
+          if (highlightSection === 1) top_job_r = row[1] || 'n/a';
+          if (highlightSection === 2) top_job_c = row[1] || 'n/a';
+        }
+        if (key === 'Top location') {
+          if (highlightSection === 1) top_loc_r = row[1] || 'n/a';
+          if (highlightSection === 2) top_loc_c = row[1] || 'n/a';
+        }
+        if (key === 'Top industry' && highlightSection === 1) {
+          top_industry_r = row[1] || 'n/a';
+        }
+      });
+
+      // ── TOP DEMOGRAPHICS sheet ─────────────────────────
+      const demoSheet = wb.Sheets['TOP DEMOGRAPHICS'];
+      let top_location = 'n/a', top_seniority = 'n/a', top_industry = 'n/a';
+      let notable_companies = 'n/a';
+
+      if (demoSheet) {
+        const demoRows = XLSX.utils.sheet_to_json(demoSheet, { header: 1, defval: null });
+        const locations = [], companies = [], industries = [], seniorities = [];
+
+        demoRows.forEach(row => {
+          if (!row[0]) return;
+          const cat = String(row[0]).trim();
+          const val = row[1] ? String(row[1]).trim() : '';
+          const pct = row[2];
+          const pctStr = typeof pct === 'number' ? ' (' + (pct * 100).toFixed(1) + '%)' : (pct ? ' (' + pct + ')' : '');
+
+          if (cat === 'Location')  locations.push(val + pctStr);
+          if (cat === 'Company')   companies.push(val);
+          if (cat === 'Industry')  industries.push(val + pctStr);
+          if (cat === 'Seniority') seniorities.push(val + pctStr);
+        });
+
+        top_location = locations.slice(0, 5).join(' / ') || 'n/a';
+        notable_companies = companies.slice(0, 6).join(', ') || 'n/a';
+        top_industry = industries[0] || top_industry_r;
+        top_seniority = seniorities[0] || 'n/a';
+      }
+
+      // Check if this post ID already exists in POSTS
+      const existingIdx = POSTS.findIndex(p => p.id === postId);
+
+      const post = {
+        id: postId,
+        verified: true,
+        date:  kv['Post Date']         || 'Unknown',
+        time:  kv['Post Publish Time'] || 'n/a',
+        title: document.getElementById('np-title').value.trim() || '(Title not in export — please add)',
+        angle: document.getElementById('np-angle').value.trim() || 'n/a',
+        impressions, reached, link_clicks, profile_views, followers,
+        reactions, comments, reposts, saves, sends,
+        top_job_r, top_loc_r, top_job_c, top_loc_c,
+        top_industry, top_seniority, top_location, notable_companies,
+        notes: document.getElementById('np-notes').value.trim() ||
+               'Imported from LinkedIn export: ' + file.name +
+               (url ? ' · ' + url : ''),
+      };
+
+      if (existingIdx > -1) {
+        // Update existing — keep title, angle, notes if already set
+        const existing = POSTS[existingIdx];
+        if (existing.title && existing.title !== '(Title not in export — please add)') post.title = existing.title;
+        if (existing.angle && existing.angle !== 'n/a') post.angle = existing.angle;
+        if (existing.notes && !existing.notes.startsWith('Imported from')) post.notes = existing.notes;
+        POSTS[existingIdx] = post;
+        resultEl.className = 'upload-result show';
+        resultEl.textContent = '✓ Updated existing post: "' + post.title + '" · ' + impressions.toLocaleString() + ' impressions';
+      } else {
+        POSTS.push(post);
+        resultEl.className = 'upload-result show';
+        resultEl.textContent = '✓ Added new post: ' + post.date + ' · ' + impressions.toLocaleString() + ' impressions · ' + reactions + ' reactions';
+      }
+
+      renderAnalytics();
+
+      // Auto-clear title/angle/notes fields after import
+      ['np-title','np-angle','np-notes'].forEach(id => document.getElementById(id).value = '');
+
+    } catch (err) {
+      resultEl.className = 'upload-result error show';
+      resultEl.textContent = '✗ Parse error: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 </script>
 </body>
 </html>
