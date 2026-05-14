@@ -3,275 +3,316 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Guest Guide Intelligence Scanner v4</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<title>Guest Guide · Content Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
 :root {
-  --ink: #0f0e0d;
-  --paper: #f5f0e8;
-  --cream: #ede8dc;
-  --rust: #b84c2b;
-  --sage: #4a6741;
-  --slate: #3d4f5c;
-  --gold: #c9963a;
-  --muted: #7a7268;
-  --border: #d4cec4;
-  --white: #ffffff;
-  --blue: #1D4A7A;
-  --lblue: #55B8D8;
-  --pink: #CC5B9C;
+  /* Guest Guide Brand Palette */
+  --primary:      #1D4A7A;   /* Primary Blue */
+  --light-blue:   #55B8D8;   /* Light Blue */
+  --peacock:      #48A4C5;   /* Peacock Blue */
+  --pink:         #CC5B9C;   /* Miami Pink */
+  --purple:       #624AA1;   /* Grape Purple */
+  --olive:        #449D80;   /* Light Olive Green */
+  --orange:       #F34D3C;   /* Dark Orange */
+
+  /* UI mapping */
+  --ink:          #1D4A7A;   /* Primary Blue — replaces near-black */
+  --paper:        #f0f6fc;   /* Very light blue-tinted white */
+  --cream:        #e2eef7;   /* Tinted surface */
+  --rust:         #F34D3C;   /* Orange — replaces rust for CTAs/accents */
+  --sage:         #449D80;   /* Olive Green — replaces sage */
+  --slate:        #48A4C5;   /* Peacock Blue — replaces slate */
+  --gold:         #55B8D8;   /* Light Blue — replaces gold */
+  --muted:        #6b8caa;   /* Desaturated primary blue */
+  --border:       #c2d8ea;   /* Soft blue border */
+  --white:        #ffffff;
+
+  /* Status colours — kept neutral for readability */
+  --status-new:              #e8ecf0;
+  --status-new-text:         #3d4f5c;
+  --status-shortlisted:      #fdf6e3;
+  --status-shortlisted-text: #8b6914;
+  --status-in-progress:      #f0eaf8;
+  --status-in-progress-text: #624AA1;
+  --status-published:        #e4f5ef;
+  --status-published-text:   #449D80;
+  --status-discarded:        #f0f0f0;
+  --status-discarded-text:   #999;
 }
-* { margin:0; padding:0; box-sizing:border-box; }
-body { background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans',sans-serif; font-weight:300; min-height:100vh; }
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--paper);color:var(--ink);font-family:'Montserrat',sans-serif;font-weight:300;min-height:100vh;}
 
 /* ── HEADER ── */
-header { background:var(--ink); border-bottom:3px solid var(--rust); }
-.header-inner { max-width:1400px; margin:0 auto; padding:22px 40px 18px; display:flex; align-items:flex-end; justify-content:space-between; }
-.brand { display:flex; align-items:baseline; gap:14px; }
-.brand-name { font-family:'Playfair Display',serif; font-size:21px; color:var(--paper); }
-.brand-div { width:1px; height:16px; background:var(--muted); }
-.brand-sub { font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:var(--gold); }
-.header-meta { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); text-align:right; line-height:1.7; }
-.pulse { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--sage); margin-right:5px; animation:pulse 2s ease-in-out infinite; }
-@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+header{background:var(--primary);border-bottom:3px solid var(--orange);}
+.header-inner{max-width:1480px;margin:0 auto;padding:20px 40px 16px;display:flex;align-items:flex-end;justify-content:space-between;}
+.brand{display:flex;align-items:baseline;gap:14px;}
+.brand-name{font-family:'Montserrat',sans-serif;font-size:20px;font-weight:700;color:var(--white);letter-spacing:.04em;}
+.brand-div{width:1px;height:15px;background:var(--muted);}
+.brand-sub{font-family:'Montserrat',monospace;font-size:10px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--light-blue);}
+.header-meta{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:400;color:var(--muted);text-align:right;line-height:1.8;}
+.pulse{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--olive);margin-right:5px;animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
 
-/* ── TABS ── */
-.nav-tabs { background:var(--ink); border-bottom:3px solid var(--rust); }
-.nav-inner { max-width:1400px; margin:0 auto; padding:0 40px; display:flex; }
-.tab-btn { font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); background:none; border:none; padding:12px 20px; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-3px; transition:all .2s; }
-.tab-btn:hover { color:var(--paper); }
-.tab-btn.active { color:var(--gold); border-bottom-color:var(--gold); }
+/* ── NAV ── */
+.nav-tabs{background:var(--primary);border-bottom:3px solid var(--orange);}
+.nav-inner{max-width:1480px;margin:0 auto;padding:0 40px;display:flex;gap:0;}
+.tab-btn{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);background:none;border:none;padding:11px 22px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-3px;transition:all .2s;}
+.tab-btn:hover{color:var(--white);}
+.tab-btn.active{color:var(--light-blue);border-bottom-color:var(--light-blue);}
+.tab-btn .tab-badge{display:inline-block;background:var(--orange);color:white;font-size:9px;padding:1px 5px;border-radius:2px;margin-left:6px;font-weight:600;}
 
 /* ── MAIN ── */
-main { max-width:1400px; margin:0 auto; padding:36px 40px; }
-.panel { display:none; }
-.panel.active { display:block; }
+main{max-width:1480px;margin:0 auto;padding:32px 40px;}
+.panel{display:none;}
+.panel.active{display:block;}
 
 /* ── SCANNER LAYOUT ── */
-.scanner-layout { display:grid; grid-template-columns:290px 1fr; gap:32px; align-items:start; }
-.sidebar { position:sticky; top:24px; }
-.section-label { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); margin-bottom:10px; padding-bottom:7px; border-bottom:1px solid var(--border); }
-.source-group { margin-bottom:22px; }
-.source-group-label { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--rust); margin-bottom:7px; }
-.source-tag { display:inline-flex; align-items:center; gap:5px; background:var(--cream); border:1px solid var(--border); padding:4px 9px; font-size:12px; margin:2px 2px 2px 0; cursor:pointer; transition:all .15s; }
-.source-tag:hover,.source-tag.selected { background:var(--ink); color:var(--paper); border-color:var(--ink); }
-.source-tag .dot { width:5px; height:5px; border-radius:50%; background:var(--sage); }
-.theme-chip { display:flex; align-items:center; gap:8px; padding:7px 11px; background:var(--cream); border:1px solid var(--border); border-left:3px solid transparent; cursor:pointer; font-size:12px; transition:all .15s; margin-bottom:5px; }
-.theme-chip:hover,.theme-chip.selected { border-left-color:var(--rust); background:white; }
-.run-btn { width:100%; padding:13px; background:var(--rust); color:white; border:none; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; margin-top:18px; transition:background .2s; }
-.run-btn:hover { background:#9a3d22; }
-.run-btn:disabled { background:var(--muted); cursor:not-allowed; }
+.scanner-layout{display:grid;grid-template-columns:300px 1fr;gap:28px;align-items:start;}
 
-/* ── RESULTS ── */
-.results-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; padding-bottom:14px; border-bottom:2px solid var(--ink); }
-.results-title { font-family:'Playfair Display',serif; font-size:26px; }
-.results-meta { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); text-align:right; }
-.loading-state { display:none; text-align:center; padding:80px 40px; }
-.loading-state.active { display:block; }
-.spinner { width:52px; height:52px; border:2px solid var(--border); border-top-color:var(--rust); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 20px; }
-@keyframes spin { to{transform:rotate(360deg)} }
-.loading-text { font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--muted); letter-spacing:.1em; }
-.loading-stages { margin-top:14px; font-size:11px; color:var(--muted); font-family:'IBM Plex Mono',monospace; }
+/* ── SIDEBAR ── */
+.sidebar{position:sticky;top:20px;}
+.sidebar-card{background:var(--white);border:1px solid var(--border);margin-bottom:16px;border-radius:2px;}
+.sidebar-card-header{padding:12px 16px;border-bottom:1px solid var(--border);background:var(--cream);display:flex;align-items:center;justify-content:space-between;border-radius:2px 2px 0 0;}
+.sidebar-label{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);}
+.sidebar-card-body{padding:14px 16px;}
+
+/* ── SCAN HISTORY ── */
+.history-item{display:flex;align-items:center;gap:10px;padding:8px 10px;cursor:pointer;border:1px solid transparent;border-radius:2px;transition:all .15s;margin-bottom:4px;}
+.history-item:hover,.history-item.active{background:var(--cream);border-color:var(--border);}
+.history-item.active{border-left:3px solid var(--orange);}
+.history-date{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;color:var(--orange);flex-shrink:0;}
+.history-count{font-family:'Montserrat',sans-serif;font-size:9px;color:var(--muted);margin-left:auto;}
+.history-empty{font-size:12px;color:var(--muted);font-style:italic;padding:8px 0;}
+
+/* ── SOURCE GROUP TOGGLE ── */
+.source-group{margin-bottom:14px;}
+.source-group-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.source-group-label{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--orange);}
+.group-toggle-btn{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--muted);padding:2px 7px;cursor:pointer;border-radius:2px;transition:all .15s;}
+.group-toggle-btn:hover{background:var(--primary);color:var(--white);border-color:var(--primary);}
+.group-toggle-btn.all-on{background:var(--primary);color:var(--white);border-color:var(--primary);}
+
+/* ── SOURCE TAGS ── */
+.source-tag{display:inline-flex;align-items:center;gap:4px;background:var(--cream);border:1px solid var(--border);padding:3px 8px;font-size:10px;font-weight:400;margin:2px 2px 2px 0;cursor:pointer;transition:all .15s;border-radius:2px;}
+.source-tag:hover,.source-tag.selected{background:var(--primary);color:var(--white);border-color:var(--primary);}
+.source-tag .dot{width:4px;height:4px;border-radius:50%;background:var(--olive);flex-shrink:0;}
+.source-tag.selected .dot{background:var(--light-blue);}
+
+/* ── THEME CHIPS ── */
+.theme-chip{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--cream);border:1px solid var(--border);border-left:3px solid transparent;cursor:pointer;font-size:11px;font-weight:400;transition:all .15s;margin-bottom:4px;border-radius:0 2px 2px 0;}
+.theme-chip:hover,.theme-chip.selected{border-left-color:var(--orange);background:var(--white);}
+
+/* ── SCAN BUTTON ── */
+.scan-btn{width:100%;padding:13px;background:var(--orange);color:white;border:none;font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:background .2s;margin-top:16px;border-radius:2px;}
+.scan-btn:hover{background:#d43d2c;}
+.scan-btn:disabled{background:var(--muted);cursor:not-allowed;}
+
+/* ── RESULTS AREA ── */
+.results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid var(--primary);}
+.results-title{font-family:'Montserrat',sans-serif;font-size:24px;font-weight:700;color:var(--primary);}
+.results-meta{font-family:'Montserrat',sans-serif;font-size:10px;color:var(--muted);text-align:right;line-height:1.8;}
+
+/* ── LOADING ── */
+.loading-state{display:none;text-align:center;padding:70px 40px;}
+.loading-state.active{display:block;}
+.spinner{width:44px;height:44px;border:2px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 18px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:500;color:var(--muted);letter-spacing:.1em;}
+.loading-stage{margin-top:10px;font-size:10px;color:var(--muted);font-family:'Montserrat',sans-serif;}
 
 /* ── SIGNAL CARDS ── */
-.signal-card { border:1px solid var(--border); border-bottom:none; background:white; }
-.signal-card:last-child { border-bottom:1px solid var(--border); }
-.signal-card:hover { border-color:var(--slate); }
-.signal-header { display:flex; align-items:flex-start; gap:14px; padding:18px 22px; cursor:pointer; }
-.badge { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; padding:3px 7px; flex-shrink:0; margin-top:2px; }
-.badge-policy { background:#e8f0e8; color:var(--sage); }
-.badge-ai { background:#e8ecf0; color:var(--slate); }
-.badge-ota { background:#f5ece4; color:#8b5e3c; }
-.badge-dmo { background:#f0eaf0; color:#6b4a8b; }
-.badge-market { background:#fdf6e3; color:#8b6914; }
-.badge-research { background:#f0f0f0; color:#555; }
-.signal-content { flex:1; }
-.signal-title { font-family:'Playfair Display',serif; font-size:16px; line-height:1.35; margin-bottom:5px; }
-.signal-meta { display:flex; gap:14px; margin-bottom:7px; }
-.signal-source { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--rust); }
-.signal-date { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); }
-.signal-summary { font-size:13px; line-height:1.6; color:#3a3530; }
-.relevance-row { display:flex; align-items:center; gap:8px; margin-top:9px; }
-.relevance-bar { height:3px; background:var(--border); width:70px; border-radius:2px; overflow:hidden; }
-.relevance-fill { height:100%; background:var(--rust); }
-.relevance-label { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; }
-.expand-btn { background:none; border:none; cursor:pointer; color:var(--muted); font-size:17px; flex-shrink:0; transition:transform .2s; }
-.expand-btn.open { transform:rotate(180deg); }
-.signal-detail { display:none; padding:0 22px 22px 64px; border-top:1px solid var(--cream); background:#faf9f6; }
-.signal-detail.open { display:block; }
-.detail-section { margin-top:14px; }
-.detail-label { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
-.article-idea { display:flex; align-items:flex-start; gap:10px; padding:10px 14px; background:white; border:1px solid var(--border); border-left:3px solid var(--rust); cursor:pointer; transition:all .15s; margin-bottom:6px; }
-.article-idea:hover { background:var(--ink); color:var(--paper); border-left-color:var(--gold); }
-.idea-arrow { font-size:11px; opacity:.5; margin-top:2px; flex-shrink:0; }
-.idea-text { font-size:13px; line-height:1.4; flex:1; }
-.idea-angle { font-size:11px; opacity:.6; font-style:italic; display:block; margin-top:3px; }
-.positioning-note { background:var(--cream); border:1px solid var(--border); border-left:3px solid var(--sage); padding:11px 14px; font-size:13px; line-height:1.6; color:#3a4a38; }
-.empty-state { text-align:center; padding:90px 40px; color:var(--muted); }
-.empty-icon { font-size:44px; margin-bottom:14px; opacity:.3; }
-.empty-title { font-family:'Playfair Display',serif; font-size:20px; margin-bottom:7px; color:var(--ink); }
-.empty-sub { font-size:13px; line-height:1.6; max-width:380px; margin:0 auto; }
+.signal-card{border:1px solid var(--border);border-bottom:none;background:var(--white);transition:border-color .15s;}
+.signal-card:last-child{border-bottom:1px solid var(--border);}
+.signal-card:hover{border-color:var(--peacock);}
+.signal-header{display:flex;align-items:flex-start;gap:12px;padding:16px 18px;cursor:pointer;}
+.badge{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;padding:3px 7px;flex-shrink:0;margin-top:3px;border-radius:2px;}
+.badge-policy{background:#e4f5ef;color:var(--olive);}
+.badge-ai{background:#e8ecf0;color:var(--slate);}
+.badge-ota{background:#f5ece4;color:#8b5e3c;}
+.badge-dmo{background:#f0eaf8;color:var(--purple);}
+.badge-market{background:#fdf6e3;color:#8b6914;}
+.badge-research{background:#f0f0f0;color:#555;}
+.signal-content{flex:1;min-width:0;}
+.signal-title{font-family:'Montserrat',sans-serif;font-size:15px;font-weight:600;line-height:1.35;margin-bottom:5px;color:var(--primary);}
+.signal-meta{display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap;}
+.signal-source{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:600;color:var(--orange);}
+.signal-date{font-family:'Montserrat',sans-serif;font-size:9px;color:var(--muted);}
+.signal-url{font-family:'Montserrat',sans-serif;font-size:9px;color:var(--peacock);text-decoration:none;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.signal-url:hover{color:var(--orange);}
+.signal-summary{font-size:12px;line-height:1.6;color:#2a3f52;}
+.relevance-row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.rel-bar{height:2px;background:var(--border);width:60px;border-radius:1px;overflow:hidden;}
+.rel-fill{height:100%;background:var(--orange);}
+.rel-label{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
 
-/* ── ARTICLE WRITER ── */
-.writer-layout { display:grid; grid-template-columns:340px 1fr; gap:32px; align-items:start; }
-.writer-sidebar { position:sticky; top:24px; }
-.steps { display:flex; flex-direction:column; gap:0; margin-bottom:24px; }
-.step { display:flex; align-items:flex-start; gap:12px; padding:12px 14px; border:1px solid var(--border); border-bottom:none; background:var(--cream); opacity:.4; transition:all .2s; }
-.step:last-child { border-bottom:1px solid var(--border); }
-.step.active { background:white; opacity:1; border-left:3px solid var(--rust); }
-.step.done { background:#f0f5f0; opacity:.7; border-left:3px solid var(--sage); }
-.step-num { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--rust); font-weight:500; flex-shrink:0; margin-top:1px; }
-.step-done-icon { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--sage); flex-shrink:0; margin-top:1px; }
-.step-label { font-size:12px; font-weight:400; }
-.step-sub { font-size:11px; color:var(--muted); margin-top:2px; }
-.form-card { background:white; border:1px solid var(--border); padding:24px; margin-bottom:16px; }
-.form-card-title { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:16px; padding-bottom:8px; border-bottom:1px solid var(--border); }
-.form-group { margin-bottom:18px; }
-.form-label { display:block; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
-.form-input,.form-textarea,.form-select { width:100%; padding:9px 12px; border:1px solid var(--border); background:var(--paper); font-family:'IBM Plex Sans',sans-serif; font-size:13px; color:var(--ink); outline:none; transition:border-color .2s; }
-.form-input:focus,.form-textarea:focus,.form-select:focus { border-color:var(--rust); }
-.form-textarea { min-height:80px; resize:vertical; }
-.tone-options { display:flex; gap:6px; flex-wrap:wrap; }
-.tone-opt { padding:5px 12px; border:1px solid var(--border); background:var(--paper); font-size:12px; cursor:pointer; transition:all .15s; }
-.tone-opt.selected { background:var(--ink); color:var(--paper); border-color:var(--ink); }
-.action-btn { width:100%; padding:13px; border:none; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:all .2s; margin-bottom:8px; }
-.action-btn-primary { background:var(--rust); color:white; }
-.action-btn-primary:hover { background:#9a3d22; }
-.action-btn-secondary { background:var(--ink); color:var(--paper); }
-.action-btn-secondary:hover { background:var(--slate); }
-.action-btn-outline { background:transparent; color:var(--ink); border:1px solid var(--border) !important; }
-.action-btn-outline:hover { border-color:var(--ink) !important; }
-.action-btn-save { background:var(--blue); color:white; }
-.action-btn-save:hover { background:#163a61; }
-.action-btn:disabled { background:var(--muted) !important; cursor:not-allowed; }
-.content-area { background:white; border:1px solid var(--border); min-height:500px; }
-.content-header { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--cream); }
-.content-label { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); }
-.content-actions { display:flex; gap:8px; }
-.icon-btn { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; background:none; border:1px solid var(--border); color:var(--muted); padding:4px 10px; cursor:pointer; transition:all .15s; }
-.icon-btn:hover { border-color:var(--ink); color:var(--ink); }
-.icon-btn.primary { background:var(--rust); color:white; border-color:var(--rust); }
-.icon-btn.primary:hover { background:#9a3d22; }
-.icon-btn.save { background:var(--blue); color:white; border-color:var(--blue); }
-.icon-btn.save:hover { background:#163a61; }
-.content-body { padding:24px; font-size:13px; line-height:1.7; min-height:400px; }
-.content-placeholder { color:var(--muted); font-style:italic; text-align:center; padding:60px 20px; }
-.brief-section { margin-bottom:18px; padding-bottom:18px; border-bottom:1px solid var(--cream); }
-.brief-section:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
-.brief-section-title { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--rust); margin-bottom:7px; }
-.brief-section-content { font-size:13px; line-height:1.7; }
-.headline-picker { background:var(--cream); border:1px solid var(--border); padding:20px; margin-bottom:16px; }
-.headline-picker-title { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
-.headline-option { display:flex; align-items:flex-start; gap:10px; padding:10px 14px; background:white; border:1px solid var(--border); cursor:pointer; margin-bottom:6px; transition:all .15s; font-family:'Playfair Display',serif; font-size:15px; line-height:1.35; }
-.headline-option:hover { border-color:var(--rust); background:var(--paper); }
-.headline-option.selected { border-color:var(--rust); background:white; border-left:3px solid var(--rust); }
-.headline-radio { width:14px; height:14px; border:2px solid var(--border); border-radius:50%; flex-shrink:0; margin-top:3px; transition:all .15s; }
-.headline-option.selected .headline-radio { background:var(--rust); border-color:var(--rust); }
-.custom-headline-wrap { margin-top:10px; }
-.article-output { font-family:'IBM Plex Sans',sans-serif; }
-.article-output h1 { font-family:'Playfair Display',serif; font-size:24px; line-height:1.3; margin-bottom:6px; color:var(--ink); }
-.article-output .byline { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted); margin-bottom:20px; padding-bottom:14px; border-bottom:2px solid var(--border); }
-.article-output h2 { font-family:'Playfair Display',serif; font-size:17px; margin:22px 0 10px; color:var(--ink); }
-.article-output p { font-size:13px; line-height:1.75; margin-bottom:14px; color:#2a2520; }
-.article-output blockquote { border-left:3px solid var(--rust); margin:18px 0; padding:8px 16px; font-style:italic; color:#3a3530; font-size:14px; line-height:1.6; }
-.article-output ul { padding-left:20px; margin-bottom:14px; }
-.article-output li { font-size:13px; line-height:1.7; margin-bottom:5px; }
-.img-placeholder { background:var(--cream); border:1px solid var(--border); border-left:3px solid var(--gold); padding:14px 16px; margin:18px 0; }
-.img-placeholder-label { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:var(--gold); margin-bottom:6px; }
-.img-placeholder-note { font-size:12px; color:var(--muted); margin-bottom:8px; font-style:italic; }
-.img-placeholder-prompt { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--slate); line-height:1.5; background:white; border:1px solid var(--border); padding:8px 10px; }
-.img-copy-btn { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase; background:none; border:1px solid var(--border); color:var(--muted); padding:3px 8px; cursor:pointer; margin-top:6px; transition:all .15s; }
-.img-copy-btn:hover { border-color:var(--ink); color:var(--ink); }
-.li-teaser { background:#eef3f9; border:2px solid #0a66c2; padding:20px 22px; margin-top:24px; }
-.li-teaser-label { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:#0a66c2; margin-bottom:10px; }
-.li-teaser-content { font-size:13px; line-height:1.7; color:#1a1a2e; }
-.save-toast { position:fixed; bottom:24px; right:24px; background:var(--blue); color:white; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.1em; padding:12px 20px; border-radius:2px; transform:translateY(80px); opacity:0; transition:all .3s; z-index:9999; }
-.save-toast.show { transform:translateY(0); opacity:1; }
+/* ── STATUS PILL ── */
+.status-pill{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;cursor:pointer;border:none;border-radius:2px;transition:all .15s;}
+.status-new{background:var(--status-new);color:var(--status-new-text);}
+.status-shortlisted{background:var(--status-shortlisted);color:var(--status-shortlisted-text);}
+.status-in_progress{background:var(--status-in-progress);color:var(--status-in-progress-text);}
+.status-published{background:var(--status-published);color:var(--status-published-text);}
+.status-discarded{background:var(--status-discarded);color:var(--status-discarded-text);}
 
-/* ── ANALYTICS TAB ── */
-.analytics-layout { display:grid; gap:28px; }
-.analytics-kpi-row { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-bottom:8px; }
-.kpi-card { background:white; border:1px solid var(--border); border-top:3px solid var(--rust); padding:18px 20px; }
-.kpi-value { font-family:'Playfair Display',serif; font-size:30px; color:var(--blue); line-height:1; margin-bottom:4px; }
-.kpi-label { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
-.kpi-sub { font-size:11px; color:var(--muted); }
-.analytics-table-wrap { background:white; border:1px solid var(--border); overflow:hidden; }
-.analytics-table-header { padding:14px 20px; background:var(--cream); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
-.analytics-table-title { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); }
-table.at { width:100%; border-collapse:collapse; font-size:12px; }
-table.at th { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; padding:10px 14px; text-align:left; background:var(--ink); color:var(--paper); white-space:nowrap; }
-table.at td { padding:10px 14px; border-bottom:1px solid var(--border); vertical-align:top; }
-table.at tr:hover td { background:var(--cream); }
-table.at tr.record-row td { background:#EEF7FF; }
-table.at tr.anomaly-row td { background:#FFFDE7; }
-table.at tr.estimated-row td { background:#FFF8F8; opacity:.75; }
-.at-title { font-family:'Playfair Display',serif; font-size:13px; line-height:1.3; }
-.at-date { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); white-space:nowrap; }
-.at-num { font-family:'IBM Plex Mono',monospace; font-size:12px; text-align:right; }
-.at-bar-wrap { display:flex; align-items:center; gap:8px; }
-.at-bar { height:4px; background:var(--border); width:80px; border-radius:2px; overflow:hidden; flex-shrink:0; }
-.at-bar-fill { height:100%; background:var(--rust); border-radius:2px; }
-.at-pill { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase; padding:2px 7px; }
-.pill-verified { background:#e8f0e8; color:var(--sage); }
-.pill-estimated { background:#f5ece4; color:#8b5e3c; }
-.pill-record { background:#EEF7FF; color:var(--blue); }
-.pill-anomaly { background:#FFFDE7; color:#8b6914; }
-.expand-row-btn { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); cursor:pointer; background:none; border:none; padding:0; }
-.post-detail-row { display:none; }
-.post-detail-row.open { display:table-row; }
-.post-detail-inner { padding:16px 20px; background:#FAFAF8; border-bottom:1px solid var(--border); }
-.detail-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px 24px; margin-bottom:14px; }
-.detail-item-label { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
-.detail-item-value { font-size:12px; color:var(--ink); line-height:1.4; }
-.detail-notes { background:white; border:1px solid var(--border); border-left:3px solid var(--rust); padding:10px 14px; font-size:12px; line-height:1.6; color:#3a3530; margin-top:8px; }
+/* ── EXPAND ── */
+.expand-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;flex-shrink:0;transition:transform .2s;padding:2px 6px;}
+.expand-btn.open{transform:rotate(180deg);}
+.signal-detail{display:none;padding:0 18px 18px 50px;background:#f7fbfe;border-top:1px solid var(--cream);}
+.signal-detail.open{display:block;}
+.detail-section{margin-top:14px;}
+.detail-label{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.article-idea{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;background:var(--white);border:1px solid var(--border);border-left:3px solid var(--orange);margin-bottom:5px;transition:all .15s;border-radius:0 2px 2px 0;}
+.idea-arrow{font-size:10px;opacity:.5;margin-top:3px;flex-shrink:0;}
+.idea-text{font-size:12px;font-weight:500;line-height:1.4;flex:1;}
+.idea-angle{font-size:11px;font-weight:300;opacity:.7;font-style:italic;display:block;margin-top:3px;}
+.positioning-note{background:var(--cream);border:1px solid var(--border);border-left:3px solid var(--olive);padding:10px 13px;font-size:12px;line-height:1.6;color:#1e3d56;border-radius:0 2px 2px 0;}
+.signal-actions{display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--cream);}
+.action-label{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+.status-btn{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border:1px solid var(--border);background:none;cursor:pointer;transition:all .15s;border-radius:2px;}
+.status-btn:hover{background:var(--primary);color:var(--white);border-color:var(--primary);}
+.status-btn.active-status{background:var(--orange);color:white;border-color:var(--orange);}
+.url-link{font-family:'Montserrat',sans-serif;font-size:10px;color:var(--peacock);text-decoration:none;word-break:break-all;display:block;margin-top:6px;}
+.url-link:hover{color:var(--orange);}
 
-/* Analytics add-post form */
-.add-post-section { background:white; border:1px solid var(--border); padding:24px; margin-top:24px; }
-.add-post-title { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:18px; padding-bottom:8px; border-bottom:1px solid var(--border); }
-.add-post-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px; }
-.add-post-grid-wide { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
-.add-post-btn { padding:11px 20px; background:var(--blue); color:white; border:none; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .2s; }
-.add-post-btn:hover { background:#163a61; }
+/* ── EMPTY / ERROR ── */
+.empty-state{text-align:center;padding:80px 40px;color:var(--muted);}
+.empty-icon{font-size:40px;margin-bottom:14px;opacity:.3;}
+.empty-title{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:700;margin-bottom:7px;color:var(--primary);}
+.empty-sub{font-size:12px;line-height:1.7;max-width:360px;margin:0 auto;}
+
+/* ── PIPELINE ── */
+.pipeline-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:14px;border-bottom:2px solid var(--primary);}
+.pipeline-title{font-family:'Montserrat',sans-serif;font-size:24px;font-weight:700;color:var(--primary);}
+.pipeline-board{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;align-items:start;}
+.pipeline-col{background:var(--cream);border:1px solid var(--border);border-top:3px solid var(--border);border-radius:2px;}
+.pipeline-col.col-shortlisted{border-top-color:var(--light-blue);}
+.pipeline-col.col-briefed{border-top-color:var(--purple);}
+.pipeline-col.col-written{border-top-color:var(--peacock);}
+.pipeline-col.col-scheduled{border-top-color:var(--orange);}
+.pipeline-col.col-published{border-top-color:var(--olive);}
+.col-header{padding:10px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--white);}
+.col-title{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);}
+.col-count{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:600;background:var(--cream);border:1px solid var(--border);padding:1px 6px;color:var(--muted);border-radius:2px;}
+.col-cards{padding:8px;min-height:120px;}
+.art-card{background:var(--white);border:1px solid var(--border);padding:11px 12px;margin-bottom:8px;cursor:pointer;transition:all .15s;border-radius:2px;}
+.art-card:hover{border-color:var(--peacock);box-shadow:0 1px 4px rgba(29,74,122,.08);}
+.art-card-title{font-family:'Montserrat',sans-serif;font-size:13px;font-weight:600;line-height:1.35;margin-bottom:6px;color:var(--primary);}
+.art-card-meta{font-family:'Montserrat',sans-serif;font-size:9px;color:var(--muted);line-height:1.7;}
+.art-card-source{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:600;color:var(--orange);margin-bottom:3px;}
+.art-card-date{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:600;color:var(--olive);}
+.art-card-actions{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap;}
+.card-btn{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border:1px solid var(--border);background:none;cursor:pointer;transition:all .15s;white-space:nowrap;border-radius:2px;}
+.card-btn:hover{background:var(--primary);color:var(--white);border-color:var(--primary);}
+.col-empty{padding:16px 12px;font-size:11px;color:var(--muted);font-style:italic;text-align:center;line-height:1.6;}
+.pipe-add-btn{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:var(--orange);color:white;border:none;padding:10px 20px;cursor:pointer;transition:background .2s;border-radius:2px;}
+.pipe-add-btn:hover{background:#d43d2c;}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(29,74,122,.5);z-index:100;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--white);border:1px solid var(--border);width:620px;max-width:95vw;max-height:88vh;overflow-y:auto;position:relative;border-radius:3px;}
+.modal-header{padding:18px 22px;border-bottom:1px solid var(--border);background:var(--cream);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;border-radius:3px 3px 0 0;}
+.modal-title{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:700;color:var(--primary);}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);padding:0 4px;line-height:1;}
+.modal-close:hover{color:var(--primary);}
+.modal-body{padding:22px;}
+.modal-section{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--cream);}
+.modal-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.modal-section-title{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--orange);margin-bottom:12px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.form-row.single{grid-template-columns:1fr;}
+.field-label{display:block;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.field-input,.field-select,.field-textarea{width:100%;padding:8px 10px;border:1px solid var(--border);background:var(--paper);font-family:'Montserrat',sans-serif;font-size:12px;color:var(--ink);outline:none;transition:border-color .2s;border-radius:2px;}
+.field-input:focus,.field-select:focus,.field-textarea:focus{border-color:var(--orange);}
+.field-textarea{min-height:90px;resize:vertical;}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;background:var(--cream);position:sticky;bottom:0;border-radius:0 0 3px 3px;}
+.modal-btn{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:9px 20px;border:none;cursor:pointer;transition:all .2s;border-radius:2px;}
+.modal-btn-primary{background:var(--orange);color:white;}
+.modal-btn-primary:hover{background:#d43d2c;}
+.modal-btn-secondary{background:var(--primary);color:var(--white);}
+.modal-btn-secondary:hover{background:#163962;}
+.modal-btn-outline{background:none;border:1px solid var(--border) !important;color:var(--muted);}
+.modal-btn-outline:hover{border-color:var(--primary) !important;color:var(--primary);}
+.stage-advance-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.stage-pill{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border:1px solid var(--border);background:none;cursor:pointer;transition:all .15s;border-radius:2px;}
+.stage-pill.current{background:var(--orange);color:white;border-color:var(--orange);}
+.stage-pill:hover:not(.current){background:var(--primary);color:var(--white);border-color:var(--primary);}
+.signal-link-box{background:var(--cream);border:1px solid var(--border);border-left:3px solid var(--orange);padding:10px 13px;margin-bottom:14px;font-size:12px;line-height:1.6;border-radius:0 2px 2px 0;}
+.signal-link-label{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+
+/* ── AI WRITE PANEL ── */
+.write-panel{display:none;position:fixed;inset:0;background:var(--paper);z-index:200;overflow-y:auto;}
+.write-panel.open{display:block;}
+.write-header{background:var(--primary);border-bottom:3px solid var(--orange);padding:16px 40px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:1;}
+.write-header-left{display:flex;align-items:baseline;gap:14px;}
+.write-header-title{font-family:'Montserrat',sans-serif;font-size:18px;font-weight:700;color:var(--white);}
+.write-header-sub{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:500;color:var(--light-blue);letter-spacing:.1em;}
+.write-header-actions{display:flex;gap:10px;}
+.write-action-btn{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:8px 18px;border:none;cursor:pointer;transition:all .2s;border-radius:2px;}
+.write-action-btn.primary{background:var(--orange);color:white;}
+.write-action-btn.primary:hover{background:#d43d2c;}
+.write-action-btn.secondary{background:var(--peacock);color:white;}
+.write-action-btn.secondary:hover{background:#3a8fad;}
+.write-action-btn.outline{background:none;border:1px solid var(--muted);color:var(--white);}
+.write-action-btn.outline:hover{border-color:var(--white);}
+.write-action-btn:disabled{background:var(--muted);cursor:not-allowed;}
+.write-body{max-width:820px;margin:0 auto;padding:40px;}
+.write-section{margin-bottom:32px;}
+.write-section-label{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.headline-options{margin-bottom:20px;}
+.hl-option{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;background:var(--white);border:1px solid var(--border);cursor:pointer;margin-bottom:6px;transition:all .15s;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:500;line-height:1.4;border-radius:2px;}
+.hl-option:hover{border-color:var(--orange);}
+.hl-option.selected{border-color:var(--orange);border-left:3px solid var(--orange);background:var(--paper);}
+.hl-radio{width:14px;height:14px;border:2px solid var(--border);border-radius:50%;flex-shrink:0;margin-top:4px;transition:all .15s;}
+.hl-option.selected .hl-radio{background:var(--orange);border-color:var(--orange);}
+.custom-hl-wrap{margin-top:8px;}
+.brief-display{background:var(--white);border:1px solid var(--border);padding:24px;font-size:13px;line-height:1.8;white-space:pre-wrap;font-family:'Montserrat',sans-serif;border-radius:2px;}
+.article-display{background:var(--white);border:1px solid var(--border);padding:32px;font-size:13px;line-height:1.8;border-radius:2px;}
+.article-display h1{font-family:'Montserrat',sans-serif;font-size:24px;font-weight:700;margin-bottom:8px;color:var(--primary);}
+.article-display h2{font-family:'Montserrat',sans-serif;font-size:17px;font-weight:700;margin:24px 0 10px;color:var(--primary);}
+.article-display p{margin-bottom:14px;}
+.article-display blockquote{border-left:3px solid var(--orange);padding-left:16px;margin:18px 0;font-style:italic;color:#2a3f52;}
+.img-block{background:var(--cream);border:1px solid var(--border);border-left:3px solid var(--light-blue);padding:14px 16px;margin:18px 0;border-radius:0 2px 2px 0;}
+.img-block-label{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--light-blue);margin-bottom:6px;}
+.img-block-prompt{font-family:'Montserrat',sans-serif;font-size:11px;color:var(--peacock);line-height:1.5;}
+.li-precis-box{background:#eef7fb;border:2px solid var(--light-blue);padding:20px 22px;margin-top:24px;border-radius:2px;}
+.li-precis-label{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--peacock);margin-bottom:10px;}
+.write-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;vertical-align:middle;}
+
+/* ── ANALYTICS ── */
+.analytics-table{width:100%;border-collapse:collapse;background:var(--white);font-size:12px;}
+.analytics-table th{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;padding:10px 12px;text-align:left;background:var(--primary);color:var(--white);white-space:nowrap;}
+.analytics-table td{padding:10px 12px;border:1px solid var(--border);vertical-align:top;}
+.analytics-table tr:hover td{background:var(--cream);}
+.analytics-table tfoot td{background:var(--cream);font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;border-top:2px solid var(--primary);}
+.analytics-input{width:100%;padding:4px 6px;border:1px solid transparent;background:transparent;font-family:'Montserrat',sans-serif;font-size:12px;color:var(--ink);outline:none;}
+.analytics-input:focus{border-color:var(--orange);background:var(--white);}
+.analytics-add-btn{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:var(--orange);color:white;border:none;padding:10px 20px;cursor:pointer;border-radius:2px;}
+.analytics-add-btn:hover{background:#d43d2c;}
+.insight-card{background:var(--white);border:1px solid var(--border);border-left:3px solid var(--light-blue);padding:14px 18px;margin-bottom:12px;border-radius:0 2px 2px 0;}
+.insight-label{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--peacock);margin-bottom:6px;}
+.insight-text{font-size:13px;line-height:1.6;}
 
 /* ── CALENDAR ── */
-.cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; padding-bottom:16px; border-bottom:2px solid var(--ink); }
-.cal-title { font-family:'Playfair Display',serif; font-size:26px; }
-.cal-table { width:100%; border-collapse:collapse; font-size:13px; background:white; }
-.cal-table th { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.2em; text-transform:uppercase; padding:11px 15px; text-align:left; background:var(--ink); color:var(--paper); }
-.cal-table td { padding:11px 15px; border:1px solid var(--border); vertical-align:top; line-height:1.5; }
-.cal-table tr:hover td { background:var(--cream); }
-.status-pill { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase; padding:3px 7px; }
-.sp-published { background:#e8f0e8; color:var(--sage); }
-.sp-ai { background:#fdf6e3; color:#8b6914; }
-.sp-draft { background:#f0eaf0; color:#6b4a8b; }
+.calendar-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--white);}
+.calendar-table th{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;padding:10px 14px;text-align:left;background:var(--primary);color:var(--white);}
+.calendar-table td{padding:10px 14px;border:1px solid var(--border);vertical-align:top;line-height:1.5;}
+.calendar-table tr:hover td{background:var(--cream);}
+.cal-status{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:2px;}
+.cal-shortlisted{background:var(--status-shortlisted);color:var(--status-shortlisted-text);}
+.cal-briefed{background:var(--status-in-progress);color:var(--status-in-progress-text);}
+.cal-written{background:#e8ecf0;color:var(--peacock);}
+.cal-scheduled{background:#f5ece4;color:#8b5e3c;}
+.cal-published{background:var(--status-published);color:var(--status-published-text);}
+.cal-empty{text-align:center;padding:60px;color:var(--muted);font-style:italic;}
 
-/* ── SETTINGS ── */
-.settings-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-.settings-card { background:white; border:1px solid var(--border); padding:22px; }
-.settings-card-title { font-family:'Playfair Display',serif; font-size:17px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--border); }
-.setting-row { display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--cream); font-size:13px; }
-.setting-row:last-child { border-bottom:none; }
-.toggle { width:34px; height:19px; background:var(--border); border-radius:10px; position:relative; cursor:pointer; transition:background .2s; flex-shrink:0; }
-.toggle.on { background:var(--sage); }
-.toggle::after { content:''; position:absolute; width:13px; height:13px; background:white; border-radius:50%; top:3px; left:3px; transition:left .2s; }
-.toggle.on::after { left:18px; }
-.about-card { background:white; border:1px solid var(--border); padding:28px; margin-top:20px; }
-.about-card-title { font-family:'Playfair Display',serif; font-size:20px; margin-bottom:14px; }
-.about-text { font-size:13px; line-height:1.8; color:#3a3530; max-width:660px; }
-.about-text p { margin-bottom:11px; }
-.divider { height:1px; background:var(--border); margin:20px 0; }
+/* ── TOAST ── */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--primary);color:var(--white);font-family:'Montserrat',sans-serif;font-size:11px;font-weight:500;padding:10px 18px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;border-radius:2px;border-left:3px solid var(--orange);}
+.toast.show{opacity:1;}
 
-/* ── XLSX UPLOAD ── */
-.upload-zone { border:2px dashed var(--border); padding:28px 20px; text-align:center; cursor:pointer; transition:all .2s; margin-bottom:20px; background:var(--paper); }
-.upload-zone:hover,.upload-zone.drag-over { border-color:var(--rust); background:var(--cream); }
-.upload-zone-icon { font-size:28px; margin-bottom:8px; opacity:.4; }
-.upload-zone-label { font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
-.upload-zone-sub { font-size:12px; color:var(--muted); margin-top:5px; }
-.upload-result { font-family:'IBM Plex Mono',monospace; font-size:11px; padding:10px 14px; margin-bottom:16px; border-left:3px solid var(--sage); background:#f0f5f0; color:var(--sage); display:none; }
-.upload-result.error { border-left-color:var(--rust); background:#fef0ec; color:var(--rust); }
-.upload-result.show { display:block; }
-#xlsx-file-input { display:none; }
+/* ── CONFIG ── */
+.config-card{background:var(--white);border:1px solid var(--border);padding:24px;margin-bottom:20px;border-radius:2px;}
+.config-card-title{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
 </style>
 </head>
 <body>
@@ -281,1102 +322,1190 @@ table.at tr.estimated-row td { background:#FFF8F8; opacity:.75; }
     <div class="brand">
       <span class="brand-name">Guest Guide</span>
       <div class="brand-div"></div>
-      <span class="brand-sub">Intelligence Scanner</span>
+      <span class="brand-sub">Content Intelligence</span>
     </div>
     <div class="header-meta">
-      <div><span class="pulse"></span>Monitoring European Tourism Sector</div>
-      <div id="scan-timestamp">Last scan: Never</div>
+      <div><span class="pulse"></span>Live Intelligence Platform</div>
+      <div id="scan-timestamp">No scan yet this session</div>
     </div>
   </div>
 </header>
 
 <div class="nav-tabs">
   <div class="nav-inner">
-    <button class="tab-btn active" onclick="switchTab('scanner',this)">Intelligence Feed</button>
-    <button class="tab-btn" onclick="switchTab('writer',this)">Article Writer</button>
-    <button class="tab-btn" onclick="switchTab('analytics',this)">Post Analytics</button>
-    <button class="tab-btn" onclick="switchTab('calendar',this)">Content Calendar</button>
-    <button class="tab-btn" onclick="switchTab('settings',this)">Configuration</button>
+    <button class="tab-btn active" onclick="switchTab('scanner',this)">Intelligence Scanner</button>
+    <button class="tab-btn" onclick="switchTab('pipeline',this)">Article Pipeline <span class="tab-badge" id="pipeline-badge">0</span></button>
+    <button class="tab-btn" onclick="switchTab('analytics',this)">Analytics</button>
+    <button class="tab-btn" onclick="switchTab('calendar',this)">Calendar</button>
+    <button class="tab-btn" onclick="switchTab('config',this)">Configuration</button>
   </div>
 </div>
 
 <main>
 
-<!-- ════════════════════════════════════════════
-     SCANNER PANEL
-════════════════════════════════════════════ -->
+<!-- ══ SCANNER ══ -->
 <div class="panel active" id="panel-scanner">
   <div class="scanner-layout">
+
     <div class="sidebar">
-      <div class="section-label">Source Categories</div>
-      <div class="source-group">
-        <div class="source-group-label">Policy &amp; Governance</div>
-        <span class="source-tag selected" onclick="this.classList.toggle('selected')"><span class="dot"></span>EU Tourism Commission</span>
-        <span class="source-tag selected" onclick="this.classList.toggle('selected')"><span class="dot"></span>UN Tourism</span>
-        <span class="source-tag selected" onclick="this.classList.toggle('selected')"><span class="dot"></span>Interreg</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>EU Green Deal</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>European Parliament</span>
+
+      <!-- Scan history -->
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">
+          <span class="sidebar-label">Previous Scans</span>
+          <span style="font-family:'Montserrat',sans-serif;font-size:9px;color:var(--muted);" id="scan-count">—</span>
+        </div>
+        <div class="sidebar-card-body" id="scan-history">
+          <div class="history-empty">Run your first scan to begin.</div>
+        </div>
       </div>
-      <div class="source-group">
-        <div class="source-group-label">Heritage &amp; Culture</div>
-        <span class="source-tag selected" onclick="this.classList.toggle('selected')"><span class="dot"></span>Eur Cultural Heritage</span>
-        <span class="source-tag selected" onclick="this.classList.toggle('selected')"><span class="dot"></span>ENIT</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Visit Italy</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>NBTC Netherlands</span>
+
+      <!-- SOURCE GROUP: Policy & Institutions -->
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">
+          <span class="sidebar-label">Policy & Institutions</span>
+          <button class="group-toggle-btn" onclick="toggleGroup('policy')">All</button>
+        </div>
+        <div class="sidebar-card-body">
+          <span class="source-tag selected" data-group="policy" onclick="toggleTag(this)"><span class="dot"></span>EU Commission</span>
+          <span class="source-tag selected" data-group="policy" onclick="toggleTag(this)"><span class="dot"></span>EU Parliament</span>
+          <span class="source-tag selected" data-group="policy" onclick="toggleTag(this)"><span class="dot"></span>UN Tourism</span>
+          <span class="source-tag selected" data-group="policy" onclick="toggleTag(this)"><span class="dot"></span>Interreg</span>
+          <span class="source-tag" data-group="policy" onclick="toggleTag(this)"><span class="dot"></span>ETC</span>
+          <span class="source-tag" data-group="policy" onclick="toggleTag(this)"><span class="dot"></span>OECD Tourism</span>
+        </div>
       </div>
-      <div class="source-group">
-        <div class="source-group-label">Market Intelligence</div>
-        <span class="source-tag selected" onclick="this.classList.toggle('selected')"><span class="dot"></span>Skift</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Phocuswire</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Travel Weekly</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>WTTC</span>
+
+      <!-- SOURCE GROUP: Ministry of Tourism -->
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">
+          <span class="sidebar-label">Ministry of Tourism</span>
+          <button class="group-toggle-btn" onclick="toggleGroup('ministry')">All</button>
+        </div>
+        <div class="sidebar-card-body">
+          <div style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--peacock);margin-bottom:5px;">British Isles</div>
+          <span class="source-tag" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>VisitBritain</span>
+          <span class="source-tag" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>Tourism Ireland</span>
+          <div style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--peacock);margin:8px 0 5px;">Southern Europe</div>
+          <span class="source-tag selected" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>ENIT Italy</span>
+          <span class="source-tag" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>Turespaña</span>
+          <span class="source-tag" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>Turismo de Portugal</span>
+          <span class="source-tag" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>Visit Greece</span>
+          <span class="source-tag" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>Croatia Tourism</span>
+          <div style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--peacock);margin:8px 0 5px;">Northern Europe</div>
+          <span class="source-tag selected" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>NBTC Netherlands</span>
+          <span class="source-tag selected" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>Visit Norway</span>
+          <span class="source-tag selected" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>Visit Sweden</span>
+          <span class="source-tag" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>Visit Denmark</span>
+          <span class="source-tag" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>Visit Finland</span>
+          <div style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--peacock);margin:8px 0 5px;">Central Europe</div>
+          <span class="source-tag selected" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>Germany Tourism</span>
+          <span class="source-tag" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>Austria Tourism</span>
+          <span class="source-tag" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>Switzerland Tourism</span>
+          <span class="source-tag" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>Atout France</span>
+          <span class="source-tag" data-group="ministry" onclick="toggleTag(this)"><span class="dot"></span>Slovenia Tourism</span>
+        </div>
       </div>
-      <div class="source-group">
-        <div class="source-group-label">OTAs &amp; Distribution</div>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Booking.com</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Airbnb</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Expedia Group</span>
+
+      <!-- SOURCE GROUP: Travel Press -->
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">
+          <span class="sidebar-label">Travel Press</span>
+          <button class="group-toggle-btn" onclick="toggleGroup('press')">All</button>
+        </div>
+        <div class="sidebar-card-body">
+          <div style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--peacock);margin-bottom:5px;">Trade &amp; Industry</div>
+          <span class="source-tag selected" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Skift</span>
+          <span class="source-tag selected" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Phocuswire</span>
+          <span class="source-tag selected" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Phocuswright</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Travel Weekly</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>TTG Media</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Travel Trade Gazette</span>
+          <div style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--peacock);margin:8px 0 5px;">Journalism, Consumer &amp; Lifestyle</div>
+          <span class="source-tag selected" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>BBC</span>
+          <span class="source-tag selected" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>The Guardian</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Daily Mail</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>The Independent</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>The Times</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>The Telegraph</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Financial Times</span>
+          <span class="source-tag selected" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Le Monde</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>L'Express</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Le Figaro</span>
+          <span class="source-tag selected" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Frankfurter Allgemeine</span>
+          <span class="source-tag selected" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Süddeutsche Zeitung</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Der Spiegel</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Die Zeit</span>
+          <span class="source-tag selected" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>El País</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>De Telegraaf</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Corriere della Sera</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>La Repubblica</span>
+          <span class="source-tag selected" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Wall Street Journal</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>New York Times</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>LA Times</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>The Globe &amp; Mail</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Le Devoir</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Sydney Morning Herald</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>The Age</span>
+          <span class="source-tag selected" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Travel + Leisure</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Condé Nast Traveller</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>NatGeo Traveller</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>Geo Magazin (DE)</span>
+          <span class="source-tag" data-group="press" onclick="toggleTag(this)"><span class="dot"></span>QANTAS Insider</span>
+        </div>
       </div>
-      <div class="source-group">
-        <div class="source-group-label">Nordic Tourism</div>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Visit Norway</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Visit Sweden</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Visit Finland</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Nordic Council</span>
+
+      <!-- SOURCE GROUP: Consultancies & Research -->
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">
+          <span class="sidebar-label">Consultancies & Research</span>
+          <button class="group-toggle-btn" onclick="toggleGroup('research')">All</button>
+        </div>
+        <div class="sidebar-card-body">
+          <span class="source-tag selected" data-group="research" onclick="toggleTag(this)"><span class="dot"></span>WTTC</span>
+          <span class="source-tag selected" data-group="research" onclick="toggleTag(this)"><span class="dot"></span>McKinsey Travel</span>
+          <span class="source-tag" data-group="research" onclick="toggleTag(this)"><span class="dot"></span>PwC Hospitality</span>
+          <span class="source-tag" data-group="research" onclick="toggleTag(this)"><span class="dot"></span>BCG Travel</span>
+          <span class="source-tag" data-group="research" onclick="toggleTag(this)"><span class="dot"></span>Deloitte Travel</span>
+          <span class="source-tag" data-group="research" onclick="toggleTag(this)"><span class="dot"></span>Oliver Wyman Travel</span>
+          <span class="source-tag" data-group="research" onclick="toggleTag(this)"><span class="dot"></span>EY Hospitality</span>
+          <span class="source-tag" data-group="research" onclick="toggleTag(this)"><span class="dot"></span>Euromonitor</span>
+          <span class="source-tag" data-group="research" onclick="toggleTag(this)"><span class="dot"></span>Oxford Economics</span>
+          <span class="source-tag" data-group="research" onclick="toggleTag(this)"><span class="dot"></span>Our World In Data</span>
+        </div>
       </div>
-      <div class="source-group">
-        <div class="source-group-label">Rural &amp; Village</div>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Ruraltour EU</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>LEADER Programme</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>UN Tourism Villages</span>
+
+      <!-- SOURCE GROUP: Rural & Advocacy -->
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">
+          <span class="sidebar-label">Rural & Advocacy</span>
+          <button class="group-toggle-btn" onclick="toggleGroup('rural')">All</button>
+        </div>
+        <div class="sidebar-card-body">
+          <span class="source-tag" data-group="rural" onclick="toggleTag(this)"><span class="dot"></span>ECTN</span>
+          <span class="source-tag" data-group="rural" onclick="toggleTag(this)"><span class="dot"></span>ETOA</span>
+          <span class="source-tag" data-group="rural" onclick="toggleTag(this)"><span class="dot"></span>LEADER Programme</span>
+          <span class="source-tag" data-group="rural" onclick="toggleTag(this)"><span class="dot"></span>Ruraltour EU</span>
+        </div>
       </div>
-      <div class="source-group">
-        <div class="source-group-label">Consumer Media</div>
-        <span class="source-tag selected" onclick="this.classList.toggle('selected')"><span class="dot"></span>Condé Nast Traveller</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>NatGeo Traveller</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Geo Magazin (DE)</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Le Figaro Voyage</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Corriere Viaggi (IT)</span>
+
+      <!-- Theme Focus -->
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">
+          <span class="sidebar-label">Theme Focus</span>
+          <button class="group-toggle-btn" onclick="toggleAllThemes()">All</button>
+        </div>
+        <div class="sidebar-card-body">
+          <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🏛 Dispersion Policy</div>
+          <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🤖 AI in Travel Planning</div>
+          <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🌿 Sustainable Tourism</div>
+          <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🧭 Nordic & Coolcation</div>
+          <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🌾 Rural & Village Tourism</div>
+          <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🗺 Spatial Intelligence</div>
+          <div class="theme-chip" onclick="this.classList.toggle('selected')">💰 Investment & Funding</div>
+          <div class="theme-chip" onclick="this.classList.toggle('selected')">📊 DMO Strategy</div>
+          <div class="theme-chip" onclick="this.classList.toggle('selected')">🏘 Community Impact</div>
+          <div class="theme-chip" onclick="this.classList.toggle('selected')">💼 Operator Economics</div>
+          <div class="theme-chip" onclick="this.classList.toggle('selected')">🔗 Platform Dependency</div>
+          <div class="theme-chip" onclick="this.classList.toggle('selected')">🧪 Traveller Research</div>
+          <div class="theme-chip" onclick="this.classList.toggle('selected')">🇩🇪 DACH Market</div>
+        </div>
       </div>
-      <div class="source-group">
-        <div class="source-group-label">Market Research</div>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>IBISWorld</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Our World In Data</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>Euromonitor</span>
-        <span class="source-tag" onclick="this.classList.toggle('selected')"><span class="dot"></span>McKinsey Travel</span>
-      </div>
-      <div class="divider"></div>
-      <div class="section-label">Theme Focus</div>
-      <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🏛 Dispersion Policy</div>
-      <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🤖 AI in Travel Planning</div>
-      <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🌿 Sustainable Tourism</div>
-      <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🧭 Nordic & Coolcation</div>
-      <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🌾 Rural & Village Tourism</div>
-      <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🗺 Spatial Intelligence</div>
-      <div class="theme-chip" onclick="this.classList.toggle('selected')">💰 Investment &amp; Funding</div>
-      <div class="theme-chip" onclick="this.classList.toggle('selected')">📊 DMO Strategy</div>
-      <div class="theme-chip" onclick="this.classList.toggle('selected')">🏘 Community Impact</div>
-      <div class="theme-chip" onclick="this.classList.toggle('selected')">💼 Operator Economics</div>
-      <div class="theme-chip" onclick="this.classList.toggle('selected')">🔗 Platform Dependency</div>
-      <div class="theme-chip" onclick="this.classList.toggle('selected')">🧪 Traveller Research</div>
-      <button class="run-btn" id="scan-btn" onclick="runScan()">▶ Run Intelligence Scan</button>
-    </div>
+
+      <button class="scan-btn" id="scan-btn" onclick="runScan()">▶ Run Intelligence Scan</button>
+
+    </div><!-- /sidebar -->
+
+    <!-- Results -->
     <div>
       <div class="results-header">
         <div>
           <div class="results-title" id="results-title">Intelligence Feed</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:3px;" id="results-count"></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:'Montserrat',sans-serif;" id="results-sub">Select sources and themes, then run a scan.</div>
         </div>
         <div class="results-meta" id="results-meta"></div>
       </div>
+
       <div class="loading-state" id="loading-state">
         <div class="spinner"></div>
-        <div class="loading-text">Scanning sector intelligence…</div>
-        <div class="loading-stages" id="loading-stages">Initialising sources…</div>
+        <div class="loading-text">Scanning live sources…</div>
+        <div class="loading-stage" id="loading-stage">Connecting to intelligence service…</div>
       </div>
+
       <div id="signals-container">
         <div class="empty-state">
           <div class="empty-icon">◎</div>
-          <div class="empty-title">No scan running</div>
-          <div class="empty-sub">Select your sources and themes, then run a scan to surface intelligence signals relevant to Guest Guide.</div>
+          <div class="empty-title">No signals loaded</div>
+          <div class="empty-sub">Run a new scan, or select a previous scan from the sidebar to reload its results. All scans are saved permanently.</div>
         </div>
       </div>
     </div>
+
   </div>
 </div>
 
-<!-- ════════════════════════════════════════════
-     ARTICLE WRITER PANEL
-════════════════════════════════════════════ -->
-<div class="panel" id="panel-writer">
-  <div class="writer-layout">
-    <div class="writer-sidebar">
-      <div class="steps">
-        <div class="step active" id="step-1">
-          <span class="step-num">01</span>
-          <div><div class="step-label">Generate Brief</div><div class="step-sub">Concept → structured brief</div></div>
-        </div>
-        <div class="step" id="step-2">
-          <span class="step-num">02</span>
-          <div><div class="step-label">Choose Headline</div><div class="step-sub">Pick or write your own</div></div>
-        </div>
-        <div class="step" id="step-3">
-          <span class="step-num">03</span>
-          <div><div class="step-label">Write &amp; Save Article</div><div class="step-sub">LinkedIn + blog + précis + docx</div></div>
-        </div>
-      </div>
-      <div id="step1-controls">
-        <div class="form-card">
-          <div class="form-card-title">Article Brief</div>
-          <div class="form-group">
-            <label class="form-label">Concept / Signal</label>
-            <textarea class="form-textarea" id="brief-concept" placeholder="Paste a signal, news item, or describe the topic…" style="min-height:70px;"></textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Guest Guide Angle</label>
-            <select class="form-select" id="brief-angle">
-              <option value="thought-leadership">Thought Leadership</option>
-              <option value="commentary">Industry Commentary</option>
-              <option value="case-study">Case Study / Evidence</option>
-              <option value="investor">Investor Intelligence</option>
-              <option value="dmo">DMO-Facing</option>
-              <option value="manifesto">Manifesto / Bold Position</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Tone</label>
-            <div class="tone-options">
-              <span class="tone-opt selected" onclick="selectTone(this)">Authoritative</span>
-              <span class="tone-opt" onclick="selectTone(this)">Provocative</span>
-              <span class="tone-opt" onclick="selectTone(this)">Analytical</span>
-              <span class="tone-opt" onclick="selectTone(this)">Accessible</span>
-              <span class="tone-opt" onclick="selectTone(this)">Urgency-led</span>
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label">Additional Context</label>
-            <textarea class="form-textarea" id="brief-context" placeholder="e.g. Link to EU Green Deal, reference Netherlands pilot…" style="min-height:55px;"></textarea>
-          </div>
-        </div>
-        <button class="action-btn action-btn-primary" id="gen-brief-btn" onclick="generateBrief()">Generate Brief →</button>
-      </div>
-      <div id="step2-controls" style="display:none;">
-        <div class="headline-picker">
-          <div class="headline-picker-title">Choose Your Headline</div>
-          <div id="headline-options-list"></div>
-          <div class="custom-headline-wrap">
-            <label class="form-label" style="margin-bottom:5px;">Or write your own</label>
-            <input type="text" class="form-input" id="custom-headline" placeholder="Custom headline…">
-          </div>
-        </div>
-        <button class="action-btn action-btn-secondary" id="write-article-btn" onclick="writeArticle()">Write Article →</button>
-        <button class="action-btn action-btn-outline" style="border:1px solid var(--border);" onclick="backToBrief()">← Back to Brief</button>
-      </div>
-      <div id="step3-controls" style="display:none;">
-        <button class="action-btn action-btn-save" onclick="saveAndDownload()">⬇ Save &amp; Download .docx</button>
-        <button class="action-btn action-btn-primary" onclick="copyArticle()">Copy Full Article</button>
-        <button class="action-btn action-btn-secondary" onclick="copyTeaser()">Copy LinkedIn Précis</button>
-        <button class="action-btn action-btn-outline" style="border:1px solid var(--border);" onclick="startOver()">← Start New Article</button>
-        <div id="save-status" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:8px;text-align:center;"></div>
-      </div>
-    </div>
+<!-- ══ PIPELINE ══ -->
+<div class="panel" id="panel-pipeline">
+  <div class="pipeline-header">
     <div>
-      <div id="brief-display" class="content-area">
-        <div class="content-header">
-          <span class="content-label" id="content-label">Article Brief</span>
-          <div class="content-actions">
-            <button class="icon-btn" onclick="copyBriefText()">Copy Brief</button>
-            <button class="icon-btn primary" id="proceed-btn" onclick="proceedToHeadlines()" style="display:none;">Choose Headline →</button>
-          </div>
-        </div>
-        <div class="content-body" id="brief-output">
-          <div class="content-placeholder">Your article brief will appear here.<br><br>Fill in the concept and settings, then click <strong>Generate Brief</strong>.</div>
-        </div>
-      </div>
-      <div id="article-display" class="content-area" style="display:none;">
-        <div class="content-header">
-          <span class="content-label">Article + LinkedIn Précis</span>
-          <div class="content-actions">
-            <button class="icon-btn save" onclick="saveAndDownload()">⬇ Save .docx</button>
-            <button class="icon-btn" onclick="copyArticle()">Copy Article</button>
-            <button class="icon-btn primary" onclick="copyTeaser()">Copy Précis</button>
-          </div>
-        </div>
-        <div class="content-body" id="article-output"></div>
-      </div>
+      <div class="pipeline-title">Article Pipeline</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:'Montserrat',sans-serif;" id="pipeline-sub">Loading pipeline…</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="pipe-add-btn" onclick="openNewArticleModal()">+ Add Article</button>
+    </div>
+  </div>
+  <div class="pipeline-board" id="pipeline-board">
+    <div class="pipeline-col col-shortlisted">
+      <div class="col-header"><span class="col-title">Shortlisted</span><span class="col-count" id="count-shortlisted">0</span></div>
+      <div class="col-cards" id="col-shortlisted"><div class="col-empty">Shortlist signals from the scanner to begin.</div></div>
+    </div>
+    <div class="pipeline-col col-briefed">
+      <div class="col-header"><span class="col-title">Briefed</span><span class="col-count" id="count-briefed">0</span></div>
+      <div class="col-cards" id="col-briefed"><div class="col-empty">—</div></div>
+    </div>
+    <div class="pipeline-col col-written">
+      <div class="col-header"><span class="col-title">Written</span><span class="col-count" id="count-written">0</span></div>
+      <div class="col-cards" id="col-written"><div class="col-empty">—</div></div>
+    </div>
+    <div class="pipeline-col col-scheduled">
+      <div class="col-header"><span class="col-title">Scheduled</span><span class="col-count" id="count-scheduled">0</span></div>
+      <div class="col-cards" id="col-scheduled"><div class="col-empty">—</div></div>
+    </div>
+    <div class="pipeline-col col-published">
+      <div class="col-header"><span class="col-title">Published</span><span class="col-count" id="count-published">0</span></div>
+      <div class="col-cards" id="col-published"><div class="col-empty">—</div></div>
     </div>
   </div>
 </div>
 
-<!-- ════════════════════════════════════════════
-     ANALYTICS PANEL
-════════════════════════════════════════════ -->
+<!-- ══ ARTICLE MODAL ══ -->
+<div class="modal-overlay" id="article-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">New Article</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <div class="modal-section-title">Pipeline Stage</div>
+        <div class="stage-advance-row" id="stage-pills">
+          <button class="stage-pill" data-stage="shortlisted" onclick="setModalStage('shortlisted')">Shortlisted</button>
+          <button class="stage-pill" data-stage="briefed" onclick="setModalStage('briefed')">Briefed</button>
+          <button class="stage-pill" data-stage="written" onclick="setModalStage('written')">Written</button>
+          <button class="stage-pill" data-stage="scheduled" onclick="setModalStage('scheduled')">Scheduled</button>
+          <button class="stage-pill" data-stage="published" onclick="setModalStage('published')">Published</button>
+        </div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Source Signal</div>
+        <div id="signal-link-display" style="display:none;" class="signal-link-box">
+          <div class="signal-link-label">From scanner signal</div>
+          <div id="signal-link-title" style="font-weight:600;margin-bottom:3px;"></div>
+          <div id="signal-link-source" style="font-family:'Montserrat',sans-serif;font-size:10px;color:var(--orange);"></div>
+        </div>
+        <div class="form-row single"><div>
+          <label class="field-label">Article Idea / Working Title</label>
+          <input type="text" class="field-input" id="f-ideaText" placeholder="e.g. Why Nordic DMOs Need Italian-Style Spatial Intelligence">
+        </div></div>
+        <div class="form-row">
+          <div><label class="field-label">Signal Source</label><input type="text" class="field-input" id="f-signalSource" placeholder="e.g. Visit Norway"></div>
+          <div><label class="field-label">Signal Date</label><input type="text" class="field-input" id="f-signalDate" placeholder="e.g. Mar 2026"></div>
+        </div>
+        <div class="form-row single"><div><label class="field-label">Source URL</label><input type="url" class="field-input" id="f-signalUrl" placeholder="https://…"></div></div>
+        <div class="form-row single"><div><label class="field-label">Guest Guide Angle</label><input type="text" class="field-input" id="f-angle" placeholder="e.g. GG's verified POI database solves the discovery gap"></div></div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Brief & Headline</div>
+        <div class="form-row single"><div><label class="field-label">Chosen Headline</label><input type="text" class="field-input" id="f-headline" placeholder="Final approved headline"></div></div>
+        <div class="form-row single"><div><label class="field-label">Brief Notes</label><textarea class="field-textarea" id="f-brief" placeholder="Key argument, hook, data points, structure notes…"></textarea></div></div>
+        <div class="form-row single"><div><label class="field-label">Word Count (once written)</label><input type="text" class="field-input" id="f-wordCount" placeholder="e.g. 1,120"></div></div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Publication</div>
+        <div class="form-row">
+          <div><label class="field-label">Scheduled Date</label><input type="date" class="field-input" id="f-scheduledDate"></div>
+          <div><label class="field-label">Scheduled Time (CET)</label><input type="time" class="field-input" id="f-scheduledTime" value="08:00"></div>
+        </div>
+        <div class="form-row single"><div><label class="field-label">Blog URL (once live)</label><input type="url" class="field-input" id="f-blogUrl" placeholder="https://guestguideinteractive.com/blog/…"></div></div>
+        <div class="form-row">
+          <div><label class="field-label">Published Date</label><input type="date" class="field-input" id="f-publishedDate"></div>
+          <div><label class="field-label">LinkedIn Post Date</label><input type="date" class="field-input" id="f-linkedinDate"></div>
+        </div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Notes</div>
+        <div class="form-row single"><div><textarea class="field-textarea" id="f-notes" placeholder="Any additional notes, follow-up ideas, related articles…" style="min-height:60px;"></textarea></div></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn modal-btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn modal-btn-secondary" id="modal-delete-btn" onclick="deleteCurrentArticle()" style="display:none;">Delete</button>
+      <button class="modal-btn" style="background:var(--peacock);color:white;" id="modal-brief-btn" onclick="generateBriefFromModal()">✦ Generate Brief</button>
+      <button class="modal-btn modal-btn-primary" onclick="saveArticle()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ANALYTICS ══ -->
 <div class="panel" id="panel-analytics">
-
-  <div class="results-header">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:14px;border-bottom:2px solid var(--primary);">
     <div>
-      <div class="results-title">Post Performance Analytics</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:3px;" id="analytics-subtitle">12 posts tracked · Sep 2025 – May 2026 · 8 verified exports</div>
+      <div style="font-family:'Montserrat',sans-serif;font-size:24px;font-weight:700;color:var(--primary);">Analytics Tracker</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:'Montserrat',sans-serif;" id="analytics-sub">Loading analytics…</div>
     </div>
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);text-align:right;line-height:1.8;">
-      Record: 42,333 impressions (Apr 30)<br>
-      Optimal window: Tue–Thu 07:00–08:30 CET
-    </div>
+    <button class="analytics-add-btn" onclick="addAnalyticsRow()">+ Add Article</button>
   </div>
-
-  <!-- KPI cards -->
-  <div class="analytics-kpi-row" id="kpi-row"></div>
-
-  <!-- Performance table -->
-  <div class="analytics-table-wrap">
-    <div class="analytics-table-header">
-      <span class="analytics-table-title">All Posts — Click any row for full demographic breakdown</span>
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);">★★ Record &nbsp;|&nbsp; ~ Estimated &nbsp;|&nbsp; ⚠ Anomaly</span>
-    </div>
-    <table class="at">
-      <thead>
-        <tr>
-          <th style="width:30px;"></th>
-          <th>Title</th>
-          <th>Date</th>
-          <th style="text-align:right;">Impressions</th>
-          <th style="text-align:right;">Reached</th>
-          <th style="text-align:right;">Reactions</th>
-          <th style="text-align:right;">Comments</th>
-          <th style="text-align:right;">Followers</th>
-          <th style="text-align:right;">Links</th>
-          <th>Status</th>
-        </tr>
-      </thead>
+  <div id="analytics-insights" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px;"></div>
+  <div style="overflow-x:auto;">
+    <table class="analytics-table" id="analytics-table">
+      <thead><tr>
+        <th style="width:110px;">Published</th><th>Article Title</th>
+        <th style="width:80px;">10-Day</th><th style="width:80px;">30-Day</th>
+        <th style="width:70px;">Engage %</th><th style="width:90px;">LinkedIn</th>
+        <th>Audience Signals / Notes</th><th style="width:40px;"></th>
+      </tr></thead>
       <tbody id="analytics-tbody"></tbody>
+      <tfoot><tr id="analytics-totals">
+        <td colspan="2" style="font-family:'Montserrat',sans-serif;font-size:10px;">Averages</td>
+        <td id="avg-10day">—</td><td id="avg-30day">—</td><td id="avg-engage">—</td>
+        <td colspan="3"></td>
+      </tr></tfoot>
     </table>
   </div>
-
-  <!-- Add new post form -->
-  <div class="add-post-section">
-    <div class="add-post-title">Import from LinkedIn Export (.xlsx)</div>
-
-    <!-- Upload zone -->
-    <div class="upload-zone" id="upload-zone"
-         onclick="document.getElementById('xlsx-file-input').click()"
-         ondragover="event.preventDefault();this.classList.add('drag-over')"
-         ondragleave="this.classList.remove('drag-over')"
-         ondrop="handleDrop(event)">
-      <div class="upload-zone-icon">📊</div>
-      <div class="upload-zone-label">Drop LinkedIn Analytics .xlsx here or click to browse</div>
-      <div class="upload-zone-sub">PostAnalytics_WaltCudlip_[ID].xlsx — any version</div>
-    </div>
-    <input type="file" id="xlsx-file-input" accept=".xlsx,.xls" onchange="handleFileUpload(event)">
-    <div class="upload-result" id="upload-result"></div>
-
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);">Or add manually</div>
-
-    <div class="add-post-grid">
-      <div><label class="form-label">Post Title</label><input class="form-input" id="np-title" placeholder="Article title…"></div>
-      <div><label class="form-label">Date</label><input class="form-input" id="np-date" placeholder="e.g. May 13, 2026"></div>
-      <div><label class="form-label">Time Published</label><input class="form-input" id="np-time" placeholder="e.g. 08:15 AM"></div>
-      <div><label class="form-label">Angle / Type</label><input class="form-input" id="np-angle" placeholder="e.g. Policy / News Anchor"></div>
-    </div>
-    <div class="add-post-grid">
-      <div><label class="form-label">Impressions</label><input class="form-input" id="np-impressions" type="number" placeholder="0"></div>
-      <div><label class="form-label">Reached</label><input class="form-input" id="np-reached" type="number" placeholder="0"></div>
-      <div><label class="form-label">Reactions</label><input class="form-input" id="np-reactions" type="number" placeholder="0"></div>
-      <div><label class="form-label">Comments</label><input class="form-input" id="np-comments" type="number" placeholder="0"></div>
-      <div><label class="form-label">Reposts</label><input class="form-input" id="np-reposts" type="number" placeholder="0"></div>
-      <div><label class="form-label">Saves</label><input class="form-input" id="np-saves" type="number" placeholder="0"></div>
-      <div><label class="form-label">Link Clicks</label><input class="form-input" id="np-links" type="number" placeholder="0"></div>
-      <div><label class="form-label">Followers +</label><input class="form-input" id="np-followers" type="number" placeholder="0"></div>
-    </div>
-    <div class="add-post-grid-wide">
-      <div><label class="form-label">Top Locations</label><input class="form-input" id="np-locations" placeholder="e.g. London (9%) / Toronto (8%)…"></div>
-      <div><label class="form-label">Notable Companies</label><input class="form-input" id="np-companies" placeholder="e.g. TUI, Amadeus, Booking.com…"></div>
-    </div>
-    <div style="margin-bottom:14px;"><label class="form-label">Editorial Notes</label><textarea class="form-textarea" id="np-notes" placeholder="Key observations, audience signals, timing notes…" style="min-height:55px;"></textarea></div>
-    <button class="add-post-btn" onclick="addPost()">+ Add Post to Tracker</button>
-    <span id="add-post-status" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--sage);margin-left:16px;"></span>
-  </div>
 </div>
 
-<!-- ════════════════════════════════════════════
-     CALENDAR PANEL
-════════════════════════════════════════════ -->
+<!-- ══ CALENDAR ══ -->
 <div class="panel" id="panel-calendar">
-  <div class="cal-header">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:14px;border-bottom:2px solid var(--primary);">
     <div>
-      <div class="cal-title">Content Calendar</div>
-      <div style="font-size:13px;color:var(--muted);margin-top:5px;">31 published · 7 in pipeline · Updated May 2026</div>
+      <div style="font-family:'Montserrat',sans-serif;font-size:24px;font-weight:700;color:var(--primary);">Content Calendar</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:'Montserrat',sans-serif;" id="calendar-sub">Generated from pipeline — updates automatically.</div>
     </div>
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);text-align:right;line-height:1.8;">31 Published · 3 Scheduled · 7 In Pipeline</div>
+    <div style="font-family:'Montserrat',sans-serif;font-size:10px;color:var(--muted);text-align:right;" id="calendar-meta"></div>
   </div>
-  <table class="cal-table">
-    <thead><tr><th style="width:75px;">Week</th><th style="width:95px;">Date</th><th>Article Title</th><th style="width:110px;">Status</th></tr></thead>
-    <tbody id="cal-tbody"></tbody>
-  </table>
+  <div id="calendar-container">
+    <div class="cal-empty">No articles with scheduled dates yet. Add scheduled dates in the pipeline to populate the calendar.</div>
+  </div>
 </div>
 
-<!-- ════════════════════════════════════════════
-     SETTINGS PANEL
-════════════════════════════════════════════ -->
-<div class="panel" id="panel-settings">
-  <div class="results-header"><div class="results-title">Configuration</div></div>
-  <div class="settings-grid">
-    <div class="settings-card">
-      <div class="settings-card-title">Scan Behaviour</div>
-      <div class="setting-row"><span>Auto-scan on open</span><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
-      <div class="setting-row"><span>Include OTA signals</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-      <div class="setting-row"><span>Highlight funding opportunities</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-      <div class="setting-row"><span>Filter duplicates</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-      <div class="setting-row"><span>Prioritise European sources</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+<!-- ══ CONFIG ══ -->
+<div class="panel" id="panel-config">
+  <div style="max-width:700px;">
+    <div style="margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid var(--primary);">
+      <div style="font-family:'Montserrat',sans-serif;font-size:24px;font-weight:700;color:var(--primary);margin-bottom:6px;">Configuration</div>
+      <div style="font-size:12px;color:var(--muted);">Settings persist in Vercel KV storage across all sessions and devices.</div>
     </div>
-    <div class="settings-card">
-      <div class="settings-card-title">Article Defaults</div>
-      <div class="setting-row"><span>LinkedIn format always on</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-      <div class="setting-row"><span>Always include image prompts</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-      <div class="setting-row"><span>Always generate LinkedIn précis</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-      <div class="setting-row"><span>EU policy alignment cues</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-      <div class="setting-row"><span>Surface investor angles</span><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+    <div class="config-card">
+      <div class="config-card-title">Published Topics — Scanner Exclusion List</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;">The scanner uses this list to avoid generating signals on topics already covered. Add new article topics after each publication.</div>
+      <textarea id="published-topics-input" style="width:100%;min-height:160px;padding:10px;border:1px solid var(--border);background:var(--paper);font-family:'Montserrat',sans-serif;font-size:12px;color:var(--ink);resize:vertical;outline:none;border-radius:2px;" placeholder="Loading…"></textarea>
+      <button onclick="savePublishedTopics()" style="margin-top:10px;padding:8px 20px;background:var(--orange);color:white;border:none;font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border-radius:2px;">Save Topics</button>
+      <span id="topics-saved-msg" style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;color:var(--olive);margin-left:12px;display:none;">Saved ✓</span>
     </div>
-  </div>
-  <div class="about-card">
-    <div class="about-card-title">About this Tool</div>
-    <div class="about-text">
-      <p>Guest Guide Intelligence Scanner v4 — Intelligence Feed, Article Writer, Post Analytics, Content Calendar.</p>
-      <p>The scanner queries live web sources on every run across 80+ sources including EU institutions, national tourism bodies, consumer magazines, market intelligence firms, Nordic tourism bodies, rural and LEADER programme sources, and advocacy networks. The three-step Article Writer produces LinkedIn-optimised articles at Year-11 reading level, 1,000–1,200 words, with photorealistic image prompts, LinkedIn précis, and one-click .docx export for direct blog upload.</p>
-      <p>Post Analytics tracks all 12 posts from Sep 2025, with full demographic breakdown per post. Add new posts via the form at the bottom of the Analytics tab. Articles can be saved and downloaded as formatted .docx files directly from the Article Writer.</p>
-      <p style="font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;">v4.0 · Guest Guide Interactive · Vercel Edition · API key managed server-side</p>
+    <div class="config-card">
+      <div class="config-card-title">About This Platform</div>
+      <div style="font-size:12px;line-height:1.8;color:#1e3d56;">
+        <p style="margin-bottom:10px;"><strong>Guest Guide Content Intelligence</strong> is a private editorial platform for Walt Cudlip / Guest Guide Interactive. It scans live European tourism intelligence sources, saves results permanently in Vercel KV storage, and manages the full article pipeline from signal to publication to analytics.</p>
+        <p style="margin-bottom:10px;">Every scan creates a dated record that is never overwritten. Signals are filtered to the last 90 days only to ensure journalistic currency.</p>
+        <p style="font-family:'Montserrat',sans-serif;font-size:10px;color:var(--muted);">v2 · Scanner · Pipeline · Analytics · Calendar · 90-day recency enforcement · Editorial integrity guardrails</p>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Save toast -->
-<div class="save-toast" id="save-toast">✓ Saved to library</div>
+<!-- ══ AI WRITE PANEL ══ -->
+<div class="write-panel" id="write-panel">
+  <div class="write-header">
+    <div class="write-header-left">
+      <span class="write-header-title">Article Writer</span>
+      <span class="write-header-sub" id="write-stage-label">STEP 1 — BRIEF</span>
+    </div>
+    <div class="write-header-actions">
+      <button class="write-action-btn outline" id="write-back-btn" onclick="backToTopics()" style="display:none;">← Back to Topics</button>
+      <button class="write-action-btn outline" onclick="closeWritePanel()">✕ Close</button>
+      <button class="write-action-btn secondary" id="write-copy-btn" onclick="copyWriteOutput()" style="display:none;">Copy</button>
+      <button class="write-action-btn primary" id="write-proceed-btn" onclick="proceedWritePanel()" style="display:none;"></button>
+    </div>
+  </div>
+  <div class="write-body">
+    <div id="write-step1">
+      <div class="write-section">
+        <div class="write-section-label">Article Brief</div>
+        <div class="brief-display" id="write-brief-output">Generating brief…</div>
+      </div>
+      <div class="write-section" id="write-headlines-section" style="display:none;">
+        <div class="write-section-label">Choose Your Headline</div>
+        <div class="headline-options" id="write-headline-list"></div>
+        <div class="custom-hl-wrap">
+          <label class="field-label" style="margin-bottom:5px;">Or write your own</label>
+          <input type="text" class="field-input" id="write-custom-headline" placeholder="Custom headline…">
+        </div>
+      </div>
+    </div>
+    <div id="write-step2" style="display:none;">
+      <div class="write-section">
+        <div class="write-section-label">Full Article + LinkedIn Précis</div>
+        <div class="article-display" id="write-article-output">Writing article…</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 </main>
 
+<div class="toast" id="toast"></div>
+
 <script>
-// ═══════════════════════════════════════════════════════════
-// POST ANALYTICS DATA — verified dataset v4
-// ═══════════════════════════════════════════════════════════
-let POSTS = [{"id":"EST-001","verified":false,"date":"Sep 19, 2025","time":"10:00 AM","title":"Platform Dependency","angle":"Operator / Market Critique","impressions":312,"reached":241,"link_clicks":0,"profile_views":2,"followers":0,"reactions":4,"comments":1,"reposts":0,"saves":0,"sends":0,"top_job_r":"n/a","top_loc_r":"Gold Coast (15.7%)","top_job_c":"n/a","top_loc_c":"n/a","top_industry":"Travel Arrangements","top_seniority":"Senior","top_location":"Gold Coast / Brisbane","notable_companies":"n/a","notes":"ESTIMATED figures — export not recovered. Personal/social audience dominant. Pre-algorithm traction. Wrong geography for GGI thesis."},{"id":"EST-002","verified":false,"date":"Oct 3, 2025","time":"8:30 AM","title":"Spatial Intelligence","angle":"Technology / DMO","impressions":428,"reached":319,"link_clicks":0,"profile_views":3,"followers":1,"reactions":6,"comments":0,"reposts":0,"saves":1,"sends":0,"top_job_r":"n/a","top_loc_r":"London (8.2%)","top_job_c":"n/a","top_loc_c":"n/a","top_industry":"Travel Arrangements","top_seniority":"Senior","top_location":"London / Brisbane","notable_companies":"n/a","notes":"ESTIMATED figures. First London appearance in top locations. Algorithm beginning to recalibrate."},{"id":"EST-003","verified":false,"date":"Oct 17, 2025","time":"9:00 AM","title":"Nordic Tourism","angle":"Regional / Policy","impressions":389,"reached":298,"link_clicks":0,"profile_views":2,"followers":0,"reactions":5,"comments":0,"reposts":1,"saves":0,"sends":0,"top_job_r":"n/a","top_loc_r":"London (9.1%)","top_job_c":"n/a","top_loc_c":"n/a","top_industry":"Travel Arrangements","top_seniority":"Senior","top_location":"London / Stockholm","notable_companies":"n/a","notes":"ESTIMATED figures. First repost. Stockholm in top locations — Nordic relevance confirmed."},{"id":"EST-004","verified":false,"date":"Nov 7, 2025","time":"8:00 AM","title":"Residents as Stakeholders","angle":"Community / DMO","impressions":743,"reached":581,"link_clicks":2,"profile_views":6,"followers":2,"reactions":9,"comments":2,"reposts":1,"saves":2,"sends":1,"top_job_r":"Director","top_loc_r":"Utrecht","top_job_c":"n/a","top_loc_c":"Arezzo","top_industry":"Travel Arrangements (18.4%)","top_seniority":"Senior (28.1%)","top_location":"London / Amsterdam / Paris","notable_companies":"Amadeus","notes":"ESTIMATED figures. TURNING POINT — algorithm finds correct European professional audience. Amadeus first appearance."},{"id":"7419093573054189568","verified":true,"date":"Jan 19, 2026","time":"7:09 PM","title":"Tourism as a Trillion-Dollar Problem Waiting for Tech Solutions","angle":"Technology / Market Framing","impressions":27248,"reached":20349,"link_clicks":87,"profile_views":61,"followers":40,"reactions":95,"comments":37,"reposts":11,"saves":15,"sends":0,"top_job_r":"Founder","top_loc_r":"Greater Toronto Area, Canada","top_job_c":"Founder","top_loc_c":"London Area, United Kingdom","top_industry":"Travel Arrangements","top_seniority":"Senior (30.0%)","top_location":"Toronto (10.5%) / London (5.0%) / Vancouver (3.1%) / Ottawa (2.1%) / New York (2.0%)","notable_companies":"City of Toronto, TUI, Expedia Group, Marriott International","notes":"FORMER RECORD — surpassed by Apr 30 post (42,333). 27,248 impressions. Published 7:09 PM — TIMING FAILURE yet still second highest in dataset. 87 link clicks to GGI website — record website traffic. 40 followers — record single-post gain. 37 comments — record comment count. 11 reposts — record reposts. Toronto dominant (10.5%). Previously estimated at 1,456 — corrected to 27,248."},{"id":"7429923579653435392","verified":true,"date":"Feb 19, 2026","time":"9:30 AM","title":"The Startup Policy Nexus","angle":"Policy / Startup Positioning","impressions":4922,"reached":3420,"link_clicks":9,"profile_views":16,"followers":20,"reactions":23,"comments":9,"reposts":1,"saves":5,"sends":4,"top_job_r":"Founder","top_loc_r":"London Area, United Kingdom","top_job_c":"Production Manager","top_loc_c":"Cork Metropolitan Area","top_industry":"Travel Arrangements (27.7%)","top_seniority":"Senior (28.5%)","top_location":"London (6.7%) / Toronto (2.8%) / Delhi (1.8%) / Sydney (1.6%) / Dublin (1.5%)","notable_companies":"Fáilte Ireland, VisitScotland, TUI, Intrepid Travel, Accor","notes":"VERIFIED. 9:30 AM — acceptable timing. Fáilte Ireland + VisitScotland in company list — DMO bodies reached directly. Cork commenter notable (Irish tourism sector). CXO seniority at 7.1% — C-suite engagement. 20 followers gained."},{"id":"7430551828758487040","verified":false,"date":"Feb 20, 2026","time":"10:00 AM","title":"What Happens When Tourism Is Treated As A… [title partial]","angle":"Unknown — rhetorical/conversational framing","impressions":634,"reached":487,"link_clicks":0,"profile_views":3,"followers":1,"reactions":8,"comments":8,"reposts":0,"saves":1,"sends":0,"top_job_r":"n/a","top_loc_r":"n/a","top_job_c":"n/a","top_loc_c":"n/a","top_industry":"n/a","top_seniority":"n/a","top_location":"n/a","notable_companies":"n/a","notes":"ANOMALY — export not recovered. 1.26% comment rate: highest in full dataset. 8 comments on 634 impressions. Rhetorical question framing drove conversation depth. Replicate this structure."},{"id":"7435392736469430272","verified":true,"date":"Mar 5, 2026","time":"6:36 PM","title":"From Counting Visitors to Controlling Flows","angle":"Policy / Thought Leadership (Flagship)","impressions":1378,"reached":994,"link_clicks":0,"profile_views":1,"followers":1,"reactions":6,"comments":0,"reposts":0,"saves":1,"sends":0,"top_job_r":"Director of Public Policy","top_loc_r":"Greater Milan","top_job_c":"n/a","top_loc_c":"n/a","top_industry":"Travel Arrangements (21.3%)","top_seniority":"Senior (29.2%)","top_location":"London / Zagreb (tied 5.6%)","notable_companies":"Airbnb, Booking.com, Hilton","notes":"VERIFIED. 6:36 PM — TIMING FAILURE. Best audience seniority quality: Director of Public Policy in Milan reacted. Airbnb + Booking.com + Hilton in company list. Would likely have hit 4,000–6,000 impressions at correct timing. Candidate for republication."},{"id":"7441496083819753472","verified":true,"date":"Mar 26, 2026","time":"7:00 AM","title":"European Parliament TRAN Committee Vote","angle":"Policy / Legislative News Anchor","impressions":16326,"reached":12375,"link_clicks":0,"profile_views":18,"followers":4,"reactions":13,"comments":19,"reposts":0,"saves":5,"sends":1,"top_job_r":"Owner","top_loc_r":"Utrecht Area","top_job_c":"Founder","top_loc_c":"Greater Hyderabad Area","top_industry":"Hospitality (20.3%)","top_seniority":"Senior (29.1%)","top_location":"Amsterdam (5.3%) / London (5.2%) / Toronto (3.4%) / Barcelona (2.1%) / Dublin (1.5%)","notable_companies":"Booking.com (1.1%), IHG Hotels & Resorts, Marriott International, Amadeus, Accor","notes":"VERIFIED. 7:00 AM — optimal timing. 16,326 impressions — third highest verified total. 19 comments — record comment count in dataset. Booking.com at 1.1% named %. Amsterdam 5.3% — Booking.com HQ geography. Hospitality overtakes Travel Arrangements as top industry."},{"id":"7441500635671359488","verified":true,"date":"Mar 31, 2026","time":"7:15 AM","title":"UN Best Tourism Villages Competition","angle":"Policy / Rural Tourism / International Recognition","impressions":2003,"reached":1337,"link_clicks":0,"profile_views":6,"followers":6,"reactions":23,"comments":0,"reposts":0,"saves":1,"sends":1,"top_job_r":"Founder","top_loc_r":"Greater Madrid Metropolitan Area","top_job_c":"n/a","top_loc_c":"n/a","top_industry":"Travel Arrangements (28.3%)","top_seniority":"Senior (30.4%)","top_location":"Delhi (2.0%) / Kathmandu (1.9%) / London (1.8%) / Toronto (1.3%) / Johannesburg (1.2%)","notable_companies":"Self Employed only","notes":"VERIFIED. Title confirmed. 7:15 AM — good timing. 23 reactions, 0 comments — awards content drives affirmation not debate. Delhi + Kathmandu + Johannesburg = UN village competition applicant nations. Professor + Lecturer job titles (2.3% each)."},{"id":"7441501520589795328","verified":true,"date":"Apr 2, 2026","time":"7:15 AM","title":"Rural Areas Hold 44% of EU Tourism Beds","angle":"Policy / Regional Distribution / EU Data","impressions":1111,"reached":791,"link_clicks":0,"profile_views":6,"followers":7,"reactions":14,"comments":4,"reposts":0,"saves":1,"sends":2,"top_job_r":"Corporate Sales Specialist","top_loc_r":"Greater Paris Metropolitan Region","top_job_c":"Founder","top_loc_c":"Viljandi","top_industry":"Travel Arrangements (25.3%)","top_seniority":"Senior (28.1%)","top_location":"Paris (3.7%) / London (2.5%) / Brussels (2.4%) / Toronto (2.0%) / Dublin (1.9%)","notable_companies":"Airbnb (3.0%)","notes":"VERIFIED. Title confirmed: Rural Areas Hold 44% of EU Tourism Beds. 7:15 AM — good timing. Airbnb at 3.0% (named %) — highest Airbnb concentration in dataset. Brussels 2.4% — EU data/policy geography. Viljandi commenter (Estonia) — Baltic entry."},{"id":"7455431159905316864","verified":true,"date":"Apr 30, 2026","time":"7:30 AM","title":"The Cheap Alternative Trap (BBC follow-up)","angle":"Overtourism / Structural Critique / News Anchor","impressions":42333,"reached":31424,"link_clicks":85,"profile_views":42,"followers":12,"reactions":36,"comments":11,"reposts":0,"saves":8,"sends":4,"top_job_r":"Project Manager","top_loc_r":"London Area, United Kingdom","top_job_c":"Founder","top_loc_c":"Stuttgart Region, Germany","top_industry":"Travel Arrangements (11.2%)","top_seniority":"Senior (29.9%)","top_location":"Toronto (8.0%) / London (6.6%) / Brussels (2.3%) / Ottawa (2.2%) / Vancouver (2.2%)","notable_companies":"European Commission, TUI, Amadeus, Marriott International, City of Toronto","notes":"VERIFIED — Day 7 final reading. Growth arc: 7,270 (24hr) → 15,602 (48hr) → 24,471 (96hr) → 30,262 (Day 6) → 42,333 (Day 7). +483% from 24hr. EUROPEAN COMMISSION in audience — highest-value institutional signal in dataset. Toronto (8.0%) leads London (6.6%) — Canadian audience structurally dominant. Govt Administration 5.9% — highest in dataset. 85 link clicks — near-matching Jan 19 website record."}];
+// ══ STATE ══
+let currentScanKey = null;
+let currentSignals = [];
+let scanHistory = [];
 
-const RECORD_ID  = '7455431159905316864';
-const ANOMALY_ID = '7430551828758487040';
-const PREV_REC_ID= '7419093573054189568';
-const maxImpressions = Math.max(...POSTS.map(p => p.impressions));
+const SCAN_STAGES = [
+  'Searching EU Commission and Parliament feeds…',
+  'Checking UN Tourism and national ministry sources…',
+  'Scanning Skift, Phocuswire and Phocuswright…',
+  'Searching UK and European travel press…',
+  'Scanning consultancy and research publications…',
+  'Checking rural, village and advocacy sources…',
+  'Scanning Nordic and coolcation intelligence…',
+  'Searching consumer travel media…',
+  'Cross-referencing published articles…',
+  'Scoring relevance and verifying recency…'
+];
 
-// ═══════════════════════════════════════════════════════════
-// TABS
-// ═══════════════════════════════════════════════════════════
+// ══ INIT ══
+(async function init() {
+  await loadScanHistory();
+  await loadConfig();
+})();
+
+// ══ TABS ══
 function switchTab(tab, btn) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('panel-' + tab).classList.add('active');
   btn.classList.add('active');
+  if (tab === 'calendar') renderCalendar();
+  if (tab === 'analytics') loadAnalytics();
 }
 
-// ═══════════════════════════════════════════════════════════
-// ANALYTICS RENDERING
-// ═══════════════════════════════════════════════════════════
-function renderAnalytics() {
-  renderKPIs();
-  renderAnalyticsTable();
+// ══ SOURCE TAG HELPERS ══
+function toggleTag(el) {
+  el.classList.toggle('selected');
+  // Update group toggle button state
+  const group = el.dataset.group;
+  if (group) updateGroupToggleState(group);
 }
 
-function renderKPIs() {
-  const verified = POSTS.filter(p => p.verified);
-  const totalImp = POSTS.reduce((s,p) => s + p.impressions, 0);
-  const totalFollowers = POSTS.reduce((s,p) => s + p.followers, 0);
-  const totalComments = POSTS.reduce((s,p) => s + p.comments, 0);
-  const totalLinks = POSTS.reduce((s,p) => s + p.link_clicks, 0);
-  const avgEng = POSTS.reduce((s,p) => {
-    const e = p.reactions+p.comments+p.reposts+p.saves+p.sends;
-    return s + (p.impressions > 0 ? e/p.impressions : 0);
-  }, 0) / POSTS.length;
-
-  const kpis = [
-    { label: 'Total Impressions', value: totalImp.toLocaleString(), sub: `${POSTS.length} posts tracked` },
-    { label: 'Record Post', value: '42,333', sub: 'Apr 30 · still growing' },
-    { label: 'Followers Gained', value: '+' + totalFollowers, sub: 'Jan 19 record: +40' },
-    { label: 'Total Comments', value: totalComments, sub: 'Jan 19 record: 37' },
-    { label: 'Avg Engagement', value: (avgEng * 100).toFixed(2) + '%', sub: 'All posts' },
-  ];
-
-  const row = document.getElementById('kpi-row');
-  row.innerHTML = kpis.map(k => `
-    <div class="kpi-card">
-      <div class="kpi-label">${k.label}</div>
-      <div class="kpi-value">${k.value}</div>
-      <div class="kpi-sub">${k.sub}</div>
-    </div>`).join('');
+function toggleGroup(group) {
+  const tags = document.querySelectorAll(`.source-tag[data-group="${group}"]`);
+  const allOn = [...tags].every(t => t.classList.contains('selected'));
+  tags.forEach(t => {
+    if (allOn) t.classList.remove('selected');
+    else t.classList.add('selected');
+  });
+  updateGroupToggleState(group);
 }
 
-function renderAnalyticsTable() {
-  const tbody = document.getElementById('analytics-tbody');
-  tbody.innerHTML = '';
+function updateGroupToggleState(group) {
+  const tags = document.querySelectorAll(`.source-tag[data-group="${group}"]`);
+  const btn = document.querySelector(`.group-toggle-btn[onclick="toggleGroup('${group}')"]`);
+  if (!btn) return;
+  const allOn = [...tags].every(t => t.classList.contains('selected'));
+  btn.classList.toggle('all-on', allOn);
+}
 
-  POSTS.forEach((p, i) => {
-    const isRecord  = p.id === RECORD_ID;
-    const isAnomaly = p.id === ANOMALY_ID;
-    const isEst     = !p.verified;
-    const rowClass  = isRecord ? 'record-row' : isAnomaly ? 'anomaly-row' : isEst ? 'estimated-row' : '';
-    const prefix    = isRecord ? '★★ ' : isAnomaly ? '⚠ ' : isEst ? '~ ' : '';
-    const pct = p.impressions / maxImpressions * 100;
-    const engRate = p.impressions > 0
-      ? ((p.reactions+p.comments+p.reposts+p.saves+p.sends)/p.impressions*100).toFixed(2)+'%'
-      : '—';
+function toggleAllThemes() {
+  const chips = document.querySelectorAll('.theme-chip');
+  const allOn = [...chips].every(c => c.classList.contains('selected'));
+  chips.forEach(c => { if (allOn) c.classList.remove('selected'); else c.classList.add('selected'); });
+}
 
-    let pill = '';
-    if (isRecord)       pill = '<span class="at-pill pill-record">★★ Record</span>';
-    else if (isAnomaly) pill = '<span class="at-pill pill-anomaly">⚠ Anomaly</span>';
-    else if (isEst)     pill = '<span class="at-pill pill-estimated">~ Estimated</span>';
-    else                pill = '<span class="at-pill pill-verified">✓ Verified</span>';
+// ══ SCAN HISTORY ══
+async function loadScanHistory() {
+  try {
+    const resp = await fetch('/api/scan');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    scanHistory = data.scans || [];
+    renderScanHistory();
+  } catch(_) {}
+}
 
-    const tr = document.createElement('tr');
-    tr.className = rowClass;
-    tr.style.cursor = 'pointer';
-    tr.onclick = () => togglePostDetail(i);
-    tr.innerHTML = `
-      <td><button class="expand-row-btn" id="expand-${i}">⌄</button></td>
-      <td><div class="at-title">${prefix}${p.title}</div><div style="font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:3px;">${p.angle}</div></td>
-      <td><div class="at-date">${p.date}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);">${p.time}</div></td>
-      <td>
-        <div class="at-bar-wrap" style="justify-content:flex-end;">
-          <div class="at-bar"><div class="at-bar-fill" style="width:${pct}%"></div></div>
-          <span class="at-num">${p.impressions.toLocaleString()}</span>
-        </div>
-      </td>
-      <td class="at-num">${p.reached.toLocaleString()}</td>
-      <td class="at-num">${p.reactions}</td>
-      <td class="at-num">${p.comments}</td>
-      <td class="at-num">${p.followers > 0 ? '+'+p.followers : '—'}</td>
-      <td class="at-num">${p.link_clicks > 0 ? p.link_clicks : '—'}</td>
-      <td>${pill}</td>`;
-    tbody.appendChild(tr);
-
-    // Detail row
-    const detailTr = document.createElement('tr');
-    detailTr.className = 'post-detail-row';
-    detailTr.id = `detail-row-${i}`;
-    detailTr.innerHTML = `<td colspan="10">
-      <div class="post-detail-inner">
-        <div class="detail-grid">
-          <div><div class="detail-item-label">Top Reaction Job</div><div class="detail-item-value">${p.top_job_r}</div></div>
-          <div><div class="detail-item-label">Top Reaction Location</div><div class="detail-item-value">${p.top_loc_r}</div></div>
-          <div><div class="detail-item-label">Top Comment Job</div><div class="detail-item-value">${p.top_job_c}</div></div>
-          <div><div class="detail-item-label">Top Comment Location</div><div class="detail-item-value">${p.top_loc_c}</div></div>
-          <div><div class="detail-item-label">Top Industry</div><div class="detail-item-value">${p.top_industry}</div></div>
-          <div><div class="detail-item-label">Top Seniority</div><div class="detail-item-value">${p.top_seniority}</div></div>
-          <div><div class="detail-item-label">Top Locations</div><div class="detail-item-value">${p.top_location}</div></div>
-          <div><div class="detail-item-label">Notable Companies</div><div class="detail-item-value">${p.notable_companies}</div></div>
-          <div><div class="detail-item-label">Engagement Rate</div><div class="detail-item-value">${engRate}</div></div>
-        </div>
-        <div class="detail-notes">${p.notes}</div>
+function renderScanHistory() {
+  const el = document.getElementById('scan-history');
+  const count = document.getElementById('scan-count');
+  count.textContent = scanHistory.length + ' saved';
+  if (scanHistory.length === 0) {
+    el.innerHTML = '<div class="history-empty">No scans saved yet.</div>';
+    return;
+  }
+  el.innerHTML = scanHistory.map(s => {
+    let label = s.dateLabel || '';
+    let time = '';
+    if (!label && s.date) {
+      const d = new Date(s.date);
+      if (!isNaN(d.getTime())) {
+        label = d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+        time = d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+      }
+    }
+    if (!label) label = s.key.replace('scan:','').replace('_',' ');
+    if (s.signalCount === 0) return '';
+    return `<div class="history-item ${s.key === currentScanKey ? 'active':''}" onclick="loadScan('${s.key}')">
+      <div>
+        <div class="history-date">${label}</div>
+        ${time ? `<div style="font-family:'Montserrat',sans-serif;font-size:9px;color:var(--muted);">${time}</div>` : ''}
       </div>
-    </td>`;
-    tbody.appendChild(detailTr);
-  });
+      <div class="history-count">${s.signalCount} signals</div>
+    </div>`;
+  }).join('');
 }
 
-function togglePostDetail(i) {
-  const detailRow = document.getElementById(`detail-row-${i}`);
-  const btn = document.getElementById(`expand-${i}`);
-  const isOpen = detailRow.classList.contains('open');
-  detailRow.classList.toggle('open');
-  btn.textContent = isOpen ? '⌄' : '⌃';
-  btn.style.transform = isOpen ? '' : 'rotate(180deg)';
+async function loadScan(key) {
+  currentScanKey = key;
+  try {
+    const resp = await fetch('/api/signals?key=' + encodeURIComponent(key));
+    if (!resp.ok) { showToast('Could not load scan — ' + resp.status); return; }
+    const scan = await resp.json();
+    currentSignals = scan.signals || [];
+    renderSignals(currentSignals, scan.dateLabel || 'Saved scan');
+    renderScanHistory();
+    document.getElementById('results-title').textContent = 'Intelligence Feed — ' + (scan.dateLabel || 'Saved');
+    document.getElementById('results-sub').textContent = currentSignals.length + ' signals · click a signal to expand';
+    document.getElementById('results-meta').innerHTML = 'Loaded from saved scan<br>' + (scan.dateLabel || key);
+  } catch(err) { showToast('Error loading scan: ' + err.message); }
 }
 
-// ── Add new post ───────────────────────────────────────────
-function addPost() {
-  const title = document.getElementById('np-title').value.trim();
-  const date  = document.getElementById('np-date').value.trim();
-  if (!title || !date) { alert('Title and Date are required.'); return; }
-
-  const newPost = {
-    id: 'USER-' + Date.now(),
-    verified: true,
-    date,
-    time:   document.getElementById('np-time').value.trim() || 'n/a',
-    title,
-    angle:  document.getElementById('np-angle').value.trim() || 'n/a',
-    impressions:  parseInt(document.getElementById('np-impressions').value) || 0,
-    reached:      parseInt(document.getElementById('np-reached').value)     || 0,
-    link_clicks:  parseInt(document.getElementById('np-links').value)       || 0,
-    profile_views: 0,
-    followers:    parseInt(document.getElementById('np-followers').value)   || 0,
-    reactions:    parseInt(document.getElementById('np-reactions').value)   || 0,
-    comments:     parseInt(document.getElementById('np-comments').value)    || 0,
-    reposts:      parseInt(document.getElementById('np-reposts').value)     || 0,
-    saves:        parseInt(document.getElementById('np-saves').value)       || 0,
-    sends:        0,
-    top_job_r: 'n/a', top_loc_r: 'n/a',
-    top_job_c: 'n/a', top_loc_c: 'n/a',
-    top_industry: 'n/a', top_seniority: 'n/a',
-    top_location: document.getElementById('np-locations').value.trim() || 'n/a',
-    notable_companies: document.getElementById('np-companies').value.trim() || 'n/a',
-    notes: document.getElementById('np-notes').value.trim() || '',
-  };
-
-  POSTS.push(newPost);
-  renderAnalytics();
-
-  // Clear form
-  ['np-title','np-date','np-time','np-angle','np-impressions','np-reached',
-   'np-reactions','np-comments','np-reposts','np-saves','np-links','np-followers',
-   'np-locations','np-companies','np-notes'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
-
-  const status = document.getElementById('add-post-status');
-  status.textContent = '✓ Post added — ' + title;
-  setTimeout(() => status.textContent = '', 3000);
-}
-
-// ═══════════════════════════════════════════════════════════
-// CALENDAR DATA
-// ═══════════════════════════════════════════════════════════
-const ARTICLES = [
-  { week:"Week 1", date:"13 Sep 2025", title:"From Packed Piazza to Peaceful Pathway", status:"Published" },
-  { week:"Week 2", date:"17 Sep 2025", title:"The Traveller of Tomorrow Wants Meaning", status:"Published" },
-  { week:"Week 2", date:"23 Sep 2025", title:"Tourism Is at a Crossroads", status:"Published" },
-  { week:"Week 3", date:"26 Sep 2025", title:"The Next Generation of Travel Planning", status:"Published" },
-  { week:"Week 3", date:"30 Sep 2025", title:"Slow Travel Big Impact", status:"Published" },
-  { week:"Week 4", date:"8 Oct 2025", title:"Tourism with Benefits", status:"Published" },
-  { week:"Week 5", date:"13 Oct 2025", title:"From Villa Testbeds to SaaS Platforms", status:"Published" },
-  { week:"Week 5", date:"18 Oct 2025", title:"Destination Management in the 2030s", status:"Published" },
-  { week:"Week 7", date:"28 Oct 2025", title:"AI Meets Authenticity", status:"Published" },
-  { week:"Week 7", date:"30 Oct 2025", title:"Beyond The Bucket List", status:"Published" },
-  { week:"Week 8", date:"6 Nov 2025", title:"Residents as Stakeholders", status:"Published" },
-  { week:"Week 10", date:"18 Nov 2025", title:"The Hidden Market: DMOs Are the Next SaaS Growth Frontier", status:"Published" },
-  { week:"Week 11", date:"29 Nov 2025", title:"Tourism Diffusion as Policy", status:"Published" },
-  { week:"Week 12", date:"4 Dec 2025", title:"The Case for Data-Driven Tourism", status:"Published" },
-  { week:"Week 14", date:"18 Dec 2025", title:"Wellness, Culture, Connection", status:"Published" },
-  { week:"Week 16", date:"5 Jan 2026", title:"The Cost of Ignoring Locals", status:"Published" },
-  { week:"Week 18", date:"19 Jan 2026", title:"Tourism as a Trillion-Dollar Problem ⭐ BENCHMARK", status:"Published" },
-  { week:"Week 18", date:"23 Jan 2026", title:"Bridging the Gap: Why Local Tourism Offices Need Digital Tools", status:"Published" },
-  { week:"Week 19", date:"29 Jan 2026", title:"Postcards vs Participation", status:"Published" },
-  { week:"Week 21", date:"4 Feb 2026", title:"Heritage Is Tourism's Greatest Asset", status:"Published" },
-  { week:"Week 22", date:"18 Feb 2026", title:"The Startup–Policy Nexus", status:"Published" },
-  { week:"Week 23", date:"25 Feb 2026", title:"EU Green Deal Dispersion Mandates", status:"Published" },
-  { week:"Week 23", date:"25 Feb 2026", title:"Testing Dispersion Policies with DMO Analytics", status:"Published" },
-  { week:"Week 24", date:"27 Feb 2026", title:"Tourism Tech in the Age of the EU Green Deal", status:"Published" },
-  { week:"Week 25", date:"5 Mar 2026", title:"From Counting Visitors to Controlling Flows (FLAGSHIP)", status:"Published" },
-  { week:"Week 25", date:"10 Mar 2026", title:"Arezzo Is Not Venice", status:"Published" },
-  { week:"Week 25", date:"10 Mar 2026", title:"What Slow Tourism Actually Requires", status:"Published" },
-  { week:"Week 26", date:"11 Mar 2026", title:"Europe's Long-Haul Traveller Has Changed", status:"Published" },
-  { week:"Week 26", date:"12 Mar 2026", title:"Italy Has a Slow Tourism Strategy. Does It Have the Tools?", status:"Published" },
-  { week:"Week 26", date:"13 Mar 2026", title:"Booking.com Crowd Avoidance Is Not Enough", status:"Published" },
-  { week:"Week 27", date:"20 Mar 2026", title:"EU Inc. Is Good News for European Startups", status:"Published" },
-  { week:"Week 28", date:"26 Mar 2026", title:"European Parliament TRAN Committee Vote", status:"Published" },
-  { week:"Week 29", date:"31 Mar 2026", title:"UN Best Tourism Villages Competition", status:"Published" },
-  { week:"Week 29", date:"2 Apr 2026", title:"Rural Areas Hold 44% of EU Tourism Beds", status:"Published" },
-  { week:"Week 31", date:"30 Apr 2026", title:"The Cheap Alternative Trap (BBC) ⭐ RECORD 42,333", status:"Published" },
-  { week:"Week 31", date:"5 May 2026", title:"The Visibility Trap (Guardian follow-up)", status:"Published" },
-  { week:"Week 32", date:"7 May 2026", title:"The Recommendation Engine (Travel+Leisure)", status:"Scheduled" },
-  { week:"Week 33", date:"May 2026", title:"Operator Economics — what invisibility costs a small operator", status:"In Pipeline" },
-  { week:"Week 33", date:"May 2026", title:"Islands and Villages — destinations frameworks cannot reach", status:"In Pipeline" },
-  { week:"Week 34", date:"May 2026", title:"Platform Dependency Risk — OTA lock-in from operator perspective", status:"In Pipeline" },
-  { week:"Week 34", date:"May 2026", title:"Spatial Intelligence — the missing governance layer", status:"In Pipeline" },
-  { week:"Week 35", date:"Jun 2026", title:"Nordic Tourism — coolcation boom and governance challenge", status:"In Pipeline" },
-  { week:"Week 35", date:"Jun 2026", title:"Traveller Research — what travellers say vs what platforms give them", status:"In Pipeline" },
-];
-
-// ═══════════════════════════════════════════════════════════
-// ARTICLE WRITER — full existing logic preserved
-// ═══════════════════════════════════════════════════════════
-let currentBriefText = '';
-let currentArticleText = '';
-let currentTeaserText = '';
-let currentArticleTitle = '';
-let parsedHeadlines = [];
-let SIGNALS = [];
-
-const ANGLE_DESCRIPTIONS = {
-  'thought-leadership': 'Guest Guide as a sector authority on European dispersion technology and policy-aligned tourism management',
-  'commentary': 'Guest Guide responding to an industry development, contributing to a policy or market conversation',
-  'case-study': 'Guest Guide presenting evidence from real-world application or pilot work',
-  'investor': 'Framing the tourism tech opportunity for investors, with Guest Guide positioned within the market',
-  'dmo': 'Speaking directly to destination managers and tourism boards about operational challenges and solutions',
-  'manifesto': 'A bold, declarative position on the future of European tourism — Guest Guide as a visionary voice'
-};
-
-// ── Scanner ─────────────────────────────────────────────────
-const SCAN_STAGES = [
-  "Scanning EU Commission tourism policy…","Checking ETC and UN Tourism feeds…",
-  "Monitoring Nordic and rural tourism sources…","Scanning Skift, Phocuswire and consumer media…",
-  "Analysing NBTC, ENIT and national DMO signals…","Reviewing market intelligence sources…",
-  "Cross-referencing against published articles…","Structuring intelligence signals…",
-  "Scoring relevance against Guest Guide positioning…","Compiling intelligence report…"
-];
-
+// ══ RUN SCAN ══
 async function runScan() {
   const btn = document.getElementById('scan-btn');
   btn.disabled = true; btn.textContent = '◌ Scanning…';
   const container = document.getElementById('signals-container');
   const loading = document.getElementById('loading-state');
-  const stagesEl = document.getElementById('loading-stages');
-  container.innerHTML = ''; loading.classList.add('active');
-  const selectedSources = [...document.querySelectorAll('.source-tag.selected')].map(t=>t.textContent.trim());
-  const selectedThemes  = [...document.querySelectorAll('.theme-chip.selected')].map(t=>t.textContent.trim());
+  const stageEl = document.getElementById('loading-stage');
+  container.innerHTML = '';
+  loading.classList.add('active');
+
+  const sources = [...document.querySelectorAll('.source-tag.selected')].map(t => t.textContent.trim());
+  const themes = [...document.querySelectorAll('.theme-chip.selected')].map(t => t.textContent.trim());
+
   let si = 0;
-  const iv = setInterval(() => { if(si < SCAN_STAGES.length) stagesEl.textContent = SCAN_STAGES[si++]; }, 420);
+  const iv = setInterval(() => { if (si < SCAN_STAGES.length) stageEl.textContent = SCAN_STAGES[si++]; }, 500);
+
   try {
-    stagesEl.textContent = 'Connecting to intelligence service…';
-    const scanResp = await fetch('/api/scan', {
+    const resp = await fetch('/api/scan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sources: selectedSources, themes: selectedThemes })
+      body: JSON.stringify({ sources, themes })
     });
-    if(!scanResp.ok) { const e = await scanResp.json().catch(()=>({error:'Server error '+scanResp.status})); throw new Error(e.error||'Scan failed'); }
-    const scanData = await scanResp.json();
-    if(scanData.error) throw new Error(scanData.error);
-    SIGNALS = scanData.signals;
-    if(!Array.isArray(SIGNALS)||SIGNALS.length===0) throw new Error('No signals returned');
+    clearInterval(iv);
+    if (!resp.ok) {
+      const e = await resp.json().catch(() => ({}));
+      throw new Error(e.error || 'Scan failed: ' + resp.status);
+    }
+    const data = await resp.json();
+    if (data.error && !data.signals) throw new Error(data.error);
+
+    currentScanKey = data.key;
+    currentSignals = data.signals || [];
+    loading.classList.remove('active');
+
+    const now = new Date();
+    const dateLabel = now.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    document.getElementById('scan-timestamp').textContent = 'Last scan: ' + dateLabel;
+    document.getElementById('results-title').textContent = 'Intelligence Feed — Live';
+
+    const windowNote = data.contentWindow ? ` · content window: ${data.contentWindow.from} – ${data.contentWindow.to}` : '';
+    document.getElementById('results-sub').textContent = currentSignals.length + ' signals · ' + currentSignals.filter(s => s.relevance >= 90).length + ' high priority' + windowNote;
+    document.getElementById('results-meta').innerHTML = 'Live web search · ' + now.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) + '<br>90-day window · saved permanently';
+
+    renderSignals(currentSignals, dateLabel);
+    await loadScanHistory();
   } catch(err) {
-    clearInterval(iv); loading.classList.remove('active');
+    clearInterval(iv);
+    loading.classList.remove('active');
     container.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div><div class="empty-title">Scan failed</div><div class="empty-sub">${err.message}</div></div>`;
-    btn.disabled=false; btn.textContent='↻ Re-scan'; return;
   }
-  clearInterval(iv); loading.classList.remove('active');
-  renderSignals(); btn.disabled=false; btn.textContent='↻ Re-scan';
-  const now = new Date();
-  document.getElementById('scan-timestamp').textContent = 'Last scan: '+now.toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-  document.getElementById('results-title').textContent = 'Intelligence Feed — Live';
-  document.getElementById('results-count').textContent = SIGNALS.length+' signals · '+SIGNALS.filter(s=>s.relevance>=90).length+' high priority';
+  btn.disabled = false; btn.textContent = '↻ Re-scan';
 }
 
-function renderSignals() {
+// ══ RENDER SIGNALS ══
+function renderSignals(signals, dateLabel) {
   const container = document.getElementById('signals-container');
-  container.innerHTML = '';
-  const grid = document.createElement('div');
-  SIGNALS.forEach((s,i) => {
-    const card = document.createElement('div');
-    card.className = 'signal-card';
-    card.innerHTML = `
+  if (!signals || signals.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-title">No signals</div><div class="empty-sub">No signals found within the 90-day window. Try broadening your source or theme selection.</div></div>';
+    return;
+  }
+  container.innerHTML = signals.map((s, i) => {
+    const statusClass = 'status-' + (s.status || 'new');
+    const statusLabel = (s.status || 'new').replace('_', ' ');
+    const shortUrl = s.url ? s.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : '';
+    return `<div class="signal-card" id="card-${i}">
       <div class="signal-header" onclick="toggleSignal(${i})">
-        <span class="badge ${s.badge}">${s.typeLabel}</span>
+        <span class="badge ${s.badge || 'badge-market'}">${s.typeLabel || s.type}</span>
         <div class="signal-content">
-          <div class="signal-title">${s.title}</div>
-          <div class="signal-meta"><span class="signal-source">${s.source}</span><span class="signal-date">${s.date}</span></div>
-          <div class="signal-summary">${s.summary}</div>
-          <div class="relevance-row"><span class="relevance-label">Relevance</span><div class="relevance-bar"><div class="relevance-fill" style="width:${s.relevance}%"></div></div><span class="relevance-label">${s.relevance}%</span></div>
+          <div class="signal-title">${esc(s.title)}</div>
+          <div class="signal-meta">
+            <span class="signal-source">${esc(s.source)}</span>
+            <span class="signal-date">${esc(s.date)}</span>
+            ${s.url ? `<a class="signal-url" href="${esc(s.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(shortUrl)}</a>` : ''}
+            <span class="status-pill ${statusClass}">${statusLabel}</span>
+          </div>
+          <div class="signal-summary">${esc(s.summary)}</div>
+          <div class="relevance-row">
+            <span class="rel-label">Relevance</span>
+            <div class="rel-bar"><div class="rel-fill" style="width:${s.relevance || 75}%"></div></div>
+            <span class="rel-label">${s.relevance || 75}%</span>
+          </div>
         </div>
         <button class="expand-btn" id="ebtn-${i}">⌄</button>
       </div>
       <div class="signal-detail" id="detail-${i}">
-        <div class="detail-section"><div class="detail-label">Article Opportunities</div>
-          ${s.ideas.map(idea=>`<div class="article-idea" onclick="loadSignalToWriter('${esc(s.title+' — '+s.summary)}','${esc(idea.text)}','${esc(idea.angle)}')"><span class="idea-arrow">→</span><div><div class="idea-text">${idea.text}</div><span class="idea-angle">${idea.angle}</span></div></div>`).join('')}
+        ${s.url ? `<div class="detail-section"><div class="detail-label">Source URL</div><a class="url-link" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url)}</a></div>` : ''}
+        <div class="detail-section">
+          <div class="detail-label">Article Opportunities</div>
+          ${(s.ideas || []).map(idea => `
+            <div class="article-idea">
+              <span class="idea-arrow">→</span>
+              <div style="flex:1;">
+                <div class="idea-text">${esc(idea.text)}</div>
+                <span class="idea-angle">${esc(idea.angle)}</span>
+              </div>
+              <button class="card-btn" style="flex-shrink:0;margin-left:10px;" onclick="event.stopPropagation();addSignalToPipelineByIndex(${i},${s.ideas.indexOf(idea)})">+ Pipeline</button>
+            </div>`).join('')}
         </div>
-        <div class="detail-section"><div class="detail-label">Guest Guide Positioning Note</div><div class="positioning-note">${s.positioning}</div></div>
-      </div>`;
-    grid.appendChild(card);
-  });
-  container.appendChild(grid);
+        <div class="detail-section">
+          <div class="detail-label">Guest Guide Positioning</div>
+          <div class="positioning-note">${esc(s.positioning)}</div>
+        </div>
+        <div class="signal-actions">
+          <span class="action-label">Status:</span>
+          ${['new','shortlisted','in_progress','published','discarded'].map(st =>
+            `<button class="status-btn ${s.status === st ? 'active-status':''}" onclick="updateStatus(${i},'${st}')">${st.replace('_',' ')}</button>`
+          ).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-function toggleSignal(i) { document.getElementById('detail-'+i).classList.toggle('open'); document.getElementById('ebtn-'+i).classList.toggle('open'); }
-function esc(str) { return str.replace(/'/g,"\\'").replace(/"/g,'\\"'); }
-
-function loadSignalToWriter(signal, title, angle) {
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('panel-writer').classList.add('active');
-  document.querySelectorAll('.tab-btn')[1].classList.add('active');
-  document.getElementById('brief-concept').value = title;
-  document.getElementById('brief-context').value = 'Angle: '+angle+'\n\nBackground signal: '+signal.substring(0,300)+'…';
-  resetWriterToStep1();
+function toggleSignal(i) {
+  document.getElementById('detail-' + i).classList.toggle('open');
+  document.getElementById('ebtn-' + i).classList.toggle('open');
 }
 
-// ── Step management ──────────────────────────────────────────
-function setStep(n) {
-  [1,2,3].forEach(i => {
-    const el = document.getElementById('step-'+i);
-    el.classList.remove('active','done');
-    const numEl = el.querySelector('.step-num') || el.querySelector('.step-done-icon');
-    if(i < n) { el.classList.add('done'); numEl.textContent='✓'; numEl.className='step-done-icon'; }
-    else if(i===n) { el.classList.add('active'); numEl.textContent='0'+i; numEl.className='step-num'; }
-    else { numEl.textContent='0'+i; numEl.className='step-num'; }
-  });
-  document.getElementById('step1-controls').style.display = n===1?'block':'none';
-  document.getElementById('step2-controls').style.display = n===2?'block':'none';
-  document.getElementById('step3-controls').style.display = n===3?'block':'none';
-  document.getElementById('brief-display').style.display  = n<3?'block':'none';
-  document.getElementById('article-display').style.display= n===3?'block':'none';
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function resetWriterToStep1() {
-  setStep(1);
-  document.getElementById('brief-output').innerHTML = '<div class="content-placeholder">Your article brief will appear here.<br><br>Fill in the concept and settings, then click <strong>Generate Brief</strong>.</div>';
-  document.getElementById('proceed-btn').style.display='none';
-  document.getElementById('content-label').textContent='Article Brief';
-  currentBriefText=''; currentArticleText=''; currentTeaserText=''; currentArticleTitle='';
-}
-
-function selectTone(el) { document.querySelectorAll('.tone-opt').forEach(o=>o.classList.remove('selected')); el.classList.add('selected'); }
-
-// ── Step 1: Brief ────────────────────────────────────────────
-async function generateBrief() {
-  const concept = document.getElementById('brief-concept').value.trim();
-  if(!concept){ alert('Please enter a concept or signal.'); return; }
-  const btn = document.getElementById('gen-brief-btn');
-  btn.disabled=true; btn.textContent='Generating…';
-  const output = document.getElementById('brief-output');
-  output.innerHTML='<div class="content-placeholder">Generating brief…</div>';
+// ══ STATUS ══
+async function updateStatus(idx, status) {
+  if (!currentScanKey) { showToast('No active scan'); return; }
+  const signal = currentSignals[idx];
+  if (!signal) return;
   try {
-    const response = await fetch('/api/write', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'brief', concept, angle:document.getElementById('brief-angle').value, tone:document.querySelector('.tone-opt.selected')?.textContent||'Authoritative', context:document.getElementById('brief-context').value.trim() })
+    const resp = await fetch('/api/signals', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scanKey: currentScanKey, signalId: signal.id, status })
     });
-    if(!response.ok){ const e=await response.json().catch(()=>({})); throw new Error(e.error||'Server error'); }
-    const d=await response.json();
-    if(d.error) throw new Error(d.error);
-    const text=d.brief||'No response.';
-    currentBriefText=text; parsedHeadlines=extractHeadlines(text);
-    output.innerHTML=formatBrief(text);
-    document.getElementById('proceed-btn').style.display='inline-block';
-  } catch(err) { output.innerHTML=`<div style="color:var(--rust);padding:20px;">Error: ${err.message}</div>`; }
-  btn.disabled=false; btn.textContent='Generate Brief →';
+    if (!resp.ok) throw new Error('Failed');
+    signal.status = status;
+    const card = document.getElementById('card-' + idx);
+    if (card) {
+      const pill = card.querySelector('.status-pill');
+      if (pill) { pill.className = 'status-pill status-' + status; pill.textContent = status.replace('_', ' '); }
+      card.querySelectorAll('.status-btn').forEach(btn => {
+        btn.classList.toggle('active-status', btn.textContent.trim().replace(' ','_') === status);
+      });
+    }
+    showToast('Status: ' + status.replace('_',' '));
+  } catch(err) { showToast('Error: ' + err.message); }
+}
+
+// ══ CONFIG ══
+async function loadConfig() {
+  try {
+    const resp = await fetch('/api/config');
+    if (!resp.ok) return;
+    const cfg = await resp.json();
+    const el = document.getElementById('published-topics-input');
+    if (el && cfg.publishedTopics) el.value = cfg.publishedTopics;
+  } catch(_) {}
+}
+
+async function savePublishedTopics() {
+  const topics = document.getElementById('published-topics-input').value.trim();
+  try {
+    const resp = await fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ publishedTopics: topics }) });
+    if (!resp.ok) throw new Error('Save failed');
+    const msg = document.getElementById('topics-saved-msg');
+    msg.style.display = 'inline';
+    setTimeout(() => msg.style.display = 'none', 2000);
+  } catch(err) { showToast('Error saving: ' + err.message); }
+}
+
+// ══ TOAST ══
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ══ PIPELINE ══
+let pipelineArticles = [];
+let currentModalId = null;
+let currentModalStage = 'shortlisted';
+let pendingSignalData = null;
+
+const STAGES = ['shortlisted','briefed','written','scheduled','published'];
+const STAGE_LABELS = { shortlisted:'Shortlisted', briefed:'Briefed', written:'Written', scheduled:'Scheduled', published:'Published' };
+
+async function loadPipeline() {
+  try {
+    const resp = await fetch('/api/pipeline');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    pipelineArticles = data.articles || [];
+    renderPipeline();
+    updatePipelineBadge();
+  } catch(_) {}
+}
+
+function updatePipelineBadge() {
+  const badge = document.getElementById('pipeline-badge');
+  if (badge) badge.textContent = pipelineArticles.length || '0';
+}
+
+function renderPipeline() {
+  const sub = document.getElementById('pipeline-sub');
+  if (sub) sub.textContent = pipelineArticles.length + ' article' + (pipelineArticles.length !== 1 ? 's' : '') + ' in pipeline';
+  STAGES.forEach(stage => {
+    const articles = pipelineArticles.filter(a => a.stage === stage);
+    const col = document.getElementById('col-' + stage);
+    const count = document.getElementById('count-' + stage);
+    if (count) count.textContent = articles.length;
+    if (!col) return;
+    if (articles.length === 0) {
+      const empties = { shortlisted:'Shortlist signals from the scanner to begin.', briefed:'Move articles here once the brief is approved.', written:'Move articles here once the draft is complete.', scheduled:'Move here once the blog post is scheduled.', published:'Move here once live on the blog and LinkedIn.' };
+      col.innerHTML = `<div class="col-empty">${empties[stage]}</div>`; return;
+    }
+    col.innerHTML = articles.map(a => {
+      const dateStr = a.scheduledDate ? new Date(a.scheduledDate + 'T' + (a.scheduledTime || '08:00')).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : a.publishedDate ? 'Published ' + new Date(a.publishedDate).toLocaleDateString('en-GB', {day:'numeric',month:'short'}) : '';
+      const nextStage = STAGES[STAGES.indexOf(stage) + 1];
+      return `<div class="art-card" onclick="openEditModal('${a.id}')">
+        <div class="art-card-source">${esc(a.signalSource || a.signalDate || '—')}</div>
+        <div class="art-card-title">${esc(a.headline || a.ideaText || 'Untitled')}</div>
+        ${dateStr ? `<div class="art-card-date">${dateStr}${a.scheduledTime ? ' · ' + a.scheduledTime + ' CET' : ''}</div>` : ''}
+        ${a.wordCount ? `<div class="art-card-meta">${a.wordCount} words</div>` : ''}
+        <div class="art-card-actions">
+          ${nextStage ? `<button class="card-btn" onclick="event.stopPropagation();advanceStage('${a.id}','${nextStage}')">→ ${STAGE_LABELS[nextStage]}</button>` : ''}
+          ${a.blogUrl ? `<button class="card-btn" onclick="event.stopPropagation();window.open('${a.blogUrl}','_blank')">View Blog</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  });
+  const calPanel = document.getElementById('panel-calendar');
+  if (calPanel && calPanel.classList.contains('active')) renderCalendar();
+}
+
+async function advanceStage(id, stage) {
+  try {
+    const resp = await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, stage }) });
+    if (!resp.ok) throw new Error('Failed');
+    const data = await resp.json();
+    const idx = pipelineArticles.findIndex(a => a.id === id);
+    if (idx !== -1) pipelineArticles[idx] = data.article;
+    renderPipeline(); showToast('Moved to ' + STAGE_LABELS[stage]);
+  } catch(err) { showToast('Error: ' + err.message); }
+}
+
+function openNewArticleModal(signalData) {
+  currentModalId = null; currentModalStage = 'shortlisted'; pendingSignalData = signalData || null;
+  document.getElementById('modal-title').textContent = 'New Article';
+  document.getElementById('modal-delete-btn').style.display = 'none';
+  clearModalFields();
+  if (signalData) {
+    document.getElementById('f-ideaText').value = signalData.ideaText || '';
+    document.getElementById('f-angle').value = signalData.angle || '';
+    document.getElementById('f-signalSource').value = signalData.source || '';
+    document.getElementById('f-signalDate').value = signalData.date || '';
+    document.getElementById('f-signalUrl').value = signalData.url || '';
+    const box = document.getElementById('signal-link-display');
+    if (signalData.signalTitle) {
+      box.style.display = 'block';
+      document.getElementById('signal-link-title').textContent = signalData.signalTitle;
+      document.getElementById('signal-link-source').textContent = (signalData.source || '') + (signalData.date ? ' · ' + signalData.date : '');
+    } else { box.style.display = 'none'; }
+  } else { document.getElementById('signal-link-display').style.display = 'none'; }
+  setModalStage('shortlisted');
+  document.getElementById('article-modal').classList.add('open');
+}
+
+function openEditModal(id) {
+  const article = pipelineArticles.find(a => a.id === id);
+  if (!article) return;
+  currentModalId = id; currentModalStage = article.stage || 'shortlisted';
+  document.getElementById('modal-title').textContent = 'Edit Article';
+  document.getElementById('modal-delete-btn').style.display = 'inline-block';
+  ['ideaText','signalSource','signalDate','signalUrl','angle','headline','brief','wordCount','scheduledDate','scheduledTime','blogUrl','publishedDate','linkedinDate','notes'].forEach(f => {
+    const el = document.getElementById('f-' + f); if (el) el.value = article[f] || '';
+  });
+  const box = document.getElementById('signal-link-display');
+  if (article.signalTitle) {
+    box.style.display = 'block';
+    document.getElementById('signal-link-title').textContent = article.signalTitle;
+    document.getElementById('signal-link-source').textContent = (article.signalSource || '') + (article.signalDate ? ' · ' + article.signalDate : '');
+  } else { box.style.display = 'none'; }
+  setModalStage(article.stage || 'shortlisted');
+  document.getElementById('article-modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('article-modal').classList.remove('open'); currentModalId = null; pendingSignalData = null; }
+function clearModalFields() {
+  ['ideaText','signalSource','signalDate','signalUrl','angle','headline','brief','wordCount','scheduledDate','scheduledTime','blogUrl','publishedDate','linkedinDate','notes'].forEach(f => {
+    const el = document.getElementById('f-' + f); if (el) el.value = f === 'scheduledTime' ? '08:00' : '';
+  });
+}
+function setModalStage(stage) {
+  currentModalStage = stage;
+  document.querySelectorAll('.stage-pill').forEach(p => p.classList.toggle('current', p.dataset.stage === stage));
+}
+
+async function saveArticle() {
+  const payload = {
+    stage: currentModalStage,
+    signalTitle: pendingSignalData?.signalTitle || (currentModalId ? pipelineArticles.find(a=>a.id===currentModalId)?.signalTitle : '') || '',
+    ideaText: document.getElementById('f-ideaText').value.trim(),
+    signalSource: document.getElementById('f-signalSource').value.trim(),
+    signalDate: document.getElementById('f-signalDate').value.trim(),
+    signalUrl: document.getElementById('f-signalUrl').value.trim(),
+    angle: document.getElementById('f-angle').value.trim(),
+    headline: document.getElementById('f-headline').value.trim(),
+    brief: document.getElementById('f-brief').value.trim(),
+    wordCount: document.getElementById('f-wordCount').value.trim(),
+    scheduledDate: document.getElementById('f-scheduledDate').value,
+    scheduledTime: document.getElementById('f-scheduledTime').value,
+    blogUrl: document.getElementById('f-blogUrl').value.trim(),
+    publishedDate: document.getElementById('f-publishedDate').value,
+    linkedinDate: document.getElementById('f-linkedinDate').value,
+    notes: document.getElementById('f-notes').value.trim()
+  };
+  if (!payload.ideaText && !payload.headline) { showToast('Please enter a working title or headline'); return; }
+  try {
+    if (currentModalId) {
+      const resp = await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: currentModalId, ...payload }) });
+      if (!resp.ok) throw new Error('Update failed');
+      const data = await resp.json();
+      const idx = pipelineArticles.findIndex(a => a.id === currentModalId);
+      if (idx !== -1) pipelineArticles[idx] = data.article;
+      showToast('Article updated');
+    } else {
+      const resp = await fetch('/api/pipeline', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      if (!resp.ok) throw new Error('Create failed');
+      const data = await resp.json();
+      pipelineArticles.unshift(data.article);
+      showToast('Article added to pipeline');
+    }
+    closeModal(); renderPipeline(); updatePipelineBadge();
+  } catch(err) { showToast('Error: ' + err.message); }
+}
+
+async function deleteCurrentArticle() {
+  if (!currentModalId) return;
+  if (!confirm('Delete this article from the pipeline? This cannot be undone.')) return;
+  try {
+    const resp = await fetch('/api/pipeline', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: currentModalId }) });
+    if (!resp.ok) throw new Error('Delete failed');
+    pipelineArticles = pipelineArticles.filter(a => a.id !== currentModalId);
+    closeModal(); renderPipeline(); updatePipelineBadge(); showToast('Article deleted');
+  } catch(err) { showToast('Error: ' + err.message); }
+}
+
+document.getElementById('article-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+loadPipeline();
+
+// ══ SCANNER → PIPELINE BRIDGE ══
+function addSignalToPipeline(signalIdx, ideaText, angle) {
+  const signal = currentSignals[signalIdx];
+  if (!signal) return;
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-pipeline').classList.add('active');
+  document.querySelectorAll('.tab-btn')[1].classList.add('active');
+  openNewArticleModal({ signalTitle: signal.title, ideaText, angle, source: signal.source, date: signal.date, url: signal.url || '' });
+}
+
+function addSignalToPipelineByIndex(signalIdx, ideaIdx) {
+  const signal = currentSignals[signalIdx];
+  if (!signal) return;
+  const idea = (signal.ideas || [])[ideaIdx];
+  if (!idea) return;
+  window._lastOpenedSignalIdx = signalIdx;
+  addSignalToPipeline(signalIdx, idea.text, idea.angle);
+}
+
+// ══ AI WRITE PANEL ══
+let writeArticleId = null, writeBriefText = '', writeParsedHeadlines = [], writeStep = 1;
+
+async function generateBriefFromModal() {
+  await saveArticle();
+  const article = pipelineArticles.find(a => a.id === currentModalId) || pipelineArticles[0];
+  if (!article) { showToast('Save the article first'); return; }
+  writeArticleId = article.id; closeModal(); openWritePanel(article);
+}
+
+function openWritePanel(article) {
+  writeStep = 1; writeBriefText = ''; writeParsedHeadlines = [];
+  document.getElementById('write-panel').classList.add('open');
+  document.getElementById('write-stage-label').textContent = 'STEP 1 — BRIEF';
+  document.getElementById('write-step1').style.display = 'block';
+  document.getElementById('write-step2').style.display = 'none';
+  document.getElementById('write-headlines-section').style.display = 'none';
+  document.getElementById('write-proceed-btn').style.display = 'none';
+  document.getElementById('write-copy-btn').style.display = 'none';
+  document.getElementById('write-brief-output').textContent = 'Generating brief…';
+  document.getElementById('write-back-btn').style.display = 'inline-block';
+  fetchBrief(article);
+}
+
+function closeWritePanel() { document.getElementById('write-panel').classList.remove('open'); loadPipeline(); }
+
+async function backToTopics() {
+  if (writeArticleId) {
+    try {
+      await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: writeArticleId, stage: 'shortlisted', brief: '' }) });
+      const idx = pipelineArticles.findIndex(a => a.id === writeArticleId);
+      if (idx !== -1) { pipelineArticles[idx].stage = 'shortlisted'; pipelineArticles[idx].brief = ''; }
+    } catch(e) {}
+  }
+  document.getElementById('write-panel').classList.remove('open');
+  writeArticleId = null; writeBriefText = '';
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-scanner').classList.add('active');
+  document.querySelectorAll('.tab-btn')[0].classList.add('active');
+  showToast('Back to scanner — choose a different signal or idea');
+  if (window._lastOpenedSignalIdx !== undefined) {
+    const detEl = document.getElementById('detail-' + window._lastOpenedSignalIdx);
+    const btnEl = document.getElementById('ebtn-' + window._lastOpenedSignalIdx);
+    if (detEl && !detEl.classList.contains('open')) { detEl.classList.add('open'); if (btnEl) btnEl.classList.add('open'); }
+    setTimeout(() => { const cardEl = document.getElementById('card-' + window._lastOpenedSignalIdx); if (cardEl) cardEl.scrollIntoView({ behavior:'smooth', block:'center' }); }, 100);
+  }
+}
+
+async function fetchBrief(article) {
+  try {
+    const resp = await fetch('/api/write', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'brief', signalTitle: article.signalTitle || article.ideaText, signalSource: article.signalSource, signalUrl: article.signalUrl, signalDate: article.signalDate, ideaText: article.ideaText, angle: article.angle, notes: article.brief || article.notes }) });
+    if (!resp.ok) throw new Error('Brief generation failed: ' + resp.status);
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    writeBriefText = data.brief;
+    writeParsedHeadlines = extractHeadlines(data.brief);
+    document.getElementById('write-brief-output').textContent = data.brief;
+    if (writeArticleId) {
+      await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: writeArticleId, brief: data.brief, stage: 'briefed' }) });
+      const idx = pipelineArticles.findIndex(a => a.id === writeArticleId);
+      if (idx !== -1) { pipelineArticles[idx].brief = data.brief; pipelineArticles[idx].stage = 'briefed'; }
+    }
+    renderHeadlineOptions(writeParsedHeadlines);
+    document.getElementById('write-headlines-section').style.display = 'block';
+    document.getElementById('write-proceed-btn').style.display = 'inline-block';
+    document.getElementById('write-proceed-btn').textContent = 'Write Article →';
+    document.getElementById('write-copy-btn').style.display = 'inline-block';
+  } catch(err) { document.getElementById('write-brief-output').textContent = 'Error: ' + err.message; showToast('Brief failed: ' + err.message); }
 }
 
 function extractHeadlines(text) {
-  const matches=[];
-  const lines=text.split('\n');
-  for(const line of lines) {
-    const m=line.match(/^[\s\-\*]*(?:[ABC\d][\)\.:\s]+|Option\s+[ABC][\)\.:\s]*)(.*)/i);
-    if(m&&m[1].trim().length>20&&m[1].trim().length<200){ matches.push(m[1].replace(/\*\*/g,'').trim()); if(matches.length===3) break; }
+  const lines = text.split('\n'); const headlines = [];
+  for (const line of lines) {
+    const m = line.match(/^[ABC][):.\s]\s*(.+)/);
+    if (m && m[1].trim().length > 20) { headlines.push(m[1].replace(/\*\*/g,'').trim()); if (headlines.length === 3) break; }
   }
-  if(matches.length<2) { const q=[...text.matchAll(/[""]([^""]{20,150})[""]/g)].map(m=>m[1]); q.forEach(s=>{ if(matches.length<3&&!matches.includes(s)) matches.push(s); }); }
-  return matches.length>0?matches:['(Could not auto-extract — see brief above and type your headline below)'];
+  return headlines.length > 0 ? headlines : ['(See brief above and type your headline below)'];
 }
 
-function formatBrief(text) {
-  const sections=[
-    {key:'WORKING HEADLINES?|WORKING HEADLINE',label:'Headline Options'},{key:'HOOK',label:'Opening Hook'},
-    {key:'CORE ARGUMENT',label:'Core Argument'},{key:'KEY POINTS',label:'Key Points'},
-    {key:'GUEST GUIDE POSITIONING',label:'Guest Guide Positioning'},{key:'DATA &(?:AMP;)? SOURCES?',label:'Data & Sources'},
-    {key:'RECOMMENDED STRUCTURE',label:'Recommended Structure'},{key:'CONTENT NOTES',label:'Content Notes'}
-  ];
-  let html='';
-  sections.forEach((sec,i)=>{
-    const nextKey=i<sections.length-1?sections[i+1].key:null;
-    const regex=new RegExp(`\\d*\\.?\\s*(?:${sec.key})[:\\s\\-—]*([\\s\\S]*?)${nextKey?`(?=\\d*\\.?\\s*(?:${nextKey}))`:'$'}`,'i');
-    const match=text.match(regex);
-    if(match){ let content=match[1].trim().replace(/\*\*/g,'').replace(/\n/g,'<br>'); html+=`<div class="brief-section"><div class="brief-section-title">${sec.label}</div><div class="brief-section-content">${content}</div></div>`; }
-  });
-  return html||`<div class="brief-section-content">${text.replace(/\n/g,'<br>')}</div>`;
+function renderHeadlineOptions(headlines) {
+  document.getElementById('write-headline-list').innerHTML = headlines.map((h, i) =>
+    `<div class="hl-option ${i===0?'selected':''}" onclick="selectHeadline(this)"><div class="hl-radio"></div><span>${esc(h)}</span></div>`
+  ).join('');
 }
 
-// ── Step 2: Headlines ────────────────────────────────────────
-function proceedToHeadlines() {
-  setStep(2);
-  document.getElementById('content-label').textContent='Choose Your Headline';
-  const list=document.getElementById('headline-options-list'); list.innerHTML='';
-  parsedHeadlines.forEach((h,i)=>{
-    const div=document.createElement('div'); div.className='headline-option'+(i===0?' selected':'');
-    div.innerHTML=`<div class="headline-radio"></div><span>${h}</span>`;
-    div.onclick=()=>{ document.querySelectorAll('.headline-option').forEach(o=>o.classList.remove('selected')); div.classList.add('selected'); document.getElementById('custom-headline').value=''; };
-    list.appendChild(div);
-  });
+function selectHeadline(el) {
+  document.querySelectorAll('.hl-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('write-custom-headline').value = '';
 }
 
 function getSelectedHeadline() {
-  const custom=document.getElementById('custom-headline').value.trim();
-  if(custom) return custom;
-  const sel=document.querySelector('.headline-option.selected span');
-  return sel?sel.textContent:parsedHeadlines[0]||'Untitled';
+  const custom = document.getElementById('write-custom-headline').value.trim();
+  if (custom) return custom;
+  const sel = document.querySelector('.hl-option.selected span');
+  return sel ? sel.textContent : (writeParsedHeadlines[0] || 'Untitled');
 }
 
-function backToBrief() { setStep(1); document.getElementById('proceed-btn').style.display='inline-block'; }
-
-// ── Step 3: Write ────────────────────────────────────────────
-async function writeArticle() {
-  const headline=getSelectedHeadline();
-  currentArticleTitle=headline;
-  const btn=document.getElementById('write-article-btn');
-  btn.disabled=true; btn.textContent='Writing…';
-  setStep(3);
-  document.getElementById('article-output').innerHTML='<div class="content-placeholder">Writing your article…</div>';
-  try {
-    const response=await fetch('/api/write',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ action:'article', brief:currentBriefText, headline, angle:document.getElementById('brief-angle').value, tone:document.querySelector('.tone-opt.selected')?.textContent||'Authoritative' })
-    });
-    if(!response.ok){ const e=await response.json().catch(()=>({})); throw new Error(e.error||'Server error'); }
-    const d=await response.json();
-    if(d.error) throw new Error(d.error);
-    const text=d.article||'No response.';
-    currentArticleText=text; renderArticle(text);
-  } catch(err) {
-    document.getElementById('article-output').innerHTML=`<div style="color:var(--rust);padding:20px;">Error: ${err.message}</div>`;
-    setStep(2);
-  }
-  btn.disabled=false; btn.textContent='Write Article →';
-}
-
-function renderArticle(text) {
-  const parts=text.split(/\n---+\n/);
-  const articleBody=parts[0]||text;
-  const teaserRaw=parts[1]||'';
-  currentTeaserText=teaserRaw.replace(/LINKEDIN PR[EÉ]CIS[:\s]*/i,'').trim();
-  let html='<div class="article-output">';
-  let body=articleBody.replace(/^# (.+)$/gm,'<h1>$1</h1>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>');
-  body=body.replace(/:::(IMAGE[\s\S]*?):::/g,(match,inner)=>{
-    const lines=inner.trim().split('\n');
-    const labelLine=lines[0]||'';
-    let noteLine='',promptLine='';
-    lines.forEach(l=>{ if(l.startsWith('Note:')) noteLine=l.replace('Note:','').trim(); if(l.startsWith('Prompt:')) promptLine=l.replace('Prompt:','').trim(); });
-    const promptId='prompt-'+Math.random().toString(36).substr(2,6);
-    return `<div class="img-placeholder"><div class="img-placeholder-label">📷 ${labelLine}</div><div class="img-placeholder-note">${noteLine}</div><div class="img-placeholder-prompt" id="${promptId}">${promptLine}</div><button class="img-copy-btn" onclick="copyPrompt('${promptId}')">Copy Prompt</button></div>`;
-  });
-  const paras=body.split('\n\n').filter(p=>p.trim());
-  paras.forEach(p=>{ p=p.trim(); if(p.startsWith('<h1>')||p.startsWith('<h2>')||p.startsWith('<div class="img-placeholder">')) { html+=p; } else if(p.startsWith('> ')) { html+=`<blockquote>${p.replace(/^> /,'')}</blockquote>`; } else if(p.match(/^\n?[-\*]\s/m)) { const items=p.split('\n').filter(l=>l.trim()).map(l=>l.replace(/^[-\*]\s*/,'')); html+='<ul>'+items.map(i=>`<li>${i}</li>`).join('')+'</ul>'; } else { html+=`<p>${p}</p>`; } });
-  html+='</div>';
-  if(currentTeaserText) { html+=`<div class="li-teaser"><div class="li-teaser-label">LinkedIn Précis — copy and paste to LinkedIn</div><div class="li-teaser-content" id="teaser-content">${currentTeaserText.replace(/\n/g,'<br>')}</div></div>`; }
-  document.getElementById('article-output').innerHTML=html;
-}
-
-// ── Save & Download ───────────────────────────────────────────
-async function saveAndDownload() {
-  if(!currentArticleText){ alert('No article to save — write an article first.'); return; }
-  const statusEl = document.getElementById('save-status');
-  statusEl.textContent = 'Saving…';
-
-  try {
-    const response = await fetch('/api/save-article', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: currentArticleTitle, articleText: currentArticleText, returnDocx: true })
-    });
-
-    if (!response.ok) {
-      const e = await response.json().catch(() => ({}));
-      throw new Error(e.error || 'Save failed');
+async function proceedWritePanel() {
+  if (writeStep === 1) {
+    const headline = getSelectedHeadline(); writeStep = 2;
+    document.getElementById('write-stage-label').textContent = 'STEP 2 — ARTICLE';
+    document.getElementById('write-step1').style.display = 'none';
+    document.getElementById('write-step2').style.display = 'block';
+    document.getElementById('write-proceed-btn').style.display = 'none';
+    document.getElementById('write-copy-btn').style.display = 'none';
+    document.getElementById('write-back-btn').style.display = 'none';
+    document.getElementById('write-article-output').innerHTML = '<div style="padding:40px;text-align:center;font-family:Montserrat,sans-serif;font-size:11px;color:var(--muted);"><span class="write-spinner"></span>Writing article — this takes about 30 seconds…</div>';
+    if (writeArticleId) {
+      await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: writeArticleId, headline }) });
+      const idx = pipelineArticles.findIndex(a => a.id === writeArticleId);
+      if (idx !== -1) pipelineArticles[idx].headline = headline;
     }
-
-    // Download the docx blob
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const slug = currentArticleTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50);
-    a.download = `GGI_${slug}_${new Date().toISOString().slice(0, 10)}.docx`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    statusEl.textContent = '✓ Saved & downloaded';
-    showToast('✓ Article saved to library & downloaded as .docx');
-    setTimeout(() => statusEl.textContent = '', 4000);
-  } catch (err) {
-    // Fallback: if server save fails, just trigger a text download
-    statusEl.textContent = 'Server save unavailable — downloading as text';
-    const blob = new Blob([currentArticleText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `GGI_${currentArticleTitle.slice(0, 40).replace(/\s+/g, '_')}.txt`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    setTimeout(() => statusEl.textContent = '', 4000);
+    await fetchArticle(headline);
   }
 }
 
-function showToast(msg) {
-  const t = document.getElementById('save-toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3500);
+async function fetchArticle(headline) {
+  const article = pipelineArticles.find(a => a.id === writeArticleId);
+  try {
+    const resp = await fetch('/api/write', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'article', headline, brief: writeBriefText, signalTitle: article?.signalTitle || '', signalSource: article?.signalSource || '', signalUrl: article?.signalUrl || '', angle: article?.angle || '' }) });
+    if (!resp.ok) throw new Error('Article writing failed: ' + resp.status);
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    renderArticleOutput(data.article);
+    if (writeArticleId) {
+      const words = data.article.split(/\s+/).filter(w => w.length > 0).length;
+      await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: writeArticleId, stage:'written', wordCount: words.toLocaleString('en-GB') }) });
+      const idx = pipelineArticles.findIndex(a => a.id === writeArticleId);
+      if (idx !== -1) pipelineArticles[idx].stage = 'written';
+    }
+    document.getElementById('write-copy-btn').style.display = 'inline-block';
+    document.getElementById('write-stage-label').textContent = 'STEP 2 — ARTICLE ✓';
+    showToast('Article written · moved to Written');
+  } catch(err) { document.getElementById('write-article-output').innerHTML = `<div style="color:var(--orange);padding:20px;">Error: ${esc(err.message)}</div>`; showToast('Article writing failed'); }
 }
 
-// ── Copy helpers ──────────────────────────────────────────────
-function copyBriefText() { navigator.clipboard.writeText(document.getElementById('brief-output').innerText); flashBtn(event.target,'Copied!'); }
-function copyArticle() { const el=document.getElementById('article-output'); navigator.clipboard.writeText(el?el.innerText:currentArticleText); flashBtn(event.target,'Copied!'); }
-function copyTeaser() { const el=document.getElementById('teaser-content'); navigator.clipboard.writeText(el?el.innerText:currentTeaserText); flashBtn(event.target,'Copied!'); }
-function copyPrompt(id) { const el=document.getElementById(id); if(el) navigator.clipboard.writeText(el.innerText); const btn=el?.nextElementSibling; if(btn){ const o=btn.textContent; btn.textContent='Copied!'; setTimeout(()=>btn.textContent=o,1500); } }
-function flashBtn(btn,msg) { if(!btn)return; const o=btn.textContent; btn.textContent=msg; setTimeout(()=>btn.textContent=o,1500); }
-function startOver() { resetWriterToStep1(); }
+function renderArticleOutput(text) {
+  const parts = text.split(/\n---+\n/); const body = parts[0] || text; const precis = parts[1] || '';
+  let html = '<div>';
+  let processed = body.replace(/^# (.+)$/gm,'<h1>$1</h1>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>');
+  processed = processed.replace(/:::(IMAGE[\s\S]*?):::/g, function(match, inner) {
+    var lines = inner.trim().split('\n'); var label = lines[0] || ''; var note = '', prompt = '';
+    lines.forEach(function(l) { if (l.indexOf('Note:')===0) note=l.replace('Note:','').trim(); if (l.indexOf('Prompt:')===0) prompt=l.replace('Prompt:','').trim(); });
+    return `<div class="img-block"><div class="img-block-label">📷 ${esc(label)}</div>${note?`<div style="font-size:12px;color:var(--muted);font-style:italic;margin-bottom:8px;">${esc(note)}</div>`:''}<div class="img-block-prompt">${esc(prompt)}</div></div>`;
+  });
+  processed.split('\n\n').filter(p=>p.trim()).forEach(p => {
+    p = p.trim();
+    if (p.startsWith('<h') || p.startsWith('<div class="img-block">')) html += p;
+    else if (p.startsWith('> ')) html += '<blockquote>' + p.replace(/^> /,'') + '</blockquote>';
+    else html += '<p>' + p + '</p>';
+  });
+  html += '</div>';
+  if (precis.trim()) html += `<div class="li-precis-box"><div class="li-precis-label">LINKEDIN PRÉCIS — copy and paste to LinkedIn</div><div>${precis.replace(/LINKEDIN PR[EÉ]CIS[:\s]*/i,'').trim().replace(/\n/g,'<br>')}</div></div>`;
+  document.getElementById('write-article-output').innerHTML = html;
+}
 
-// ═══════════════════════════════════════════════════════════
-// CALENDAR
-// ═══════════════════════════════════════════════════════════
+function copyWriteOutput() {
+  const el = writeStep === 1 ? document.getElementById('write-brief-output') : document.getElementById('write-article-output');
+  if (el) { navigator.clipboard.writeText(el.innerText); showToast('Copied to clipboard'); }
+}
+
+// ══ ANALYTICS ══
+var analyticsData = [];
+
+async function loadAnalytics() {
+  try {
+    const resp = await fetch('/api/config');
+    if (!resp.ok) return;
+    const cfg = await resp.json();
+    analyticsData = cfg.analyticsData || [];
+    var published = pipelineArticles.filter(a => a.stage === 'published' || a.publishedDate);
+    published.forEach(art => {
+      if (!analyticsData.find(a => a.id === art.id)) analyticsData.push({ id: art.id, title: art.headline || art.ideaText || 'Untitled', publishedDate: art.publishedDate || '', blogUrl: art.blogUrl || '', linkedinDate: art.linkedinDate || '', imp10:'', imp30:'', engage:'', notes:'' });
+    });
+    renderAnalytics();
+  } catch(e) {}
+}
+
+function renderAnalytics() {
+  const tbody = document.getElementById('analytics-tbody');
+  const sub = document.getElementById('analytics-sub');
+  if (!tbody) return;
+  if (sub) sub.textContent = analyticsData.length + ' articles tracked · enter data from LinkedIn after 10 and 30 days';
+  if (analyticsData.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);font-style:italic;">No published articles yet.</td></tr>'; document.getElementById('analytics-insights').innerHTML = ''; return; }
+  tbody.innerHTML = analyticsData.map((row, i) =>
+    `<tr><td><input class="analytics-input" value="${esc(row.publishedDate||'')}" onchange="updateAnalyticsRow(${i},'publishedDate',this.value)" type="date"></td>
+    <td style="font-family:'Montserrat',sans-serif;font-size:13px;font-weight:500;">${row.blogUrl ? `<a href="${esc(row.blogUrl)}" target="_blank" style="color:var(--orange);text-decoration:none;">${esc(row.title)}</a>` : esc(row.title)}</td>
+    <td><input class="analytics-input" value="${esc(row.imp10||'')}" onchange="updateAnalyticsRow(${i},'imp10',this.value)" placeholder="—" style="width:70px;"></td>
+    <td><input class="analytics-input" value="${esc(row.imp30||'')}" onchange="updateAnalyticsRow(${i},'imp30',this.value)" placeholder="—" style="width:70px;"></td>
+    <td><input class="analytics-input" value="${esc(row.engage||'')}" onchange="updateAnalyticsRow(${i},'engage',this.value)" placeholder="—" style="width:60px;"></td>
+    <td><input class="analytics-input" value="${esc(row.linkedinDate||'')}" onchange="updateAnalyticsRow(${i},'linkedinDate',this.value)" type="date"></td>
+    <td><input class="analytics-input" value="${esc(row.notes||'')}" onchange="updateAnalyticsRow(${i},'notes',this.value)" placeholder="Audience signals, geography, engagement notes…"></td>
+    <td><button onclick="deleteAnalyticsRow(${i})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;">✕</button></td></tr>`
+  ).join('');
+  var imp10s = analyticsData.map(r=>parseInt(r.imp10)).filter(n=>!isNaN(n));
+  var imp30s = analyticsData.map(r=>parseInt(r.imp30)).filter(n=>!isNaN(n));
+  var engages = analyticsData.map(r=>parseFloat(r.engage)).filter(n=>!isNaN(n));
+  var avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length).toLocaleString('en-GB') : '—';
+  document.getElementById('avg-10day').textContent = avg(imp10s);
+  document.getElementById('avg-30day').textContent = avg(imp30s);
+  document.getElementById('avg-engage').textContent = engages.length ? (engages.reduce((a,b)=>a+b,0)/engages.length).toFixed(1)+'%' : '—';
+  renderInsights();
+}
+
+function renderInsights() {
+  const el = document.getElementById('analytics-insights');
+  if (!el || analyticsData.length < 2) { if(el) el.innerHTML = ''; return; }
+  var withData = analyticsData.filter(r => r.imp30 && !isNaN(parseInt(r.imp30)));
+  if (withData.length === 0) { el.innerHTML = ''; return; }
+  var sorted = withData.slice().sort((a,b) => parseInt(b.imp30)-parseInt(a.imp30));
+  var avg30 = Math.round(sorted.reduce((s,r)=>s+parseInt(r.imp30),0)/sorted.length);
+  el.innerHTML = `<div class="insight-card"><div class="insight-label">Best Performer (30-day)</div><div class="insight-text"><strong>${esc(sorted[0].title)}</strong> — ${parseInt(sorted[0].imp30).toLocaleString('en-GB')} impressions</div></div>
+    <div class="insight-card"><div class="insight-label">Average 30-Day Impressions</div><div class="insight-text">${avg30.toLocaleString('en-GB')} across ${sorted.length} articles with data</div></div>
+    <div class="insight-card"><div class="insight-label">Lowest Performer (30-day)</div><div class="insight-text"><strong>${esc(sorted[sorted.length-1].title)}</strong> — ${parseInt(sorted[sorted.length-1].imp30).toLocaleString('en-GB')} impressions</div></div>`;
+}
+
+async function updateAnalyticsRow(idx, field, value) {
+  analyticsData[idx][field] = value;
+  await saveAnalyticsData(); renderInsights();
+  var imp10s = analyticsData.map(r=>parseInt(r.imp10)).filter(n=>!isNaN(n));
+  var imp30s = analyticsData.map(r=>parseInt(r.imp30)).filter(n=>!isNaN(n));
+  var engages = analyticsData.map(r=>parseFloat(r.engage)).filter(n=>!isNaN(n));
+  var avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length).toLocaleString('en-GB') : '—';
+  document.getElementById('avg-10day').textContent = avg(imp10s);
+  document.getElementById('avg-30day').textContent = avg(imp30s);
+  document.getElementById('avg-engage').textContent = engages.length ? (engages.reduce((a,b)=>a+b,0)/engages.length).toFixed(1)+'%' : '—';
+}
+
+async function deleteAnalyticsRow(idx) { analyticsData.splice(idx,1); await saveAnalyticsData(); renderAnalytics(); }
+function addAnalyticsRow() { analyticsData.unshift({ id:'manual_'+Date.now(), title:'New article', publishedDate:'', blogUrl:'', linkedinDate:'', imp10:'', imp30:'', engage:'', notes:'' }); renderAnalytics(); }
+async function saveAnalyticsData() { try { await fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ analyticsData }) }); } catch(e) {} }
+
+// ══ CALENDAR ══
 function renderCalendar() {
-  const tbody=document.getElementById('cal-tbody');
-  ARTICLES.forEach(a=>{
-    const sc=a.status==='Published'?'sp-published':a.status==='Scheduled'?'sp-ai':'sp-draft';
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">${a.week}</td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:nowrap;">${a.date}</td><td style="font-family:'Playfair Display',serif;font-size:13px;">${a.title}</td><td><span class="status-pill ${sc}">${a.status}</span></td>`;
-    tbody.appendChild(tr);
-  });
+  const container = document.getElementById('calendar-container'); const meta = document.getElementById('calendar-meta');
+  var dated = pipelineArticles.filter(a => a.scheduledDate || a.publishedDate).map(a => Object.assign({},a,{sortDate:a.scheduledDate||a.publishedDate})).sort((a,b)=>a.sortDate.localeCompare(b.sortDate));
+  if (dated.length === 0) { container.innerHTML = '<div class="cal-empty">No articles with scheduled dates yet.</div>'; if(meta) meta.textContent=''; return; }
+  var upcoming = dated.filter(a=>a.stage!=='published').length; var pub = dated.filter(a=>a.stage==='published').length;
+  if (meta) meta.textContent = upcoming + ' upcoming · ' + pub + ' published';
+  var today = new Date().toISOString().slice(0,10);
+  container.innerHTML = `<table class="calendar-table"><thead><tr><th style="width:110px;">Date</th><th style="width:70px;">Time (CET)</th><th>Article</th><th style="width:180px;">Source Signal</th><th style="width:100px;">Status</th><th style="width:80px;">Blog</th></tr></thead><tbody>` +
+    dated.map(a => {
+      var dateStr = a.scheduledDate || a.publishedDate || '';
+      var displayDate = dateStr ? new Date(dateStr+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+      var isToday = dateStr === today;
+      return `<tr${isToday?' style="background:#eef7fb;"':''}>
+        <td style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:${isToday?'700':'400'};color:${isToday?'var(--orange)':'inherit'}">${displayDate}${isToday?' ◄ TODAY':''}</td>
+        <td style="font-family:'Montserrat',sans-serif;font-size:11px;">${a.scheduledTime||'—'}</td>
+        <td style="font-family:'Montserrat',sans-serif;font-size:13px;font-weight:500;">${esc(a.headline||a.ideaText||'Untitled')}</td>
+        <td style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;color:var(--orange);">${esc(a.signalSource||'—')}</td>
+        <td><span class="cal-status cal-${a.stage||'shortlisted'}">${(a.stage||'shortlisted').replace('_',' ')}</span></td>
+        <td>${a.blogUrl?`<a href="${esc(a.blogUrl)}" target="_blank" style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;color:var(--orange);">View →</a>`:'—'}</td>
+      </tr>`;
+    }).join('') + '</tbody></table>';
 }
-
-// ═══════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════
-renderCalendar();
-renderAnalytics();
-setStep(1);
-
-// ═══════════════════════════════════════════════════════════
-// XLSX UPLOAD PARSER — LinkedIn PostAnalytics export format
-// ═══════════════════════════════════════════════════════════
-function handleDrop(e) {
-  e.preventDefault();
-  document.getElementById('upload-zone').classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file) parseLinkedInExport(file);
-}
-
-function handleFileUpload(e) {
-  const file = e.target.files[0];
-  if (file) parseLinkedInExport(file);
-  e.target.value = ''; // reset so same file can be re-uploaded
-}
-
-function parseLinkedInExport(file) {
-  const resultEl = document.getElementById('upload-result');
-  resultEl.className = 'upload-result show';
-  resultEl.textContent = 'Reading file…';
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, { type: 'array' });
-
-      // ── PERFORMANCE sheet ───────────────────────────────
-      const perfSheet = wb.Sheets['PERFORMANCE'];
-      if (!perfSheet) throw new Error('PERFORMANCE sheet not found — is this a LinkedIn analytics export?');
-
-      const perfRows = XLSX.utils.sheet_to_json(perfSheet, { header: 1, defval: null });
-
-      // Build key→value map from the two-column layout
-      const kv = {};
-      perfRows.forEach(row => {
-        if (row[0] && row[1] !== null && row[1] !== undefined) {
-          kv[String(row[0]).trim()] = row[1];
-        }
-      });
-
-      // Extract post ID from filename (optional, falls back to timestamp)
-      const idMatch = file.name.match(/(\d{16,19})/);
-      const postId = idMatch ? idMatch[1] : 'USER-' + Date.now();
-
-      // Extract URL for display
-      const url = kv['Post URL'] || '';
-
-      // Parse numeric fields (LinkedIn exports numbers as strings with commas)
-      const parseNum = (val) => {
-        if (val === null || val === undefined) return 0;
-        return parseInt(String(val).replace(/,/g, '')) || 0;
-      };
-
-      const impressions  = parseNum(kv['Impressions']);
-      const reached      = parseNum(kv['Members reached']);
-      const link_clicks  = parseNum(kv['Visits to links in this post']);
-      const profile_views= parseNum(kv['Profile viewers from this post']);
-      const followers    = parseNum(kv['Followers gained from this post']);
-      const reactions    = parseNum(kv['Reactions']);
-      const comments     = parseNum(kv['Comments']);
-      const reposts      = parseNum(kv['Reposts']);
-      const saves        = parseNum(kv['Saves']);
-      const sends        = parseNum(kv['Sends on LinkedIn']);
-
-      // Highlights sections (reaction/comment top job/location)
-      // Rows labelled "Top job title" and "Top location" appear twice (once for reactions, once for comments)
-      let top_job_r = 'n/a', top_loc_r = 'n/a', top_job_c = 'n/a', top_loc_c = 'n/a';
-      let top_industry_r = 'n/a';
-      let highlightSection = 0;
-      perfRows.forEach(row => {
-        const key = row[0] ? String(row[0]).trim() : '';
-        if (key.includes('Reactions Highlights')) { highlightSection = 1; return; }
-        if (key.includes('Comments Highlights'))  { highlightSection = 2; return; }
-        if (key === 'Top job title') {
-          if (highlightSection === 1) top_job_r = row[1] || 'n/a';
-          if (highlightSection === 2) top_job_c = row[1] || 'n/a';
-        }
-        if (key === 'Top location') {
-          if (highlightSection === 1) top_loc_r = row[1] || 'n/a';
-          if (highlightSection === 2) top_loc_c = row[1] || 'n/a';
-        }
-        if (key === 'Top industry' && highlightSection === 1) {
-          top_industry_r = row[1] || 'n/a';
-        }
-      });
-
-      // ── TOP DEMOGRAPHICS sheet ─────────────────────────
-      const demoSheet = wb.Sheets['TOP DEMOGRAPHICS'];
-      let top_location = 'n/a', top_seniority = 'n/a', top_industry = 'n/a';
-      let notable_companies = 'n/a';
-
-      if (demoSheet) {
-        const demoRows = XLSX.utils.sheet_to_json(demoSheet, { header: 1, defval: null });
-        const locations = [], companies = [], industries = [], seniorities = [];
-
-        demoRows.forEach(row => {
-          if (!row[0]) return;
-          const cat = String(row[0]).trim();
-          const val = row[1] ? String(row[1]).trim() : '';
-          const pct = row[2];
-          const pctStr = typeof pct === 'number' ? ' (' + (pct * 100).toFixed(1) + '%)' : (pct ? ' (' + pct + ')' : '');
-
-          if (cat === 'Location')  locations.push(val + pctStr);
-          if (cat === 'Company')   companies.push(val);
-          if (cat === 'Industry')  industries.push(val + pctStr);
-          if (cat === 'Seniority') seniorities.push(val + pctStr);
-        });
-
-        top_location = locations.slice(0, 5).join(' / ') || 'n/a';
-        notable_companies = companies.slice(0, 6).join(', ') || 'n/a';
-        top_industry = industries[0] || top_industry_r;
-        top_seniority = seniorities[0] || 'n/a';
-      }
-
-      // Check if this post ID already exists in POSTS
-      const existingIdx = POSTS.findIndex(p => p.id === postId);
-
-      const post = {
-        id: postId,
-        verified: true,
-        date:  kv['Post Date']         || 'Unknown',
-        time:  kv['Post Publish Time'] || 'n/a',
-        title: document.getElementById('np-title').value.trim() || '(Title not in export — please add)',
-        angle: document.getElementById('np-angle').value.trim() || 'n/a',
-        impressions, reached, link_clicks, profile_views, followers,
-        reactions, comments, reposts, saves, sends,
-        top_job_r, top_loc_r, top_job_c, top_loc_c,
-        top_industry, top_seniority, top_location, notable_companies,
-        notes: document.getElementById('np-notes').value.trim() ||
-               'Imported from LinkedIn export: ' + file.name +
-               (url ? ' · ' + url : ''),
-      };
-
-      if (existingIdx > -1) {
-        // Update existing — keep title, angle, notes if already set
-        const existing = POSTS[existingIdx];
-        if (existing.title && existing.title !== '(Title not in export — please add)') post.title = existing.title;
-        if (existing.angle && existing.angle !== 'n/a') post.angle = existing.angle;
-        if (existing.notes && !existing.notes.startsWith('Imported from')) post.notes = existing.notes;
-        POSTS[existingIdx] = post;
-        resultEl.className = 'upload-result show';
-        resultEl.textContent = '✓ Updated existing post: "' + post.title + '" · ' + impressions.toLocaleString() + ' impressions';
-      } else {
-        POSTS.push(post);
-        resultEl.className = 'upload-result show';
-        resultEl.textContent = '✓ Added new post: ' + post.date + ' · ' + impressions.toLocaleString() + ' impressions · ' + reactions + ' reactions';
-      }
-
-      renderAnalytics();
-
-      // Auto-clear title/angle/notes fields after import
-      ['np-title','np-angle','np-notes'].forEach(id => document.getElementById(id).value = '');
-
-    } catch (err) {
-      resultEl.className = 'upload-result error show';
-      resultEl.textContent = '✗ Parse error: ' + err.message;
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
 </script>
 </body>
 </html>
