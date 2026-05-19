@@ -22,22 +22,11 @@ const ARTICLE_SPEC = `PERMANENT ARTICLE SPECIFICATION:
 - Then section: LINKEDIN PRÉCIS
 - Précis: 120–150 words. High-conversion LinkedIn hook. Personal voice. No hashtags. Ends with CTA to read full article.`;
 
+const { callAnthropic: callAnthropicApi, extractText } = require('./integrity');
+
 async function callAnthropic(apiKey, messages, maxTokens) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type':      'application/json',
-      'x-api-key':         apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: maxTokens, messages }),
-  });
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Anthropic API error ${response.status}: ${err}`);
-  }
-  const data = await response.json();
-  return data.content?.map(b => (b.type === 'text' ? b.text : '')).join('') || '';
+  const data = await callAnthropicApi(apiKey, { max_tokens: maxTokens, messages });
+  return extractText(data);
 }
 
 module.exports = async function handler(req, res) {

@@ -5,6 +5,7 @@ const {
   extractText,
   filterVerifiedSignals,
   repairSignalsJson,
+  truncateTopics,
 } = require('./integrity');
 
 // ── Upstash KV helpers (raw REST — @vercel/kv must never be imported) ─────────
@@ -50,12 +51,9 @@ async function kvList(prefix) {
   return data.result || [];
 }
 
-// ── GG context strings ────────────────────────────────────────────────────────
-const GG_CONTEXT = `Guest Guide Interactive is a European tourism technology company founded by Walt Cudlip, based in Arezzo, Tuscany. The platform uses AI-driven visitor dispersion technology — operating as an intelligence layer over a verified, locally curated geospatial dataset — to help DMOs redirect visitor flows from overcrowded areas toward under-visited destinations, authentic operators, and off-season periods. The platform's defensive moat is its verified, structured, geospatially addressed POI database (agriturismi, local guides, artisans, cultural sites).
-
-Target customers: DMOs and regional tourism boards (Segment A), authentic local operators (Segment B), travellers seeking authentic experiences (Segment C). Primary markets: Italy (Arezzo-Siena corridor pilot active), DACH region (priority expansion), Netherlands, France. Pre-revenue, actively fundraising €3.5M Seed/Series A. In dialogue with Visit Tuscany and Fondazione Arezzo Intour.
-
-Policy alignment: EU Transition Pathway for Tourism, Interreg Central Europe Priority 2, NBTC Perspective 2030, ENIT national frameworks. Core claim: produces redistribution evidence that EU funding bodies require — not just redistribution itself. This is a governance tool, not a marketing or itinerary tool.`;
+// ── GG context (compact — large prompts trigger org input-token-per-minute limits) ─
+const GG_CONTEXT =
+  'Guest Guide Interactive: European tourism tech (Arezzo, Tuscany). AI visitor-dispersion layer over verified geospatial POI data for DMOs. Markets: Italy (Arezzo-Siena), DACH, NL, FR. Governance/evidence tool for EU tourism policy — not itineraries or marketing.';
 
 const DEFAULT_EXISTING_TOPICS = `Already published (do not repeat): overtourism intro, slow travel intro, SaaS market sizing for DMOs, social licence/resident voice, founder origin story, data-driven tourism, wellness travel demand, resident backlash (Barcelona/Venice), investor market sizing (Trillion-dollar), DMO digital tools vs campaigns, temporary resident traveller framing, heritage preservation vs prosperity, startup-policy nexus, EU Green Deal dispersion mandates, DMO analytics testing, spatial governance flagship (Counting Visitors to Controlling Flows), Italian mid-cities dispersion (Arezzo Is Not Venice), slow tourism infrastructure (What Slow Tourism Requires), ETC Barometer demand shift (Long-Haul Traveller), ENIT Italian tools gap, OTA vs governance accountability (Booking.com Crowd Avoidance), EU startup single market (EU Inc), operator economics/OTA costs (Hidden Tax on Operators), islands and villages excluded from frameworks, rural tourism digital infrastructure gap.`;
 
@@ -164,41 +162,32 @@ module.exports = async function handler(req, res) {
     const cutoffDate = threeMonthsAgo.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
     const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
-    const scanPrompt = `You are a senior intelligence analyst for Guest Guide Interactive. Today is ${today}.
+    const topicsBlock = truncateTopics(existingTopics);
+    const sourceFilter = sources.length > 0 ? sources.join(', ') : 'EU policy, national DMOs, Skift, Phocuswire, major EU press';
+    const themeFilter = themes.length > 0 ? themes.join(', ') : 'all';
 
-Your task: conduct LIVE WEB SEARCH across current European tourism intelligence sources and return 5–7 verified signals Guest Guide has NOT yet written about. You MUST use web search — do not rely on training data, do not invent reports, statistics, or URLs.
+    const scanPrompt = `Intelligence analyst for Guest Guide. Today: ${today}. Use web search (max 5 searches). Return exactly 5 signals published after ${cutoffDate}.
 
-DATE CONSTRAINT: Only include signals published or released after ${cutoffDate}. Skip anything older.
+Context: ${GG_CONTEXT}
 
-COMPANY CONTEXT: ${GG_CONTEXT}
+Do NOT repeat topics already covered: ${topicsBlock}
 
-TOPICS ALREADY COVERED — DO NOT REPEAT: ${existingTopics}
+Focus: ${sourceFilter}. Themes: ${themeFilter}. Gaps: coolcation, OTA/platform risk, DMO spatial data, DACH rural tourism.
 
-SOURCE CATEGORIES: EU Commission, EU Parliament, ETC, UN Tourism, Interreg, NBTC Netherlands, ENIT Italy, Germany Tourism, VisitBritain, Visit Norway, Visit Sweden, Skift, Phocuswire, Phocuswright, Travel Weekly, BBC, The Guardian, Le Monde, Frankfurter Allgemeine, Süddeutsche Zeitung, El País, Wall Street Journal, Travel + Leisure, Condé Nast Traveller, NatGeo Traveller, WTTC, McKinsey Travel, PwC Hospitality, Euromonitor, Our World In Data, ECTN, ETOA, LEADER Programme, Ruraltour EU.
+Rules: real URLs from search only; no invented reports/stats; url required per signal.
 
-Selected sources: ${sources.length > 0 ? sources.join(', ') : 'cast wide across all categories'}
-Selected themes: ${themes.length > 0 ? themes.join(', ') : 'all'}
+Output: raw JSON array only, no markdown. Fields per signal: id, type (policy|ai|ota|dmo|market|research), typeLabel, badge (badge-*), title (≤85c), source, date, url, relevance (70-99), summary (≤175c), ideas[{text,angle}], positioning (≤130c).
 
-PRIORITY GAPS: Nordic coolcation governance, platform dependency risk, spatial intelligence in DMOs, traveller behavioural research, DACH market tourism policy, consumer magazine 2026 trends.
+Example object:
+{"id":"slug","type":"policy","typeLabel":"Policy","badge":"badge-policy","title":"Title","source":"Org","date":"Mar 2026","url":"https://example.com/article","relevance":85,"summary":"Fact with data point.","ideas":[{"text":"Article A","angle":"GG angle"},{"text":"Article B","angle":"GG angle"}],"positioning":"GG positioning."}
 
-SEARCH RULES:
-1. Search the web for each signal — every signal needs a real URL you found via search.
-2. The url field MUST be the exact live page URL of the primary source (not a homepage unless the story is there).
-3. Do not include signals you cannot verify with a working URL.
-4. Do not fabricate future reports, McKinsey studies, or statistics — only what exists on the live web.
-5. Each signal needs a named organisation, specific date, and concrete finding with a data point where possible.
-
-OUTPUT: JSON array of 5–7 signals. RULES: raw JSON array ONLY, no markdown, no backticks, no prose before or after. Every string value on ONE line — no newlines inside strings. No trailing commas. title max 85 chars, summary max 175 chars, positioning max 130 chars, angle max 70 chars. type must be one of: policy, ai, ota, dmo, market, research. badge must be one of: badge-policy, badge-ai, badge-ota, badge-dmo, badge-market, badge-research. relevance must be integer 70-99. Each signal must have a unique id field (short slug). url is REQUIRED on every signal.
-
-EXAMPLE (one correctly formatted object):
-{"id":"example-slug","type":"market","typeLabel":"Consumer Trend","badge":"badge-market","title":"Signal title here","source":"Source org","date":"Mar 2026","url":"https://www.example.com/real-article-path/","relevance":85,"summary":"Factual 1-2 sentence summary with specific data point from the source page.","ideas":[{"text":"Article title option 1","angle":"GG angle here"},{"text":"Article title option 2","angle":"GG angle here"}],"positioning":"How GG positions relative to this signal."}
-
-Search the web and produce the full JSON array now:`;
+Search and return the JSON array:`;
 
     const data = await callWithWebSearch(apiKey, {
       messages: [{ role: 'user', content: scanPrompt }],
-      maxTokens: 6000,
-      maxRounds: 6,
+      maxTokens: 4096,
+      maxRounds: 3,
+      maxUses: 5,
     });
 
     const jsonText = extractText(data);
@@ -206,7 +195,8 @@ Search the web and produce the full JSON array now:`;
 
     let signals = repairSignalsJson(jsonText);
 
-    const { kept, rejected } = await filterVerifiedSignals(signals);
+    // Sequential URL checks — avoids burst traffic; scan already consumed most TPM budget
+    const { kept, rejected } = await filterVerifiedSignals(signals, { sequential: true });
     signals = kept;
 
     if (signals.length === 0) {
