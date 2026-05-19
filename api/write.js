@@ -1,4 +1,6 @@
-export const config = { maxDuration: 60 };
+export const config = { maxDuration: 120 };
+
+const { enforceEditorialIntegrity } = require('./integrity');
 
 const GG_CONTEXT = `Guest Guide Interactive is a European tourism technology company founded by Walt Cudlip, based in Arezzo, Tuscany. The platform uses AI-driven visitor dispersion technology — operating as an intelligence layer over a verified, locally curated geospatial dataset — to help DMOs redirect visitor flows from overcrowded areas toward under-visited destinations, authentic operators, and off-season periods. Target customers: DMOs and regional tourism boards (Segment A), authentic local operators including agriturismi, guides and artisans (Segment B), travellers seeking authentic experiences (Segment C). Primary markets: Italy (Arezzo-Siena corridor pilot active), DACH region (priority expansion), Netherlands, France. Pre-revenue, actively fundraising €3.5M Seed/Series A. In dialogue with Visit Tuscany and Fondazione Arezzo Intour. Policy alignment: EU Transition Pathway for Tourism, Interreg Central Europe Priority 2, NBTC Perspective 2030, ENIT national frameworks. Core claim: produces redistribution evidence that EU funding bodies require — not just redistribution itself. Governance tool, not a marketing or itinerary tool. Never describe the internal ranking or curation mechanism.`;
 
@@ -58,21 +60,38 @@ module.exports = async function handler(req, res) {
     // ── ACTION: brief ──────────────────────────────────────────────────────
     if (action === 'brief') {
       // Support both old field names (concept/context) and new (signalTitle/ideaText/notes)
-      // fetchBrief() in index.html sends: signalTitle, signalSource, signalUrl, signalDate,
-      //   ideaText, angle, notes
-      // Old write panel sent: concept, angle, tone, context
-      // We handle both to be safe.
       const concept = body.concept
         || [body.signalTitle, body.ideaText].filter(Boolean).join(' — ')
         || '(no concept provided)';
+      const signalUrl = (body.signalUrl || '').trim();
+      const signalTitle = body.signalTitle || body.ideaText || concept;
+      const signalSource = body.signalSource || '';
+      const signalDate = body.signalDate || '';
+
+      const verification = await enforceEditorialIntegrity(apiKey, {
+        concept,
+        signalTitle,
+        signalSource,
+        signalUrl,
+        signalDate,
+      });
+      if (!verification.verified) {
+        res.status(422).json({
+          error: `Editorial integrity check failed: ${verification.reason}`,
+          integrity_failed: true,
+          verification,
+        });
+        return;
+      }
+
       const context = body.context
         || [
-            body.signalSource ? `Source: ${body.signalSource}` : '',
-            body.signalDate   ? `Date: ${body.signalDate}`     : '',
-            body.signalUrl    ? `URL: ${body.signalUrl}`        : '',
-            body.notes        ? `Notes: ${body.notes}`          : '',
-          ].filter(Boolean).join('\n')
-        || '';
+            signalSource ? `Source: ${signalSource}` : '',
+            signalDate   ? `Date: ${signalDate}`     : '',
+            signalUrl    ? `URL: ${signalUrl}`        : '',
+            body.notes   ? `Notes: ${body.notes}`    : '',
+            `Integrity: verified via live web search — ${verification.reason}`,
+          ].filter(Boolean).join('\n');
       const angle = body.angle || 'thought-leadership';
       const tone  = body.tone  || 'Authoritative';
 
@@ -108,7 +127,7 @@ Produce a structured article brief with EXACTLY these sections:
 3. CORE ARGUMENT — central thesis in 3-4 sentences
 4. KEY POINTS — 4-5 bullet points of main arguments
 5. GUEST GUIDE POSITIONING — how and where Guest Guide enters the article naturally (in dialogue with DMOs, no signed partners yet)
-6. DATA & SOURCES — specific organisations, reports, or data points to anchor the piece
+6. DATA & SOURCES — anchor only to the verified source URL and facts confirmed in the integrity check; do not invent reports or statistics
 7. RECOMMENDED STRUCTURE — brief outline (Intro → 3-4 sections → Conclusion → CTA)
 8. CONTENT NOTES — tone guidance, what to avoid, what to amplify
 
@@ -122,7 +141,24 @@ Be specific and intelligent. Write as someone who deeply understands European to
 
     // ── ACTION: article ────────────────────────────────────────────────────
     if (action === 'article') {
-      const { headline, brief, signalTitle, signalSource, signalUrl, angle, tone } = body;
+      const { headline, brief, signalTitle, signalSource, signalUrl, signalDate, angle, tone } = body;
+      const url = (signalUrl || '').trim();
+
+      const verification = await enforceEditorialIntegrity(apiKey, {
+        concept: signalTitle || headline || '',
+        signalTitle: signalTitle || '',
+        signalSource: signalSource || '',
+        signalUrl: url,
+        signalDate: signalDate || '',
+      });
+      if (!verification.verified) {
+        res.status(422).json({
+          error: `Editorial integrity check failed: ${verification.reason}`,
+          integrity_failed: true,
+          verification,
+        });
+        return;
+      }
 
       const ANGLE_DESCRIPTIONS = {
         'thought-leadership': 'Guest Guide as a sector authority on European dispersion technology and policy-aligned tourism management',
@@ -150,11 +186,14 @@ ${brief || '(No brief provided — write a strong article based on the headline 
 CHOSEN HEADLINE: ${headline || '(Choose the strongest headline from the brief)'}
 ORIGINAL SIGNAL: ${signalTitle || ''}
 ${signalSource ? 'SOURCE: ' + signalSource : ''}
-${signalUrl    ? 'URL: '    + signalUrl    : ''}
+${url ? 'VERIFIED URL: ' + url : ''}
+${signalDate ? 'DATE: ' + signalDate : ''}
+INTEGRITY NOTE: ${verification.reason}
 GUEST GUIDE ANGLE: ${ANGLE_DESCRIPTIONS[angle] || angle || 'thought-leadership'}
 TONE: ${tone || 'Authoritative'}
 
 Write the complete article. Follow the specification exactly:
+- Cite only facts supported by the verified source URL; do not invent studies, statistics, or future-dated reports
 - 1,000–1,200 words body text
 - Year-11 reading level, British English
 - LinkedIn-optimised subheadings

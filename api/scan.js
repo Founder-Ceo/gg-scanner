@@ -1,10 +1,17 @@
 export const config = { maxDuration: 120 };
 
+const {
+  callWithWebSearch,
+  extractText,
+  filterVerifiedSignals,
+  repairSignalsJson,
+} = require('./integrity');
+
 // ── Upstash KV helpers (raw REST — @vercel/kv must never be imported) ─────────
 async function kvSet(key, value) {
   const url   = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) return null;   // KV not configured — skip silently
+  if (!url || !token) throw new Error('KV env vars not configured');
   const res = await fetch(`${url}/set/${encodeURIComponent(key)}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -17,7 +24,7 @@ async function kvSet(key, value) {
 async function kvGet(key) {
   const url   = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) return null;   // KV not configured — return null gracefully
+  if (!url || !token) throw new Error('KV env vars not configured');
   const res = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -29,17 +36,14 @@ async function kvGet(key) {
 async function kvList(prefix) {
   const url   = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) return [];     // KV not configured — return empty list
-  // Upstash REST SCAN command — correct endpoint for listing keys by pattern
-  const res = await fetch(`${url}/scan/0?match=${encodeURIComponent(prefix + '*')}&count=200`, {
+  if (!url || !token) throw new Error('KV env vars not configured');
+  // Upstash KEYS command with pattern
+  const res = await fetch(`${url}/keys/${encodeURIComponent(prefix + '*')}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) throw new Error(`KV scan failed: ${res.status}`);
+  if (!res.ok) throw new Error(`KV list failed: ${res.status}`);
   const data = await res.json();
-  // SCAN returns [cursor, [keys]]
-  const result = data.result;
-  if (Array.isArray(result) && Array.isArray(result[1])) return result[1];
-  return [];
+  return data.result || [];
 }
 
 // ── GG context strings ────────────────────────────────────────────────────────
@@ -50,46 +54,6 @@ Target customers: DMOs and regional tourism boards (Segment A), authentic local 
 Policy alignment: EU Transition Pathway for Tourism, Interreg Central Europe Priority 2, NBTC Perspective 2030, ENIT national frameworks. Core claim: produces redistribution evidence that EU funding bodies require — not just redistribution itself. This is a governance tool, not a marketing or itinerary tool.`;
 
 const DEFAULT_EXISTING_TOPICS = `Already published (do not repeat): overtourism intro, slow travel intro, SaaS market sizing for DMOs, social licence/resident voice, founder origin story, data-driven tourism, wellness travel demand, resident backlash (Barcelona/Venice), investor market sizing (Trillion-dollar), DMO digital tools vs campaigns, temporary resident traveller framing, heritage preservation vs prosperity, startup-policy nexus, EU Green Deal dispersion mandates, DMO analytics testing, spatial governance flagship (Counting Visitors to Controlling Flows), Italian mid-cities dispersion (Arezzo Is Not Venice), slow tourism infrastructure (What Slow Tourism Requires), ETC Barometer demand shift (Long-Haul Traveller), ENIT Italian tools gap, OTA vs governance accountability (Booking.com Crowd Avoidance), EU startup single market (EU Inc), operator economics/OTA costs (Hidden Tax on Operators), islands and villages excluded from frameworks, rural tourism digital infrastructure gap.`;
-
-async function callAnthropic(apiKey, messages, maxTokens) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type':    'application/json',
-      'x-api-key':       apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: maxTokens, messages }),
-  });
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Anthropic API error ${response.status}: ${err}`);
-  }
-  const data = await response.json();
-  return data.content?.map(b => (b.type === 'text' ? b.text : '')).join('') || '';
-}
-
-function repairJson(raw) {
-  const m = raw.match(/\[\s*\{[\s\S]*\}\s*\]/);
-  if (!m) throw new Error('No JSON array found in response');
-  let s = m[0];
-  s = s.replace(/[\x00-\x09\x0b\x0c\x0e-\x1f\x7f]/g, ' ');
-  s = s.replace(/,\s*([}\]])/g, '$1');
-  try {
-    return JSON.parse(s);
-  } catch (e) {
-    const objs = [...s.matchAll(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g)];
-    const valid = [];
-    for (const o of objs) {
-      try {
-        const parsed = JSON.parse(o[0]);
-        if (parsed.title && parsed.summary) valid.push(parsed);
-      } catch (_) {}
-    }
-    if (valid.length === 0) throw new Error('JSON repair failed: ' + e.message);
-    return valid;
-  }
-}
 
 // ── Safe JSON parse helper — handles double-serialised KV values ──────────────
 function safeParseKv(raw) {
@@ -188,10 +152,13 @@ module.exports = async function handler(req, res) {
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
     const cutoffDate = threeMonthsAgo.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
-    const scanPrompt = `You are a senior intelligence analyst for Guest Guide Interactive. Return intelligence signals as a JSON array.
+    const scanPrompt = `You are a senior intelligence analyst for Guest Guide Interactive. Today is ${today}.
 
-DATE CONSTRAINT: Only return signals published or released after ${cutoffDate}. Reject anything older. If a source has no recent signal within this window, skip it entirely.
+Your task: conduct LIVE WEB SEARCH across current European tourism intelligence sources and return 5–7 verified signals Guest Guide has NOT yet written about. You MUST use web search — do not rely on training data, do not invent reports, statistics, or URLs.
+
+DATE CONSTRAINT: Only include signals published or released after ${cutoffDate}. Skip anything older.
 
 COMPANY CONTEXT: ${GG_CONTEXT}
 
@@ -199,20 +166,47 @@ TOPICS ALREADY COVERED — DO NOT REPEAT: ${existingTopics}
 
 SOURCE CATEGORIES: EU Commission, EU Parliament, ETC, UN Tourism, Interreg, NBTC Netherlands, ENIT Italy, Germany Tourism, VisitBritain, Visit Norway, Visit Sweden, Skift, Phocuswire, Phocuswright, Travel Weekly, BBC, The Guardian, Le Monde, Frankfurter Allgemeine, Süddeutsche Zeitung, El País, Wall Street Journal, Travel + Leisure, Condé Nast Traveller, NatGeo Traveller, WTTC, McKinsey Travel, PwC Hospitality, Euromonitor, Our World In Data, ECTN, ETOA, LEADER Programme, Ruraltour EU.
 
-Selected sources: ${sources.length > 0 ? sources.join(', ') : 'all'}
+Selected sources: ${sources.length > 0 ? sources.join(', ') : 'cast wide across all categories'}
 Selected themes: ${themes.length > 0 ? themes.join(', ') : 'all'}
 
 PRIORITY GAPS: Nordic coolcation governance, platform dependency risk, spatial intelligence in DMOs, traveller behavioural research, DACH market tourism policy, consumer magazine 2026 trends.
 
-OUTPUT: JSON array of exactly 5 signals. RULES: raw JSON array ONLY, no markdown, no backticks, no prose before or after. Every string value on ONE line — no newlines inside strings. No trailing commas. title max 85 chars, summary max 175 chars, positioning max 130 chars, angle max 70 chars. type must be one of: policy, ai, ota, dmo, market, research. badge must be one of: badge-policy, badge-ai, badge-ota, badge-dmo, badge-market, badge-research. relevance must be integer 70-99. Each signal must have a unique id field (short slug, e.g. "nordic-coolcation-2026").
+SEARCH RULES:
+1. Search the web for each signal — every signal needs a real URL you found via search.
+2. The url field MUST be the exact live page URL of the primary source (not a homepage unless the story is there).
+3. Do not include signals you cannot verify with a working URL.
+4. Do not fabricate future reports, McKinsey studies, or statistics — only what exists on the live web.
+5. Each signal needs a named organisation, specific date, and concrete finding with a data point where possible.
+
+OUTPUT: JSON array of 5–7 signals. RULES: raw JSON array ONLY, no markdown, no backticks, no prose before or after. Every string value on ONE line — no newlines inside strings. No trailing commas. title max 85 chars, summary max 175 chars, positioning max 130 chars, angle max 70 chars. type must be one of: policy, ai, ota, dmo, market, research. badge must be one of: badge-policy, badge-ai, badge-ota, badge-dmo, badge-market, badge-research. relevance must be integer 70-99. Each signal must have a unique id field (short slug). url is REQUIRED on every signal.
 
 EXAMPLE (one correctly formatted object):
-{"id":"example-slug","type":"market","typeLabel":"Consumer Trend","badge":"badge-market","title":"Signal title here","source":"Source org","date":"Mar 2026","relevance":85,"summary":"Factual 1-2 sentence summary with specific data point.","ideas":[{"text":"Article title option 1","angle":"GG angle here"},{"text":"Article title option 2","angle":"GG angle here"}],"positioning":"How GG positions relative to this signal."}
+{"id":"example-slug","type":"market","typeLabel":"Consumer Trend","badge":"badge-market","title":"Signal title here","source":"Source org","date":"Mar 2026","url":"https://www.example.com/real-article-path/","relevance":85,"summary":"Factual 1-2 sentence summary with specific data point from the source page.","ideas":[{"text":"Article title option 1","angle":"GG angle here"},{"text":"Article title option 2","angle":"GG angle here"}],"positioning":"How GG positions relative to this signal."}
 
-Produce the full JSON array now:`;
+Search the web and produce the full JSON array now:`;
 
-    const jsonText = await callAnthropic(apiKey, [{ role: 'user', content: scanPrompt }], 6000);
-    let signals = repairJson(jsonText);
+    const data = await callWithWebSearch(apiKey, {
+      messages: [{ role: 'user', content: scanPrompt }],
+      maxTokens: 6000,
+      maxRounds: 6,
+    });
+
+    const jsonText = extractText(data);
+    if (!jsonText) throw new Error('No text response from intelligence scan');
+
+    let signals = repairSignalsJson(jsonText);
+
+    const { kept, rejected } = await filterVerifiedSignals(signals);
+    signals = kept;
+
+    if (signals.length === 0) {
+      res.status(422).json({
+        error:
+          'No verifiable signals returned. Every signal must have a working source URL found via live web search.',
+        rejected,
+      });
+      return;
+    }
 
     // Ensure every signal has an id
     signals = signals.map((s, i) => ({
@@ -237,12 +231,16 @@ Produce the full JSON array now:`;
       themes:      themes.slice(0, 8),
     };
 
-    // Save to KV — wrapped individually so a KV failure never blocks the response
-    try { await kvSet(scanKey + ':summary', JSON.stringify(summary)); } catch (_) {}
-    try { await kvSet(scanKey + ':signals', JSON.stringify(signals)); } catch (_) {}
+    await kvSet(scanKey + ':summary', JSON.stringify(summary));
+    await kvSet(scanKey + ':signals', JSON.stringify(signals));
 
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.status(200).json({ signals, key: scanKey, dateLabel });
+    res.status(200).json({
+      signals,
+      key: scanKey,
+      dateLabel,
+      integrity: { rejectedCount: rejected.length, rejected },
+    });
 
   } catch (err) {
     res.status(500).json({ error: err.message });

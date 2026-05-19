@@ -910,6 +910,10 @@ async function runScan() {
     document.getElementById('results-sub').textContent = currentSignals.length + ' signals · ' + currentSignals.filter(s => s.relevance >= 90).length + ' high priority' + windowNote;
     document.getElementById('results-meta').innerHTML = 'Live web search · ' + now.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) + '<br>90-day window · saved permanently';
 
+    if (data.integrity?.rejectedCount > 0) {
+      showToast(data.integrity.rejectedCount + ' signal(s) dropped — source URL could not be verified');
+    }
+
     renderSignals(currentSignals, dateLabel);
     await loadScanHistory();
   } catch(err) {
@@ -1292,9 +1296,8 @@ async function backToTopics() {
 async function fetchBrief(article) {
   try {
     const resp = await fetch('/api/write', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'brief', signalTitle: article.signalTitle || article.ideaText, signalSource: article.signalSource, signalUrl: article.signalUrl, signalDate: article.signalDate, ideaText: article.ideaText, angle: article.angle, notes: article.brief || article.notes }) });
-    if (!resp.ok) throw new Error('Brief generation failed: ' + resp.status);
     const data = await resp.json();
-    if (data.error) throw new Error(data.error);
+    if (!resp.ok || data.error) throw new Error(data.error || ('Brief generation failed: ' + resp.status));
     writeBriefText = data.brief;
     writeParsedHeadlines = extractHeadlines(data.brief);
     document.getElementById('write-brief-output').textContent = data.brief;
@@ -1372,10 +1375,9 @@ async function proceedWritePanel() {
 async function fetchArticle(headline) {
   const article = pipelineArticles.find(a => a.id === writeArticleId);
   try {
-    const resp = await fetch('/api/write', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'article', headline, brief: writeBriefText, signalTitle: article?.signalTitle || '', signalSource: article?.signalSource || '', signalUrl: article?.signalUrl || '', angle: article?.angle || '' }) });
-    if (!resp.ok) throw new Error('Article writing failed: ' + resp.status);
+    const resp = await fetch('/api/write', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'article', headline, brief: writeBriefText, signalTitle: article?.signalTitle || '', signalSource: article?.signalSource || '', signalUrl: article?.signalUrl || '', signalDate: article?.signalDate || '', angle: article?.angle || '' }) });
     const data = await resp.json();
-    if (data.error) throw new Error(data.error);
+    if (!resp.ok || data.error) throw new Error(data.error || ('Article writing failed: ' + resp.status));
     renderArticleOutput(data.article);
     if (writeArticleId) {
       const words = data.article.split(/\s+/).filter(w => w.length > 0).length;
