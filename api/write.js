@@ -20,41 +20,31 @@ const ARTICLE_SPEC = `PERMANENT ARTICLE SPECIFICATION:
 - Then section: LINKEDIN PRÉCIS
 - Précis: 120–150 words. High-conversion LinkedIn hook. Personal voice. No hashtags. Ends with CTA to read full article.`;
 
-const ANGLE_DESCRIPTIONS = {
-  'thought-leadership': 'Guest Guide as a sector authority on European dispersion technology and policy-aligned tourism management',
-  'commentary': 'Guest Guide responding to an industry development, contributing to a policy or market conversation',
-  'case-study': 'Guest Guide presenting evidence from real-world application or pilot work',
-  'investor': 'Framing the tourism tech opportunity for investors, with Guest Guide positioned within the market',
-  'dmo': 'Speaking directly to destination managers and tourism boards about operational challenges and solutions',
-  'manifesto': 'A bold, declarative position on the future of European tourism — Guest Guide as a visionary voice'
-};
-
 async function callAnthropic(apiKey, messages, maxTokens) {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01'
+      'Content-Type':      'application/json',
+      'x-api-key':         apiKey,
+      'anthropic-version': '2023-06-01',
     },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: maxTokens,
-      messages
-    })
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: maxTokens, messages }),
   });
   if (!response.ok) {
     const err = await response.text();
     throw new Error(`Anthropic API error ${response.status}: ${err}`);
   }
   const data = await response.json();
-  return data.content?.map(b => b.type === 'text' ? b.text : '').join('') || '';
+  return data.content?.map(b => (b.type === 'text' ? b.text : '')).join('') || '';
 }
 
 module.exports = async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.status(405).end('Method not allowed'); return;
-  }
+  res.setHeader('Access-Control-Allow-Origin',  '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') { res.status(200).end(); return; }
+  if (req.method !== 'POST') { res.status(405).end('Method not allowed'); return; }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -63,9 +53,38 @@ module.exports = async function handler(req, res) {
 
   try {
     const body = req.body || {};
-    const { action, concept, angle, tone, context, brief, headline } = body;
+    const { action } = body;
 
+    // ── ACTION: brief ──────────────────────────────────────────────────────
     if (action === 'brief') {
+      // Support both old field names (concept/context) and new (signalTitle/ideaText/notes)
+      // fetchBrief() in index.html sends: signalTitle, signalSource, signalUrl, signalDate,
+      //   ideaText, angle, notes
+      // Old write panel sent: concept, angle, tone, context
+      // We handle both to be safe.
+      const concept = body.concept
+        || [body.signalTitle, body.ideaText].filter(Boolean).join(' — ')
+        || '(no concept provided)';
+      const context = body.context
+        || [
+            body.signalSource ? `Source: ${body.signalSource}` : '',
+            body.signalDate   ? `Date: ${body.signalDate}`     : '',
+            body.signalUrl    ? `URL: ${body.signalUrl}`        : '',
+            body.notes        ? `Notes: ${body.notes}`          : '',
+          ].filter(Boolean).join('\n')
+        || '';
+      const angle = body.angle || 'thought-leadership';
+      const tone  = body.tone  || 'Authoritative';
+
+      const ANGLE_DESCRIPTIONS = {
+        'thought-leadership': 'Guest Guide as a sector authority on European dispersion technology and policy-aligned tourism management',
+        'commentary':         'Guest Guide responding to an industry development, contributing to a policy or market conversation',
+        'case-study':         'Guest Guide presenting evidence from real-world application or pilot work',
+        'investor':           'Framing the tourism tech opportunity for investors, with Guest Guide positioned within the market',
+        'dmo':                'Speaking directly to destination managers and tourism boards about operational challenges and solutions',
+        'manifesto':          'A bold, declarative position on the future of European tourism — Guest Guide as a visionary voice',
+      };
+
       const prompt = `You are a specialist content strategist for Guest Guide Interactive.
 
 COMPANY CONTEXT:
@@ -80,8 +99,8 @@ ${EXISTING_TOPICS}
 BRIEF REQUEST:
 Concept / Signal: ${concept}
 Guest Guide Angle: ${ANGLE_DESCRIPTIONS[angle] || angle}
-Tone: ${tone || 'Authoritative'}
-${context ? 'Additional context: ' + context : ''}
+Tone: ${tone}
+${context ? 'Additional context:\n' + context : ''}
 
 Produce a structured article brief with EXACTLY these sections:
 1. WORKING HEADLINES — exactly 3 strong options (label A, B, C)
@@ -95,11 +114,25 @@ Produce a structured article brief with EXACTLY these sections:
 
 Be specific and intelligent. Write as someone who deeply understands European tourism policy and B2B SaaS.`;
 
-      const briefText = await callAnthropic(apiKey, [{ role: 'user', content: prompt }], 1500);
+      const briefText = await callAnthropic(apiKey, [{ role: 'user', content: prompt }], 2000);
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.status(200).json({ brief: briefText });
+      return;
+    }
 
-      res.setHeader('Access-Control-Allow-Origin', '*'); res.status(200).json({ brief: briefText }); return;
+    // ── ACTION: article ────────────────────────────────────────────────────
+    if (action === 'article') {
+      const { headline, brief, signalTitle, signalSource, signalUrl, angle, tone } = body;
 
-    } else if (action === 'article') {
+      const ANGLE_DESCRIPTIONS = {
+        'thought-leadership': 'Guest Guide as a sector authority on European dispersion technology and policy-aligned tourism management',
+        'commentary':         'Guest Guide responding to an industry development, contributing to a policy or market conversation',
+        'case-study':         'Guest Guide presenting evidence from real-world application or pilot work',
+        'investor':           'Framing the tourism tech opportunity for investors, with Guest Guide positioned within the market',
+        'dmo':                'Speaking directly to destination managers and tourism boards about operational challenges and solutions',
+        'manifesto':          'A bold, declarative position on the future of European tourism — Guest Guide as a visionary voice',
+      };
+
       const prompt = `You are a specialist content writer for Guest Guide Interactive.
 
 COMPANY CONTEXT:
@@ -112,10 +145,13 @@ EXISTING TOPICS TO AVOID:
 ${EXISTING_TOPICS}
 
 ARTICLE BRIEF:
-${brief}
+${brief || '(No brief provided — write a strong article based on the headline and signal below)'}
 
-CHOSEN HEADLINE: ${headline}
-GUEST GUIDE ANGLE: ${ANGLE_DESCRIPTIONS[angle] || angle}
+CHOSEN HEADLINE: ${headline || '(Choose the strongest headline from the brief)'}
+ORIGINAL SIGNAL: ${signalTitle || ''}
+${signalSource ? 'SOURCE: ' + signalSource : ''}
+${signalUrl    ? 'URL: '    + signalUrl    : ''}
+GUEST GUIDE ANGLE: ${ANGLE_DESCRIPTIONS[angle] || angle || 'thought-leadership'}
 TONE: ${tone || 'Authoritative'}
 
 Write the complete article. Follow the specification exactly:
@@ -127,15 +163,16 @@ Write the complete article. Follow the specification exactly:
 
 Start directly with the article title.`;
 
-      const articleText = await callAnthropic(apiKey, [{ role: 'user', content: prompt }], 2000);
-
-      res.setHeader('Access-Control-Allow-Origin', '*'); res.status(200).json({ article: articleText }); return;
-
-    } else {
-      res.status(400).json({ error: 'Unknown action' }); return;
+      const articleText = await callAnthropic(apiKey, [{ role: 'user', content: prompt }], 4000);
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.status(200).json({ article: articleText });
+      return;
     }
 
+    res.status(400).json({ error: 'Unknown action. Use action:"brief" or action:"article"' });
+
   } catch (err) {
-    res.status(500).json({ error: err.message }); return;
+    res.status(500).json({ error: err.message });
+    return;
   }
-}
+};
