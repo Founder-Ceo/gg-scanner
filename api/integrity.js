@@ -3,8 +3,10 @@
  * Used by scan.js (signal discovery) and write.js (brief/article gate).
  */
 
-const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
-const VERIFY_MODEL = process.env.ANTHROPIC_VERIFY_MODEL || 'claude-3-5-haiku-20241022';
+// Sonnet 4 (20250514) deprecated 14 Apr 2026, retires 15 Jun 2026 → use Sonnet 4.6
+// Haiku 3.5 retired 19 Feb 2026 → use Haiku 4.5
+const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
+const VERIFY_MODEL = process.env.ANTHROPIC_VERIFY_MODEL || 'claude-haiku-4-5-20251001';
 
 function webSearchTool(maxUses = 5) {
   return {
