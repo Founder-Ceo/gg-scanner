@@ -1386,7 +1386,7 @@ async function backToTopics() {
 
 async function fetchBrief(article) {
   try {
-    const resp = await fetch('/api/write', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'brief', signalTitle: article.signalTitle || article.ideaText, signalSource: article.signalSource, signalUrl: article.signalUrl, signalDate: article.signalDate, ideaText: article.ideaText, angle: article.angle, notes: article.brief || article.notes }) });
+    const resp = await fetch('/api/write', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'brief', signalTitle: article.signalTitle || article.ideaText, signalSource: article.signalSource, signalUrl: article.signalUrl, signalDate: article.signalDate, publishDate: article.scheduledDate || '', ideaText: article.ideaText, angle: article.angle, notes: article.brief || article.notes }) });
     const data = await resp.json();
     if (!resp.ok || data.error) throw new Error(data.error || ('Brief generation failed: ' + resp.status));
     writeBriefText = data.brief;
@@ -1466,7 +1466,7 @@ async function proceedWritePanel() {
 async function fetchArticle(headline) {
   const article = pipelineArticles.find(a => a.id === writeArticleId);
   try {
-    const resp = await fetch('/api/write', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'article', headline, brief: writeBriefText, signalTitle: article?.signalTitle || '', signalSource: article?.signalSource || '', signalUrl: article?.signalUrl || '', signalDate: article?.signalDate || '', angle: article?.angle || '' }) });
+    const resp = await fetch('/api/write', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'article', headline, brief: writeBriefText, signalTitle: article?.signalTitle || '', signalSource: article?.signalSource || '', signalUrl: article?.signalUrl || '', signalDate: article?.signalDate || '', publishDate: article?.scheduledDate || '', angle: article?.angle || '' }) });
     const data = await resp.json();
     if (!resp.ok || data.error) throw new Error(data.error || ('Article writing failed: ' + resp.status));
     renderArticleOutput(data.article);

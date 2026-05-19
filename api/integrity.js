@@ -189,20 +189,166 @@ function parseJsonObject(raw) {
   return JSON.parse(s);
 }
 
+const MONTH_INDEX = {
+  jan: 0, january: 0,
+  feb: 1, february: 1,
+  mar: 2, march: 2,
+  apr: 3, april: 3,
+  may: 4,
+  jun: 5, june: 5,
+  jul: 6, july: 6,
+  aug: 7, august: 7,
+  sep: 8, sept: 8, september: 8,
+  oct: 9, october: 9,
+  nov: 10, november: 10,
+  dec: 11, december: 11,
+};
+
+/** Editorial clock — Europe/London, YYYY-MM-DD. */
+function editorialTodayISO() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
+}
+
+function parseISODate(iso) {
+  const m = String(iso || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]) - 1;
+  const d = Number(m[3]);
+  const dt = new Date(Date.UTC(y, mo, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo || dt.getUTCDate() !== d) {
+    return null;
+  }
+  return dt;
+}
+
+/**
+ * Parse scanner / pipeline date strings (British-first).
+ * Returns { precision: 'day'|'month', start: Date, end: Date } or null.
+ */
+function parseSignalDate(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  const s = raw.trim();
+  if (!s) return null;
+
+  // ISO from pipeline scheduled fields occasionally copied
+  const iso = parseISODate(s);
+  if (iso) {
+    return { precision: 'day', start: iso, end: iso, raw: s };
+  }
+
+  // DD/MM/YYYY or DD-MM-YYYY (British)
+  let m = s.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
+  if (m) {
+    const d = Number(m[1]);
+    const mo = Number(m[2]) - 1;
+    const y = Number(m[3]);
+    const start = new Date(Date.UTC(y, mo, d));
+    if (start.getUTCFullYear() === y && start.getUTCMonth() === mo && start.getUTCDate() === d) {
+      return { precision: 'day', start, end: start, raw: s };
+    }
+  }
+
+  // "11 May 2026"
+  m = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+  if (m) {
+    const d = Number(m[1]);
+    const mo = MONTH_INDEX[m[2].toLowerCase()];
+    const y = Number(m[3]);
+    if (mo !== undefined) {
+      const start = new Date(Date.UTC(y, mo, d));
+      if (start.getUTCFullYear() === y && start.getUTCMonth() === mo && start.getUTCDate() === d) {
+        return { precision: 'day', start, end: start, raw: s };
+      }
+    }
+  }
+
+  // "May 2026" / "Mar 2026"
+  m = s.match(/^([A-Za-z]+)\s+(\d{4})$/);
+  if (m) {
+    const mo = MONTH_INDEX[m[1].toLowerCase()];
+    const y = Number(m[2]);
+    if (mo !== undefined) {
+      const start = new Date(Date.UTC(y, mo, 1));
+      const end = new Date(Date.UTC(y, mo + 1, 0));
+      return { precision: 'month', start, end, raw: s };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Deterministic date gate — avoids LLM false positives on valid recent news.
+ * Allows signal dates on or before publish date (or today). Month-only dates use
+ * end-of-month so "May 2026" is valid when publishing 20 May 2026.
+ */
+function validateSignalDate(signalDate, options = {}) {
+  const parsed = parseSignalDate(signalDate);
+  if (!parsed) {
+    return { ok: true, skipped: true, reason: 'Signal date not parsed; calendar check skipped.' };
+  }
+
+  const refISO = (options.publishDate && parseISODate(options.publishDate))
+    ? options.publishDate.trim()
+    : editorialTodayISO();
+  const ref = parseISODate(refISO);
+  if (!ref) {
+    return { ok: true, skipped: true, reason: 'Reference date unavailable; calendar check skipped.' };
+  }
+
+  // Compare using end of signal window vs reference day (UTC)
+  const signalEnd = parsed.end;
+  const refEnd = ref;
+  const slackMs = 24 * 60 * 60 * 1000; // timezone / same-day publish
+
+  if (signalEnd.getTime() > refEnd.getTime() + slackMs) {
+    return {
+      ok: false,
+      skipped: false,
+      reason:
+        `Signal date (${parsed.raw}) is after the editorial reference date (${refISO}). ` +
+        'This check compares publication timing only — not future deadlines mentioned in the story.',
+      referenceDate: refISO,
+      signalDate: parsed.raw,
+    };
+  }
+
+  return {
+    ok: true,
+    skipped: false,
+    reason: `Signal date (${parsed.raw}) is on or before editorial reference (${refISO}).`,
+    referenceDate: refISO,
+    signalDate: parsed.raw,
+  };
+}
+
 /**
  * Lightweight claim check after HTTP reachability (no web search — saves TPM).
  */
 async function verifySourceLight(apiKey, fields) {
-  const { signalTitle, signalSource, signalUrl, signalDate, concept } = fields;
+  const { signalTitle, signalSource, signalUrl, signalDate, concept, dateCheck } = fields;
+
+  const dateRule = dateCheck?.ok && !dateCheck?.skipped
+    ? `DATE (code-verified): ${dateCheck.reason} Do NOT reject for future publication — only reject URL/title mismatch or fabricated sources.`
+    : dateCheck?.ok === false
+      ? `DATE (failed code check): ${dateCheck.reason}`
+      : `DATE: ${signalDate || 'not provided'} — if unparseable, do not reject on calendar grounds alone.`;
 
   const prompt = `Editorial integrity check. The URL already returned HTTP 2xx.
+Editorial reference date (Europe/London): ${fields.referenceDate || editorialTodayISO()}
+${fields.publishDate ? `Planned publication: ${fields.publishDate}` : ''}
 
 Signal: ${signalTitle || concept || '?'}
 Source: ${signalSource || '?'}
-Date: ${signalDate || '?'}
+Signal date (publication): ${signalDate || '?'}
 URL: ${signalUrl}
 
-Approve (verified:true) only if the URL path and title are plausibly aligned and the claim does not look fabricated (e.g. non-existent future McKinsey report, invented statistics). Reject generic homepages unrelated to the claim.
+${dateRule}
+
+Approve (verified:true) when the URL path and headline claim are plausibly aligned.
+Reject only for: invalid/unrelated URL (e.g. generic homepage), or clearly fabricated source (invented report, fake statistics).
+Do NOT reject because the story mentions future event deadlines (e.g. "consultation until 25 May 2026") or because the news is from the current month.
 
 Return ONLY one line JSON: {"verified":true|false,"reason":"..."}`;
 
@@ -226,12 +372,24 @@ Return ONLY one line JSON: {"verified":true|false,"reason":"..."}`;
  */
 async function enforceEditorialIntegrity(apiKey, fields) {
   const url = (fields.signalUrl || '').trim();
+  const publishDate = (fields.publishDate || fields.scheduledDate || '').trim();
+  const referenceDate = editorialTodayISO();
+
+  const dateCheck = validateSignalDate(fields.signalDate, { publishDate: publishDate || undefined });
+  if (!dateCheck.ok) {
+    return {
+      verified: false,
+      reason: dateCheck.reason,
+      date_check: dateCheck,
+    };
+  }
 
   if (!url) {
     return {
       verified: false,
       reason:
         'Source URL is required. Run Intelligence Scan with live web search and use a signal that includes a verified URL.',
+      date_check: dateCheck,
     };
   }
 
@@ -240,10 +398,19 @@ async function enforceEditorialIntegrity(apiKey, fields) {
     return {
       verified: false,
       reason: `Source URL is not reachable (${reachable.reason}). Editorial integrity requires a working link.`,
+      date_check: dateCheck,
     };
   }
 
-  return verifySourceLight(apiKey, { ...fields, signalUrl: url });
+  const result = await verifySourceLight(apiKey, {
+    ...fields,
+    signalUrl: url,
+    publishDate: publishDate || undefined,
+    referenceDate,
+    dateCheck,
+  });
+
+  return { ...result, date_check: dateCheck };
 }
 
 /** Truncate long topic lists to stay under org input-token-per-minute limits. */
@@ -321,4 +488,7 @@ module.exports = {
   isValidHttpUrl,
   repairSignalsJson,
   truncateTopics,
+  parseSignalDate,
+  validateSignalDate,
+  editorialTodayISO,
 };

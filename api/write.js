@@ -56,6 +56,7 @@ module.exports = async function handler(req, res) {
       const signalTitle = body.signalTitle || body.ideaText || concept;
       const signalSource = body.signalSource || '';
       const signalDate = body.signalDate || '';
+      const publishDate = (body.publishDate || body.scheduledDate || '').trim();
 
       const verification = await enforceEditorialIntegrity(apiKey, {
         concept,
@@ -63,6 +64,7 @@ module.exports = async function handler(req, res) {
         signalSource,
         signalUrl,
         signalDate,
+        publishDate,
       });
       if (!verification.verified) {
         res.status(422).json({
@@ -133,12 +135,15 @@ Be specific and intelligent. Write as someone who deeply understands European to
       const { headline, brief, signalTitle, signalSource, signalUrl, signalDate, angle, tone } = body;
       const url = (signalUrl || '').trim();
 
+      const publishDate = (body.publishDate || body.scheduledDate || '').trim();
+
       const verification = await enforceEditorialIntegrity(apiKey, {
         concept: signalTitle || headline || '',
         signalTitle: signalTitle || '',
         signalSource: signalSource || '',
         signalUrl: url,
         signalDate: signalDate || '',
+        publishDate,
       });
       if (!verification.verified) {
         res.status(422).json({
