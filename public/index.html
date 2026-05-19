@@ -695,8 +695,8 @@ main{max-width:1480px;margin:0 auto;padding:32px 40px;}
       <div class="config-card-title">About This Platform</div>
       <div style="font-size:12px;line-height:1.8;color:#1e3d56;">
         <p style="margin-bottom:10px;"><strong>Guest Guide Content Intelligence</strong> is a private editorial platform for Walt Cudlip / Guest Guide Interactive. It scans live European tourism intelligence sources, saves results permanently in Vercel KV storage, and manages the full article pipeline from signal to publication to analytics.</p>
-        <p style="margin-bottom:10px;">Every scan creates a dated record that is never overwritten. Signals are filtered to the last 90 days only to ensure journalistic currency.</p>
-        <p style="font-family:'Montserrat',sans-serif;font-size:10px;color:var(--muted);">v2 · Scanner · Pipeline · Analytics · Calendar · 90-day recency enforcement · Editorial integrity guardrails</p>
+        <p style="margin-bottom:10px;">Every scan creates a dated record that is never overwritten. Signals are filtered to the last 14 days to match a twice-weekly publishing cadence and ensure journalistic currency.</p>
+        <p style="font-family:'Montserrat',sans-serif;font-size:10px;color:var(--muted);">v2 · Scanner · Pipeline · Analytics · Calendar · 14-day recency enforcement · Editorial integrity guardrails</p>
       </div>
     </div>
   </div>
@@ -926,7 +926,7 @@ async function runScan() {
 function renderSignals(signals, dateLabel) {
   const container = document.getElementById('signals-container');
   if (!signals || signals.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-title">No signals</div><div class="empty-sub">No signals found within the 90-day window. Try broadening your source or theme selection.</div></div>';
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-title">No signals</div><div class="empty-sub">No signals found within the 14-day window. Try broadening your source or theme selection.</div></div>';
     return;
   }
   container.innerHTML = signals.map((s, i) => {
