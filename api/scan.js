@@ -4,7 +4,7 @@ export const config = { maxDuration: 120 };
 async function kvSet(key, value) {
   const url   = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('KV env vars not configured');
+  if (!url || !token) return null;   // KV not configured — skip silently
   const res = await fetch(`${url}/set/${encodeURIComponent(key)}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -17,7 +17,7 @@ async function kvSet(key, value) {
 async function kvGet(key) {
   const url   = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('KV env vars not configured');
+  if (!url || !token) return null;   // KV not configured — return null gracefully
   const res = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -29,14 +29,17 @@ async function kvGet(key) {
 async function kvList(prefix) {
   const url   = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('KV env vars not configured');
-  // Upstash KEYS command with pattern
-  const res = await fetch(`${url}/keys/${encodeURIComponent(prefix + '*')}`, {
+  if (!url || !token) return [];     // KV not configured — return empty list
+  // Upstash REST SCAN command — correct endpoint for listing keys by pattern
+  const res = await fetch(`${url}/scan/0?match=${encodeURIComponent(prefix + '*')}&count=200`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) throw new Error(`KV list failed: ${res.status}`);
+  if (!res.ok) throw new Error(`KV scan failed: ${res.status}`);
   const data = await res.json();
-  return data.result || [];
+  // SCAN returns [cursor, [keys]]
+  const result = data.result;
+  if (Array.isArray(result) && Array.isArray(result[1])) return result[1];
+  return [];
 }
 
 // ── GG context strings ────────────────────────────────────────────────────────
@@ -234,8 +237,9 @@ Produce the full JSON array now:`;
       themes:      themes.slice(0, 8),
     };
 
-    await kvSet(scanKey + ':summary', JSON.stringify(summary));
-    await kvSet(scanKey + ':signals', JSON.stringify(signals));
+    // Save to KV — wrapped individually so a KV failure never blocks the response
+    try { await kvSet(scanKey + ':summary', JSON.stringify(summary)); } catch (_) {}
+    try { await kvSet(scanKey + ':signals', JSON.stringify(signals)); } catch (_) {}
 
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(200).json({ signals, key: scanKey, dateLabel });
