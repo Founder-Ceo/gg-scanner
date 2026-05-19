@@ -157,16 +157,31 @@ module.exports = async function handler(req, res) {
       } catch (_) {}
     }
 
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    const cutoffDate = threeMonthsAgo.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-    const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    // 14-day recency guardrail — aligned to twice-weekly publishing cadence
+    const todayDate = new Date();
+    const recencyStart = new Date(todayDate);
+    recencyStart.setDate(recencyStart.getDate() - 14);
+    const cutoffDate = recencyStart.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    const today = todayDate.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    const contentWindow = {
+      days: 14,
+      from: recencyStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+      to: todayDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+    };
 
     const topicsBlock = truncateTopics(existingTopics);
     const sourceFilter = sources.length > 0 ? sources.join(', ') : 'EU policy, national DMOs, Skift, Phocuswire, major EU press';
     const themeFilter = themes.length > 0 ? themes.join(', ') : 'all';
 
-    const scanPrompt = `Intelligence analyst for Guest Guide. Today: ${today}. Use web search (max 5 searches). Return exactly 5 signals published after ${cutoffDate}.
+    const scanPrompt = `Intelligence analyst for Guest Guide. Today: ${today}. Use web search (max 5 searches). Return exactly 5 signals published within the last 14 days (on or after ${cutoffDate}).
 
 Context: ${GG_CONTEXT}
 
@@ -174,7 +189,7 @@ Do NOT repeat topics already covered: ${topicsBlock}
 
 Focus: ${sourceFilter}. Themes: ${themeFilter}. Gaps: coolcation, OTA/platform risk, DMO spatial data, DACH rural tourism.
 
-Rules: real URLs from search only; no invented reports/stats; url required per signal.
+Rules: real URLs from search only; no invented reports/stats; url required per signal. Reject anything older than 14 days.
 
 Output: raw JSON array only, no markdown. Fields per signal: id, type (policy|ai|ota|dmo|market|research), typeLabel, badge (badge-*), title (≤85c), source, date, url, relevance (70-99), summary (≤175c), ideas[{text,angle}], positioning (≤130c).
 
@@ -243,6 +258,7 @@ Search and return the JSON array:`;
       key: persisted ? scanKey : null,
       dateLabel,
       persisted,
+      contentWindow,
       integrity: { rejectedCount: rejected.length, rejected },
     });
 
