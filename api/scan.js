@@ -8,10 +8,15 @@ const {
 } = require('./integrity');
 
 // ── Upstash KV helpers (raw REST — @vercel/kv must never be imported) ─────────
+// KV is optional: scan works without it (no history persistence). Only HTTP failures throw.
+function kvConfigured() {
+  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+}
+
 async function kvSet(key, value) {
+  if (!kvConfigured()) return null;
   const url   = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('KV env vars not configured');
   const res = await fetch(`${url}/set/${encodeURIComponent(key)}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -22,9 +27,9 @@ async function kvSet(key, value) {
 }
 
 async function kvGet(key) {
+  if (!kvConfigured()) return null;
   const url   = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('KV env vars not configured');
   const res = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -34,10 +39,9 @@ async function kvGet(key) {
 }
 
 async function kvList(prefix) {
+  if (!kvConfigured()) return [];
   const url   = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('KV env vars not configured');
-  // Upstash KEYS command with pattern
   const res = await fetch(`${url}/keys/${encodeURIComponent(prefix + '*')}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -100,6 +104,10 @@ module.exports = async function handler(req, res) {
   // Body: { scanKey, signalId, status }
   if (req.method === 'PATCH') {
     try {
+      if (!kvConfigured()) {
+        res.status(503).json({ error: 'Scan persistence unavailable (KV not configured on server)' });
+        return;
+      }
       const { scanKey, signalId, status } = req.body || {};
       if (!scanKey || !signalId || !status) {
         res.status(400).json({ error: 'scanKey, signalId and status are required' }); return;
@@ -137,17 +145,19 @@ module.exports = async function handler(req, res) {
     const body = req.body || {};
     const { sources = [], themes = [] } = body;
 
-    // Load published topics from config KV — fall back to default if absent
+    // Load published topics from config KV when available — else hardcoded default
     let existingTopics = DEFAULT_EXISTING_TOPICS;
-    try {
-      const cfgRaw = await kvGet('config:published-topics');
-      const cfgVal = safeParseKv(cfgRaw);
-      if (typeof cfgVal === 'string' && cfgVal.trim()) {
-        existingTopics = cfgVal;
-      } else if (cfgVal && typeof cfgVal.publishedTopics === 'string') {
-        existingTopics = cfgVal.publishedTopics;
-      }
-    } catch (_) {}
+    if (kvConfigured()) {
+      try {
+        const cfgRaw = await kvGet('config:published-topics');
+        const cfgVal = safeParseKv(cfgRaw);
+        if (typeof cfgVal === 'string' && cfgVal.trim()) {
+          existingTopics = cfgVal;
+        } else if (cfgVal && typeof cfgVal.publishedTopics === 'string') {
+          existingTopics = cfgVal.publishedTopics;
+        }
+      } catch (_) {}
+    }
 
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
@@ -231,14 +241,18 @@ Search the web and produce the full JSON array now:`;
       themes:      themes.slice(0, 8),
     };
 
-    await kvSet(scanKey + ':summary', JSON.stringify(summary));
-    await kvSet(scanKey + ':signals', JSON.stringify(signals));
+    const persisted = kvConfigured();
+    if (persisted) {
+      await kvSet(scanKey + ':summary', JSON.stringify(summary));
+      await kvSet(scanKey + ':signals', JSON.stringify(signals));
+    }
 
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(200).json({
       signals,
-      key: scanKey,
+      key: persisted ? scanKey : null,
       dateLabel,
+      persisted,
       integrity: { rejectedCount: rejected.length, rejected },
     });
 

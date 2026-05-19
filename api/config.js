@@ -1,10 +1,14 @@
 export const config = { maxDuration: 10 };
 
 // ── Upstash KV helpers (raw REST — @vercel/kv must never be imported) ─────────
+function kvConfigured() {
+  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+}
+
 async function kvGet(key) {
+  if (!kvConfigured()) return null;
   const url   = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('KV env vars not configured');
   const res = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -14,9 +18,9 @@ async function kvGet(key) {
 }
 
 async function kvSet(key, value) {
+  if (!kvConfigured()) return null;
   const url   = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('KV env vars not configured');
   const res = await fetch(`${url}/set/${encodeURIComponent(key)}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -87,6 +91,10 @@ module.exports = async function handler(req, res) {
 
   // ── POST /api/config — save settings ──────────────────────────────────────
   if (req.method === 'POST') {
+    if (!kvConfigured()) {
+      res.status(503).json({ error: 'Config persistence unavailable (KV not configured on server)' });
+      return;
+    }
     try {
       const incoming = req.body || {};
 
