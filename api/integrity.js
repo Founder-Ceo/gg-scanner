@@ -278,10 +278,15 @@ function parseSignalDate(raw) {
   return null;
 }
 
+function yearMonthKey(d) {
+  return d.getUTCFullYear() * 12 + d.getUTCMonth();
+}
+
 /**
- * Deterministic date gate — avoids LLM false positives on valid recent news.
- * Allows signal dates on or before publish date (or today). Month-only dates use
- * end-of-month so "May 2026" is valid when publishing 20 May 2026.
+ * Deterministic date gate — blocks only signals clearly dated AFTER publication.
+ * Purpose: catch fabricated future-dated reports, not policy effective dates or in-story deadlines.
+ * Month-only signals (e.g. "May 2026") compare calendar month to publish month, so
+ * publishing on 20 May 2026 with signal date "May 2026" is allowed.
  */
 function validateSignalDate(signalDate, options = {}) {
   const parsed = parseSignalDate(signalDate);
@@ -297,18 +302,38 @@ function validateSignalDate(signalDate, options = {}) {
     return { ok: true, skipped: true, reason: 'Reference date unavailable; calendar check skipped.' };
   }
 
-  // Compare using end of signal window vs reference day (UTC)
-  const signalEnd = parsed.end;
-  const refEnd = ref;
-  const slackMs = 24 * 60 * 60 * 1000; // timezone / same-day publish
+  if (parsed.precision === 'month') {
+    const signalYM = yearMonthKey(parsed.start);
+    const refYM = yearMonthKey(ref);
+    if (signalYM > refYM) {
+      return {
+        ok: false,
+        skipped: false,
+        reason:
+          `Signal month (${parsed.raw}) is after the publication month (${refISO.slice(0, 7)}). ` +
+          'Month-only dates are compared by calendar month, not day.',
+        referenceDate: refISO,
+        signalDate: parsed.raw,
+      };
+    }
+    return {
+      ok: true,
+      skipped: false,
+      reason:
+        `Signal month (${parsed.raw}) matches or precedes publication month — valid for commentary.`,
+      referenceDate: refISO,
+      signalDate: parsed.raw,
+    };
+  }
 
-  if (signalEnd.getTime() > refEnd.getTime() + slackMs) {
+  const slackMs = 24 * 60 * 60 * 1000;
+  if (parsed.end.getTime() > ref.getTime() + slackMs) {
     return {
       ok: false,
       skipped: false,
       reason:
         `Signal date (${parsed.raw}) is after the editorial reference date (${refISO}). ` +
-        'This check compares publication timing only — not future deadlines mentioned in the story.',
+        'This compares source publication timing only — not policy effective dates or deadlines in the article text.',
       referenceDate: refISO,
       signalDate: parsed.raw,
     };
@@ -348,7 +373,11 @@ ${dateRule}
 
 Approve (verified:true) when the URL path and headline claim are plausibly aligned.
 Reject only for: invalid/unrelated URL (e.g. generic homepage), or clearly fabricated source (invented report, fake statistics).
-Do NOT reject because the story mentions future event deadlines (e.g. "consultation until 25 May 2026") or because the news is from the current month.
+Do NOT reject because:
+- the story mentions policy effective dates or consultation deadlines on or near the publication date (commentary is allowed);
+- the signal month matches the publication month (e.g. signal "May 2026", publish 20 May 2026);
+- the news is recent/current-month journalism.
+This gate targets AI-hallucinated sources, not commentary timing.
 
 Return ONLY one line JSON: {"verified":true|false,"reason":"..."}`;
 
