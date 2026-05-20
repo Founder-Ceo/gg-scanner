@@ -9,10 +9,10 @@ For **cloud persistence** (same data on every device and after clearing browser 
 1. Open your **gg-scanner** project in the [Vercel Dashboard](https://vercel.com/dashboard).
 2. Go to **Storage** → **Create Database** → **KV** (Upstash Redis).
 3. Name it (e.g. `gg-scanner-kv`) and link it to the **gg-scanner** project.
-4. Vercel will auto-add these environment variables to the project:
-   - `KV_REST_API_URL`
-   - `KV_REST_API_TOKEN`
-5. **Redeploy** the project (Deployments → … → Redeploy) so the new env vars are active.
+4. Vercel will auto-add environment variables. The app accepts either naming set:
+   - `KV_REST_API_URL` + `KV_REST_API_TOKEN` (Vercel Storage → KV), or
+   - `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` (Upstash integration)
+5. **Redeploy** the project (Deployments → … → Redeploy) so the new env vars are active on all serverless functions.
 
 ## Verify
 
@@ -23,7 +23,7 @@ After redeploy, the red **Browser-only storage** notice in the header should dis
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `ANTHROPIC_API_KEY` | Yes | Intelligence scan, briefs, articles |
-| `KV_REST_API_URL` | No (cloud sync) | Persist scans, pipeline, config |
-| `KV_REST_API_TOKEN` | No (cloud sync) | Same |
+| `KV_REST_API_URL` or `UPSTASH_REDIS_REST_URL` | No (cloud sync) | Persist scans, pipeline, config |
+| `KV_REST_API_TOKEN` or `UPSTASH_REDIS_REST_TOKEN` | No (cloud sync) | Same |
 
 Optional model overrides: `ANTHROPIC_MODEL`, `ANTHROPIC_VERIFY_MODEL`.

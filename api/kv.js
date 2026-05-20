@@ -1,15 +1,28 @@
 /**
  * Shared Upstash KV REST helpers — optional when env vars absent.
+ * Accepts Vercel KV names (KV_REST_API_*) or Upstash integration (UPSTASH_REDIS_REST_*).
  */
 
+function kvRestConfig() {
+  const url =
+    process.env.KV_REST_API_URL
+    || process.env.UPSTASH_REDIS_REST_URL
+    || '';
+  const token =
+    process.env.KV_REST_API_TOKEN
+    || process.env.UPSTASH_REDIS_REST_TOKEN
+    || '';
+  return { url: url.trim(), token: token.trim() };
+}
+
 function kvConfigured() {
-  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+  const { url, token } = kvRestConfig();
+  return !!(url && token);
 }
 
 async function kvGet(key) {
   if (!kvConfigured()) return null;
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  const { url, token } = kvRestConfig();
   const res = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -20,8 +33,7 @@ async function kvGet(key) {
 
 async function kvSet(key, value) {
   if (!kvConfigured()) return false;
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  const { url, token } = kvRestConfig();
   const res = await fetch(`${url}/set/${encodeURIComponent(key)}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -33,8 +45,7 @@ async function kvSet(key, value) {
 
 async function kvList(prefix) {
   if (!kvConfigured()) return [];
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  const { url, token } = kvRestConfig();
   const res = await fetch(`${url}/keys/${encodeURIComponent(prefix + '*')}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
