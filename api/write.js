@@ -1,4 +1,4 @@
-export const config = { maxDuration: 120 };
+export const config = { maxDuration: 180 };
 
 const { enforceEditorialIntegrity } = require('./integrity');
 
@@ -9,18 +9,20 @@ const EXISTING_TOPICS = `Already published (do not repeat): overtourism intro, s
 const ARTICLE_SPEC = `PERMANENT ARTICLE SPECIFICATION:
 - Platform: LinkedIn article (published on blog, referenced via LinkedIn excerpt)
 - Reading level: Year 11 / Grade 11 — clear, direct prose. Short sentences. No jargon without explanation. Accessible to non-native English speakers.
-- Length: 1,000–1,200 words body text only
+- Length: MANDATORY 1,000–1,200 words for the article BODY only (the section before the --- divider). Outputs under 900 words are unacceptable. Write four to five substantive sections with ## subheadings.
 - Voice: First-person-adjacent — authoritative but not academic. Speaks to professionals.
 - Language: British English throughout
-- Structure: Engaging LinkedIn-style subheadings, punchy intro, clear argument, strong close
-- Images: At 2–3 points insert image placeholder blocks in EXACTLY this format:
+- Structure: Title (# heading), punchy intro (2 short paragraphs), 4–5 ## subheaded sections, strong conclusion — then image blocks and closing sections below
+- Images: Insert exactly 2–3 image placeholder blocks at salient points in the body using EXACTLY this format:
   :::IMAGE [N] — [one-line description]
   Note: [2-sentence editorial note on why this image]
   Prompt: [Full photorealistic generation prompt — 16:9, no invented text/signage, no hallucinated places]
   :::
-- After article body add this exact divider on its own line: ---
-- Then section: LINKEDIN PRÉCIS
-- Précis: 120–150 words. High-conversion LinkedIn hook. Personal voice. No hashtags. Ends with CTA to read full article.`;
+- After the complete body, add this exact divider on its own line: ---
+- Then section header: LINKEDIN PRÉCIS
+- Précis: 120–150 words. High-conversion LinkedIn hook. Personal voice. No hashtags inside the précis. Ends with CTA to read full article.
+- Then section header: SUGGESTED HASHTAGS
+- List 5–8 relevant hashtags (one per line, each starting with #) for LinkedIn distribution`;
 
 const { callAnthropic: callAnthropicApi, extractText } = require('./integrity');
 
@@ -124,7 +126,7 @@ Produce a structured article brief with EXACTLY these sections:
 
 Be specific and intelligent. Write as someone who deeply understands European tourism policy and B2B SaaS.`;
 
-      const briefText = await callAnthropic(apiKey, [{ role: 'user', content: prompt }], 2000);
+      const briefText = await callAnthropic(apiKey, [{ role: 'user', content: prompt }], 2800);
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.status(200).json({ brief: briefText });
       return;
@@ -186,17 +188,17 @@ INTEGRITY NOTE: ${verification.reason}
 GUEST GUIDE ANGLE: ${ANGLE_DESCRIPTIONS[angle] || angle || 'thought-leadership'}
 TONE: ${tone || 'Authoritative'}
 
-Write the complete article. Follow the specification exactly:
+Write the COMPLETE article in one response. Do not stop early. Follow the specification exactly:
 - Cite only facts supported by the verified source URL; do not invent studies, statistics, or future-dated reports
-- 1,000–1,200 words body text
+- MANDATORY: 1,000–1,200 words in the body (before ---), with 4–5 ## subheadings — not a short post
 - Year-11 reading level, British English
-- LinkedIn-optimised subheadings
-- 2–3 image placeholders in the :::IMAGE format specified
-- Divider --- then LINKEDIN PRÉCIS (120–150 words, no hashtags, CTA at end)
+- Exactly 2–3 :::IMAGE blocks embedded in the body at salient points
+- Divider --- then LINKEDIN PRÉCIS (120–150 words, CTA at end)
+- Then SUGGESTED HASHTAGS (5–8 lines, each starting with #)
 
-Start directly with the article title.`;
+Start directly with the article title as # heading.`;
 
-      const articleText = await callAnthropic(apiKey, [{ role: 'user', content: prompt }], 4000);
+      const articleText = await callAnthropic(apiKey, [{ role: 'user', content: prompt }], 8192);
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.status(200).json({ article: articleText });
       return;

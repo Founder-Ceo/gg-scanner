@@ -842,6 +842,50 @@ main{max-width:1480px;margin:0 auto;padding:32px 40px;}
 let currentScanKey = null;
 let currentSignals = [];
 let scanHistory = [];
+const LS_PIPELINE = 'gg_pipeline_v1';
+const SS_SCAN = 'gg_scan_session_v1';
+
+function savePipelineLocal() {
+  try { localStorage.setItem(LS_PIPELINE, JSON.stringify(pipelineArticles)); } catch (_) {}
+}
+
+function loadPipelineLocal() {
+  try {
+    const raw = localStorage.getItem(LS_PIPELINE);
+    if (raw) return JSON.parse(raw);
+  } catch (_) {}
+  return null;
+}
+
+function saveScanSession() {
+  if (!currentSignals.length) return;
+  try {
+    sessionStorage.setItem(SS_SCAN, JSON.stringify({
+      key: currentScanKey,
+      signals: currentSignals,
+      title: document.getElementById('results-title')?.textContent || '',
+      sub: document.getElementById('results-sub')?.textContent || '',
+      meta: document.getElementById('results-meta')?.innerHTML || '',
+    }));
+  } catch (_) {}
+}
+
+function restoreScanSession() {
+  if (currentSignals.length) return;
+  try {
+    const raw = sessionStorage.getItem(SS_SCAN);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (!s.signals?.length) return;
+    currentSignals = s.signals;
+    currentScanKey = s.key || null;
+    renderSignals(currentSignals, 'Restored session');
+    if (s.title) document.getElementById('results-title').textContent = s.title;
+    if (s.sub) document.getElementById('results-sub').textContent = s.sub;
+    if (s.meta) document.getElementById('results-meta').innerHTML = s.meta;
+    showToast('Restored your last scan results in this browser');
+  } catch (_) {}
+}
 
 const SCAN_STAGES = [
   'Searching EU Commission and Parliament feeds…',
@@ -859,6 +903,8 @@ const SCAN_STAGES = [
 // ══ INIT ══
 (async function init() {
   await loadScanHistory();
+  await loadPipeline();
+  restoreScanSession();
   await loadConfig();
 })();
 
@@ -1006,6 +1052,7 @@ async function runScan() {
     }
 
     renderSignals(currentSignals, dateLabel);
+    saveScanSession();
     await loadScanHistory();
   } catch(err) {
     clearInterval(iv);
@@ -1149,14 +1196,27 @@ const STAGES = ['shortlisted','briefed','written','scheduled','published'];
 const STAGE_LABELS = { shortlisted:'Shortlisted', briefed:'Briefed', written:'Written', scheduled:'Scheduled', published:'Published' };
 
 async function loadPipeline() {
+  let serverArticles = [];
+  let kvOk = true;
   try {
     const resp = await fetch('/api/pipeline');
-    if (!resp.ok) return;
-    const data = await resp.json();
-    pipelineArticles = data.articles || [];
-    renderPipeline();
-    updatePipelineBadge();
-  } catch(_) {}
+    const data = await resp.json().catch(() => ({}));
+    kvOk = data.kvConfigured !== false;
+    if (resp.ok) serverArticles = data.articles || [];
+    else if (!kvOk) showToast('Pipeline cloud storage unavailable — using browser backup');
+  } catch (_) { kvOk = false; }
+  const local = loadPipelineLocal();
+  if (serverArticles.length > 0) {
+    pipelineArticles = serverArticles;
+    savePipelineLocal();
+  } else if (local?.length) {
+    pipelineArticles = local;
+    if (!kvOk) showToast('Loaded pipeline from browser backup');
+  } else {
+    pipelineArticles = [];
+  }
+  renderPipeline();
+  updatePipelineBadge();
 }
 
 function updatePipelineBadge() {
@@ -1286,15 +1346,27 @@ async function saveArticle() {
       const data = await resp.json();
       const idx = pipelineArticles.findIndex(a => a.id === currentModalId);
       if (idx !== -1) pipelineArticles[idx] = data.article;
+      savePipelineLocal();
       showToast('Article updated');
     } else {
       const resp = await fetch('/api/pipeline', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-      if (!resp.ok) throw new Error('Create failed');
-      const data = await resp.json();
-      pipelineArticles.unshift(data.article);
-      // Capture the new article's id so generateBriefFromModal can find it
-      currentModalId = data.article.id;
-      showToast('Article added to pipeline');
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        if (resp.status === 503 || (data.error && /KV/i.test(data.error))) {
+          const article = { id: 'art-local-' + Date.now(), createdAt: Date.now(), ...payload };
+          pipelineArticles.unshift(article);
+          currentModalId = article.id;
+          savePipelineLocal();
+          showToast('Saved in browser only — set Vercel KV env vars for cloud sync');
+        } else {
+          throw new Error(data.error || 'Create failed');
+        }
+      } else {
+        pipelineArticles.unshift(data.article);
+        currentModalId = data.article.id;
+        savePipelineLocal();
+        showToast('Article added to pipeline');
+      }
     }
     closeModal(); renderPipeline(); updatePipelineBadge();
   } catch(err) { showToast('Error: ' + err.message); }
@@ -1312,8 +1384,6 @@ async function deleteCurrentArticle() {
 }
 
 document.getElementById('article-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
-loadPipeline();
-
 // ══ SCANNER → PIPELINE BRIDGE ══
 function addSignalToPipeline(signalIdx, ideaText, angle) {
   const signal = currentSignals[signalIdx];
@@ -1346,7 +1416,9 @@ async function generateBriefFromModal() {
 }
 
 function openWritePanel(article) {
-  writeStep = 1; writeBriefText = ''; writeParsedHeadlines = [];
+  writeStep = 1;
+  writeBriefText = article.brief || '';
+  writeParsedHeadlines = article.brief ? extractHeadlines(article.brief) : [];
   document.getElementById('write-panel').classList.add('open');
   document.getElementById('write-stage-label').textContent = 'STEP 1 — BRIEF';
   document.getElementById('write-step1').style.display = 'block';
@@ -1354,23 +1426,37 @@ function openWritePanel(article) {
   document.getElementById('write-headlines-section').style.display = 'none';
   document.getElementById('write-proceed-btn').style.display = 'none';
   document.getElementById('write-copy-btn').style.display = 'none';
-  document.getElementById('write-brief-output').textContent = 'Generating brief…';
   document.getElementById('write-back-btn').style.display = 'inline-block';
+
+  if (article.draft && article.stage === 'written') {
+    writeStep = 2;
+    document.getElementById('write-stage-label').textContent = 'STEP 2 — ARTICLE ✓';
+    document.getElementById('write-step1').style.display = 'none';
+    document.getElementById('write-step2').style.display = 'block';
+    document.getElementById('write-copy-btn').style.display = 'inline-block';
+    renderArticleOutput(article.draft);
+    return;
+  }
+
+  if (article.brief) {
+    document.getElementById('write-brief-output').textContent = article.brief;
+    renderHeadlineOptions(writeParsedHeadlines);
+    document.getElementById('write-headlines-section').style.display = 'block';
+    document.getElementById('write-proceed-btn').style.display = 'inline-block';
+    document.getElementById('write-proceed-btn').textContent = 'Write Article →';
+    document.getElementById('write-copy-btn').style.display = 'inline-block';
+    return;
+  }
+
+  document.getElementById('write-brief-output').textContent = 'Generating brief…';
   fetchBrief(article);
 }
 
 function closeWritePanel() { document.getElementById('write-panel').classList.remove('open'); loadPipeline(); }
 
 async function backToTopics() {
-  if (writeArticleId) {
-    try {
-      await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: writeArticleId, stage: 'shortlisted', brief: '' }) });
-      const idx = pipelineArticles.findIndex(a => a.id === writeArticleId);
-      if (idx !== -1) { pipelineArticles[idx].stage = 'shortlisted'; pipelineArticles[idx].brief = ''; }
-    } catch(e) {}
-  }
   document.getElementById('write-panel').classList.remove('open');
-  writeArticleId = null; writeBriefText = '';
+  writeArticleId = null;
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('panel-scanner').classList.add('active');
@@ -1393,9 +1479,17 @@ async function fetchBrief(article) {
     writeParsedHeadlines = extractHeadlines(data.brief);
     document.getElementById('write-brief-output').textContent = data.brief;
     if (writeArticleId) {
-      await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: writeArticleId, brief: data.brief, stage: 'briefed' }) });
+      const patchResp = await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: writeArticleId, brief: data.brief, stage: 'briefed' }) });
+      const patchData = await patchResp.json().catch(() => ({}));
       const idx = pipelineArticles.findIndex(a => a.id === writeArticleId);
-      if (idx !== -1) { pipelineArticles[idx].brief = data.brief; pipelineArticles[idx].stage = 'briefed'; }
+      if (patchResp.ok && patchData.article) {
+        pipelineArticles[idx] = patchData.article;
+      } else if (idx !== -1) {
+        pipelineArticles[idx].brief = data.brief;
+        pipelineArticles[idx].stage = 'briefed';
+      }
+      savePipelineLocal();
+      if (!patchResp.ok) showToast('Brief saved locally — cloud sync failed');
     }
     renderHeadlineOptions(writeParsedHeadlines);
     document.getElementById('write-headlines-section').style.display = 'block';
@@ -1472,9 +1566,17 @@ async function fetchArticle(headline) {
     renderArticleOutput(data.article);
     if (writeArticleId) {
       const words = data.article.split(/\s+/).filter(w => w.length > 0).length;
-      await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: writeArticleId, stage:'written', wordCount: words.toLocaleString('en-GB') }) });
+      const patchBody = { id: writeArticleId, stage: 'written', wordCount: words.toLocaleString('en-GB'), draft: data.article, headline };
+      const patchResp = await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(patchBody) });
+      const patchData = await patchResp.json().catch(() => ({}));
       const idx = pipelineArticles.findIndex(a => a.id === writeArticleId);
-      if (idx !== -1) pipelineArticles[idx].stage = 'written';
+      if (patchResp.ok && patchData.article) {
+        pipelineArticles[idx] = patchData.article;
+      } else if (idx !== -1) {
+        pipelineArticles[idx] = { ...pipelineArticles[idx], ...patchBody, id: writeArticleId };
+      }
+      savePipelineLocal();
+      if (!patchResp.ok) showToast('Article saved locally — cloud sync failed');
     }
     document.getElementById('write-copy-btn').style.display = 'inline-block';
     document.getElementById('write-stage-label').textContent = 'STEP 2 — ARTICLE ✓';
@@ -1483,7 +1585,18 @@ async function fetchArticle(headline) {
 }
 
 function renderArticleOutput(text) {
-  const parts = text.split(/\n---+\n/); const body = parts[0] || text; const precis = parts[1] || '';
+  const parts = text.split(/\n---+\n/);
+  const body = parts[0] || text;
+  let tail = (parts.slice(1).join('\n---\n') || '').trim();
+  let precis = '';
+  let hashtags = '';
+  const hashIdx = tail.search(/\nSUGGESTED HASHTAGS\s*\n/i);
+  if (hashIdx >= 0) {
+    precis = tail.slice(0, hashIdx).replace(/^LINKEDIN PR[EÉ]CIS[:\s]*/i, '').trim();
+    hashtags = tail.slice(hashIdx).replace(/^SUGGESTED HASHTAGS\s*/i, '').trim();
+  } else {
+    precis = tail.replace(/^LINKEDIN PR[EÉ]CIS[:\s]*/i, '').trim();
+  }
   let html = '<div>';
   let processed = body.replace(/^# (.+)$/gm,'<h1>$1</h1>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>');
   processed = processed.replace(/:::(IMAGE[\s\S]*?):::/g, function(match, inner) {
@@ -1498,7 +1611,8 @@ function renderArticleOutput(text) {
     else html += '<p>' + p + '</p>';
   });
   html += '</div>';
-  if (precis.trim()) html += `<div class="li-precis-box"><div class="li-precis-label">LINKEDIN PRÉCIS — copy and paste to LinkedIn</div><div>${precis.replace(/LINKEDIN PR[EÉ]CIS[:\s]*/i,'').trim().replace(/\n/g,'<br>')}</div></div>`;
+  if (precis.trim()) html += `<div class="li-precis-box"><div class="li-precis-label">LINKEDIN PRÉCIS — copy and paste to LinkedIn</div><div>${esc(precis).replace(/\n/g,'<br>')}</div></div>`;
+  if (hashtags.trim()) html += `<div class="li-precis-box" style="margin-top:12px;border-color:var(--peacock);"><div class="li-precis-label">SUGGESTED HASHTAGS</div><div style="font-family:Montserrat,sans-serif;font-size:12px;line-height:1.8;">${esc(hashtags).replace(/\n/g,'<br>')}</div></div>`;
   document.getElementById('write-article-output').innerHTML = html;
 }
 
