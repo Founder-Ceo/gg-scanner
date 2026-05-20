@@ -91,9 +91,18 @@ module.exports = async function handler(req, res) {
       }
       // Sort newest first
       scans.sort((a, b) => (b.date || 0) - (a.date || 0));
-      res.status(200).json({ scans });
+      res.status(200).json({
+        scans,
+        kvConfigured: kvConfigured(),
+        storageMode: kvConfigured() ? 'vercel_kv' : 'browser',
+      });
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      res.status(200).json({
+        scans: [],
+        kvConfigured: kvConfigured(),
+        storageMode: kvConfigured() ? 'vercel_kv' : 'browser',
+        error: err.message,
+      });
     }
     return;
   }
@@ -103,7 +112,12 @@ module.exports = async function handler(req, res) {
   if (req.method === 'PATCH') {
     try {
       if (!kvConfigured()) {
-        res.status(503).json({ error: 'Scan persistence unavailable (KV not configured on server)' });
+        res.status(200).json({
+          ok: true,
+          kvConfigured: false,
+          storageMode: 'browser',
+          hint: 'Status updated in this browser session only.',
+        });
         return;
       }
       const { scanKey, signalId, status } = req.body || {};
@@ -247,6 +261,9 @@ Search and return the JSON array:`;
     };
 
     const persisted = kvConfigured();
+    const localKey = persisted
+      ? scanKey
+      : `scan:local-${now.getTime()}`;
     if (persisted) {
       await kvSet(scanKey + ':summary', JSON.stringify(summary));
       await kvSet(scanKey + ':signals', JSON.stringify(signals));
@@ -255,9 +272,11 @@ Search and return the JSON array:`;
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(200).json({
       signals,
-      key: persisted ? scanKey : null,
+      key: persisted ? scanKey : localKey,
       dateLabel,
       persisted,
+      kvConfigured: persisted,
+      storageMode: persisted ? 'vercel_kv' : 'browser',
       contentWindow,
       integrity: { rejectedCount: rejected.length, rejected },
     });

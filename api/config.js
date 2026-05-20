@@ -81,10 +81,18 @@ module.exports = async function handler(req, res) {
       const raw = await kvGet('config:settings');
       const cfg = safeParseConfig(raw);
       // Always return a plain object — never a string
-      res.status(200).json(cfg);
+      res.status(200).json({
+        ...cfg,
+        kvConfigured: kvConfigured(),
+        storageMode: kvConfigured() ? 'vercel_kv' : 'browser',
+      });
     } catch (err) {
-      // Return safe empty object on any error — never block the UI
-      res.status(200).json({ publishedTopics: '', analyticsData: [] });
+      res.status(200).json({
+        publishedTopics: '',
+        analyticsData: [],
+        kvConfigured: false,
+        storageMode: 'browser',
+      });
     }
     return;
   }
@@ -92,7 +100,12 @@ module.exports = async function handler(req, res) {
   // ── POST /api/config — save settings ──────────────────────────────────────
   if (req.method === 'POST') {
     if (!kvConfigured()) {
-      res.status(503).json({ error: 'Config persistence unavailable (KV not configured on server)' });
+      res.status(200).json({
+        saved: false,
+        kvConfigured: false,
+        storageMode: 'browser',
+        hint: 'Settings saved in this browser only — add Vercel KV for cloud sync.',
+      });
       return;
     }
     try {
