@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Guest Guide · Content Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -280,18 +281,42 @@ main{max-width:1480px;margin:0 auto;padding:32px 40px;}
 .write-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;vertical-align:middle;}
 
 /* ── ANALYTICS ── */
-.analytics-table{width:100%;border-collapse:collapse;background:var(--white);font-size:12px;}
-.analytics-table th{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;padding:10px 12px;text-align:left;background:var(--primary);color:var(--white);white-space:nowrap;}
-.analytics-table td{padding:10px 12px;border:1px solid var(--border);vertical-align:top;}
+.analytics-table{width:100%;border-collapse:collapse;background:var(--white);font-size:11px;}
+.analytics-table th{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:9px 10px;text-align:left;background:var(--primary);color:var(--white);white-space:nowrap;}
+.analytics-table td{padding:8px 10px;border:1px solid var(--border);vertical-align:top;line-height:1.4;}
 .analytics-table tr:hover td{background:var(--cream);}
+.analytics-table tr.record-row td{background:#EEF7FF;}
+.analytics-table tr.anomaly-row td{background:#FFFDE7;}
 .analytics-table tfoot td{background:var(--cream);font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;border-top:2px solid var(--primary);}
-.analytics-input{width:100%;padding:4px 6px;border:1px solid transparent;background:transparent;font-family:'Montserrat',sans-serif;font-size:12px;color:var(--ink);outline:none;}
-.analytics-input:focus{border-color:var(--orange);background:var(--white);}
 .analytics-add-btn{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:var(--orange);color:white;border:none;padding:10px 20px;cursor:pointer;border-radius:2px;}
 .analytics-add-btn:hover{background:#d43d2c;}
 .insight-card{background:var(--white);border:1px solid var(--border);border-left:3px solid var(--light-blue);padding:14px 18px;margin-bottom:12px;border-radius:0 2px 2px 0;}
 .insight-label{font-family:'Montserrat',sans-serif;font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--peacock);margin-bottom:6px;}
 .insight-text{font-size:13px;line-height:1.6;}
+/* ── ANALYTICS UPLOAD ── */
+.upload-zone{border:2px dashed var(--border);padding:22px 16px;text-align:center;cursor:pointer;transition:all .2s;background:var(--paper);border-radius:2px;margin-bottom:16px;}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--orange);background:var(--cream);}
+.upload-zone-icon{font-size:24px;opacity:.4;margin-bottom:6px;}
+.upload-zone-label{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+.upload-zone-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.upload-result{font-family:'Montserrat',sans-serif;font-size:11px;padding:8px 12px;margin-bottom:12px;border-left:3px solid var(--olive);background:#e4f5ef;color:var(--olive);display:none;border-radius:0 2px 2px 0;}
+.upload-result.error{border-left-color:var(--orange);background:#fef0ec;color:var(--orange);}
+.upload-result.show{display:block;}
+.detail-row{display:none;}
+.detail-row.open{display:table-row;}
+.detail-inner{padding:12px 16px;background:#f7fbfe;border-bottom:1px solid var(--border);font-size:11px;}
+.detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 16px;margin-bottom:10px;}
+.detail-item-label{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;}
+.detail-item-value{font-size:11px;color:var(--ink);line-height:1.4;}
+.detail-notes{background:var(--white);border:1px solid var(--border);border-left:3px solid var(--orange);padding:8px 12px;font-size:11px;line-height:1.5;color:#1e3d56;margin-top:6px;border-radius:0 2px 2px 0;}
+.at-bar-wrap{display:flex;align-items:center;gap:6px;}
+.at-bar{height:3px;background:var(--border);width:60px;border-radius:2px;overflow:hidden;flex-shrink:0;}
+.at-bar-fill{height:100%;background:var(--orange);border-radius:2px;}
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;}
+.kpi-card{background:var(--white);border:1px solid var(--border);border-top:3px solid var(--orange);padding:14px 16px;border-radius:0 0 2px 2px;}
+.kpi-value{font-family:'Montserrat',sans-serif;font-size:26px;font-weight:700;color:var(--primary);line-height:1;margin-bottom:3px;}
+.kpi-label{font-family:'Montserrat',sans-serif;font-size:8px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+.kpi-sub{font-size:10px;color:var(--muted);}
 
 /* ── CALENDAR ── */
 .calendar-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--white);}
@@ -573,23 +598,54 @@ main{max-width:1480px;margin:0 auto;padding:32px 40px;}
       <!-- Theme Focus -->
       <div class="sidebar-card">
         <div class="sidebar-card-header">
-          <span class="sidebar-label">Theme Focus</span>
-          <button class="group-toggle-btn" onclick="toggleAllThemes()">All</button>
+          <span class="sidebar-label">World Events — Tourism Impact</span>
+          <button class="group-toggle-btn" onclick="toggleThemeGroup('macro-theme')">All</button>
         </div>
         <div class="sidebar-card-body">
-          <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🏛 Dispersion Policy</div>
-          <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🤖 AI in Travel Planning</div>
-          <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🌿 Sustainable Tourism</div>
-          <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🧭 Nordic & Coolcation</div>
-          <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🌾 Rural & Village Tourism</div>
-          <div class="theme-chip selected" onclick="this.classList.toggle('selected')">🗺 Spatial Intelligence</div>
-          <div class="theme-chip" onclick="this.classList.toggle('selected')">💰 Investment & Funding</div>
-          <div class="theme-chip" onclick="this.classList.toggle('selected')">📊 DMO Strategy</div>
-          <div class="theme-chip" onclick="this.classList.toggle('selected')">🏘 Community Impact</div>
-          <div class="theme-chip" onclick="this.classList.toggle('selected')">💼 Operator Economics</div>
-          <div class="theme-chip" onclick="this.classList.toggle('selected')">🔗 Platform Dependency</div>
-          <div class="theme-chip" onclick="this.classList.toggle('selected')">🧪 Traveller Research</div>
-          <div class="theme-chip" onclick="this.classList.toggle('selected')">🇩🇪 DACH Market</div>
+          <div style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--peacock);margin:0 0 5px;">Transport &amp; Energy</div>
+          <div class="theme-chip macro-theme selected" onclick="this.classList.toggle('selected')">⛽ Fuel &amp; Energy Costs</div>
+          <div class="theme-chip macro-theme selected" onclick="this.classList.toggle('selected')">✈️ Aviation &amp; Route Networks</div>
+          <div class="theme-chip macro-theme" onclick="this.classList.toggle('selected')">🚗 Road &amp; Rail Travel</div>
+          <div style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--peacock);margin:8px 0 5px;">Economics &amp; Consumer</div>
+          <div class="theme-chip macro-theme selected" onclick="this.classList.toggle('selected')">💶 Consumer Spending &amp; Inflation</div>
+          <div class="theme-chip macro-theme selected" onclick="this.classList.toggle('selected')">🏦 Monetary Policy &amp; Interest Rates</div>
+          <div class="theme-chip macro-theme" onclick="this.classList.toggle('selected')">📉 Recession &amp; Cost of Living</div>
+          <div class="theme-chip macro-theme" onclick="this.classList.toggle('selected')">💱 Currency &amp; Exchange Rates</div>
+          <div style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--peacock);margin:8px 0 5px;">Climate &amp; Environment</div>
+          <div class="theme-chip macro-theme selected" onclick="this.classList.toggle('selected')">🌡 Heatwaves &amp; Extreme Weather</div>
+          <div class="theme-chip macro-theme selected" onclick="this.classList.toggle('selected')">🔥 Wildfire &amp; Flood Risk</div>
+          <div class="theme-chip macro-theme" onclick="this.classList.toggle('selected')">🌊 Sea Level &amp; Coastal Risk</div>
+          <div style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--peacock);margin:8px 0 5px;">Geopolitics &amp; Regulation</div>
+          <div class="theme-chip macro-theme selected" onclick="this.classList.toggle('selected')">🌍 Geopolitics &amp; Conflict</div>
+          <div class="theme-chip macro-theme selected" onclick="this.classList.toggle('selected')">🛂 Visa &amp; Border Policy</div>
+          <div class="theme-chip macro-theme" onclick="this.classList.toggle('selected')">⚖️ EU Regulation &amp; Legislation</div>
+          <div style="font-family:'Montserrat',sans-serif;font-size:8px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--peacock);margin:8px 0 5px;">Technology &amp; Business</div>
+          <div class="theme-chip macro-theme selected" onclick="this.classList.toggle('selected')">📱 Platform &amp; AI Shifts</div>
+          <div class="theme-chip macro-theme" onclick="this.classList.toggle('selected')">🏗 Infrastructure &amp; Investment</div>
+          <div class="theme-chip macro-theme" onclick="this.classList.toggle('selected')">🛍 Retail &amp; Hospitality Trends</div>
+        </div>
+      </div>
+
+      <!-- Tourism Industry Themes -->
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">
+          <span class="sidebar-label">Tourism Industry Themes</span>
+          <button class="group-toggle-btn" onclick="toggleThemeGroup('tourism-theme')">All</button>
+        </div>
+        <div class="sidebar-card-body">
+          <div class="theme-chip tourism-theme selected" onclick="this.classList.toggle('selected')">🏛 Dispersion Policy</div>
+          <div class="theme-chip tourism-theme selected" onclick="this.classList.toggle('selected')">🤖 AI in Travel Planning</div>
+          <div class="theme-chip tourism-theme selected" onclick="this.classList.toggle('selected')">🌿 Sustainable Tourism</div>
+          <div class="theme-chip tourism-theme selected" onclick="this.classList.toggle('selected')">🧭 Nordic &amp; Coolcation</div>
+          <div class="theme-chip tourism-theme selected" onclick="this.classList.toggle('selected')">🌾 Rural &amp; Village Tourism</div>
+          <div class="theme-chip tourism-theme selected" onclick="this.classList.toggle('selected')">🗺 Spatial Intelligence</div>
+          <div class="theme-chip tourism-theme" onclick="this.classList.toggle('selected')">💰 Investment &amp; Funding</div>
+          <div class="theme-chip tourism-theme" onclick="this.classList.toggle('selected')">📊 DMO Strategy</div>
+          <div class="theme-chip tourism-theme" onclick="this.classList.toggle('selected')">🏘 Community Impact</div>
+          <div class="theme-chip tourism-theme" onclick="this.classList.toggle('selected')">💼 Operator Economics</div>
+          <div class="theme-chip tourism-theme" onclick="this.classList.toggle('selected')">🔗 Platform Dependency</div>
+          <div class="theme-chip tourism-theme" onclick="this.classList.toggle('selected')">🧪 Traveller Research</div>
+          <div class="theme-chip tourism-theme" onclick="this.classList.toggle('selected')">🇩🇪 DACH Market</div>
         </div>
       </div>
 
@@ -730,27 +786,59 @@ main{max-width:1480px;margin:0 auto;padding:32px 40px;}
 
 <!-- ══ ANALYTICS ══ -->
 <div class="panel" id="panel-analytics">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:14px;border-bottom:2px solid var(--primary);">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid var(--primary);">
     <div>
-      <div style="font-family:'Montserrat',sans-serif;font-size:24px;font-weight:700;color:var(--primary);">Analytics Tracker</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:'Montserrat',sans-serif;" id="analytics-sub">Loading analytics…</div>
+      <div style="font-family:'Montserrat',sans-serif;font-size:24px;font-weight:700;color:var(--primary);">Post Analytics Archive</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:'Montserrat',sans-serif;" id="analytics-sub">Loading…</div>
     </div>
-    <button class="analytics-add-btn" onclick="addAnalyticsRow()">+ Add Article</button>
+    <div style="display:flex;gap:10px;">
+      <button class="analytics-add-btn" onclick="document.getElementById('xlsx-upload').click()" style="background:var(--primary);">⬆ Import LinkedIn .xlsx</button>
+      <button class="analytics-add-btn" onclick="addAnalyticsRow()">+ Add Manually</button>
+    </div>
   </div>
-  <div id="analytics-insights" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px;"></div>
+
+  <!-- KPI summary row -->
+  <div class="kpi-row" id="analytics-kpis"></div>
+
+  <!-- LinkedIn xlsx upload zone -->
+  <div class="upload-zone" id="upload-zone"
+       onclick="document.getElementById('xlsx-upload').click()"
+       ondragover="event.preventDefault();this.classList.add('drag-over')"
+       ondragleave="this.classList.remove('drag-over')"
+       ondrop="handleAnalyticsFileDrop(event)">
+    <div class="upload-zone-icon">📊</div>
+    <div class="upload-zone-label">Drop LinkedIn Analytics .xlsx here or click to browse</div>
+    <div class="upload-zone-sub">PostAnalytics_WaltCudlip_[PostID].xlsx — reads PERFORMANCE + TOP DEMOGRAPHICS sheets</div>
+  </div>
+  <input type="file" id="xlsx-upload" accept=".xlsx,.xls" style="display:none" onchange="handleAnalyticsFileUpload(event)">
+  <div class="upload-result" id="upload-result"></div>
+
+  <!-- Insights -->
+  <div id="analytics-insights" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;"></div>
+
+  <!-- Main table -->
   <div style="overflow-x:auto;">
     <table class="analytics-table" id="analytics-table">
       <thead><tr>
-        <th style="width:110px;">Published</th><th>Article Title</th>
-        <th style="width:80px;">10-Day</th><th style="width:80px;">30-Day</th>
-        <th style="width:70px;">Engage %</th><th style="width:90px;">LinkedIn</th>
-        <th>Audience Signals / Notes</th><th style="width:40px;"></th>
+        <th style="width:20px;"></th>
+        <th style="width:95px;">Date</th>
+        <th>Article Title</th>
+        <th style="width:75px;text-align:right;">Impressions</th>
+        <th style="width:65px;text-align:right;">Reached</th>
+        <th style="width:55px;text-align:right;">Reactions</th>
+        <th style="width:55px;text-align:right;">Comments</th>
+        <th style="width:55px;text-align:right;">Followers</th>
+        <th style="width:55px;text-align:right;">Links</th>
+        <th style="width:60px;text-align:right;">Eng%</th>
+        <th style="width:40px;"></th>
       </tr></thead>
       <tbody id="analytics-tbody"></tbody>
       <tfoot><tr id="analytics-totals">
-        <td colspan="2" style="font-family:'Montserrat',sans-serif;font-size:10px;">Averages</td>
-        <td id="avg-10day">—</td><td id="avg-30day">—</td><td id="avg-engage">—</td>
-        <td colspan="3"></td>
+        <td colspan="3" style="font-family:'Montserrat',sans-serif;font-size:10px;">Totals / Averages</td>
+        <td id="total-impressions" style="text-align:right;font-weight:600;">—</td>
+        <td colspan="4"></td>
+        <td colspan="2" id="avg-engage" style="text-align:right;font-weight:600;">—</td>
+        <td></td>
       </tr></tfoot>
     </table>
   </div>
@@ -926,16 +1014,16 @@ function restoreScanSession() {
 }
 
 const SCAN_STAGES = [
-  'Searching EU Commission and Parliament feeds…',
-  'Checking UN Tourism and national ministry sources…',
-  'Scanning Skift, Phocuswire and Phocuswright…',
-  'Searching UK and European travel press…',
-  'Scanning consultancy and research publications…',
-  'Checking rural, village and advocacy sources…',
-  'Scanning Nordic and coolcation intelligence…',
-  'Searching consumer travel media…',
-  'Cross-referencing published articles…',
-  'Scoring relevance and verifying recency…'
+  'Searching wire services and general news feeds…',
+  'Scanning Reuters, AP, BBC and European broadcasters…',
+  'Checking fuel prices, airline routes and transport news…',
+  'Searching EU policy, regulatory and Schengen developments…',
+  'Scanning climate, energy and consumer spending signals…',
+  'Checking Politico Europe, FT and financial press…',
+  'Searching national tourism bodies and DMO announcements…',
+  'Scanning Skift, Phocuswire and travel trade press…',
+  'Cross-referencing against published articles…',
+  'Verifying URLs and scoring relevance to Guest Guide…'
 ];
 
 // ══ INIT ══
@@ -981,6 +1069,12 @@ function updateGroupToggleState(group) {
   if (!btn) return;
   const allOn = [...tags].every(t => t.classList.contains('selected'));
   btn.classList.toggle('all-on', allOn);
+}
+
+function toggleThemeGroup(groupClass) {
+  const chips = document.querySelectorAll('.theme-chip.' + groupClass);
+  const allOn = [...chips].every(c => c.classList.contains('selected'));
+  chips.forEach(c => { if (allOn) c.classList.remove('selected'); else c.classList.add('selected'); });
 }
 
 function toggleAllThemes() {
@@ -1030,7 +1124,7 @@ function renderScanHistory() {
     return `<div class="history-item ${s.key === currentScanKey ? 'active':''}" onclick="loadScan('${s.key}')">
       <div>
         <div class="history-date">${label}</div>
-        ${time ? `<div style="font-family:'Montserrat',sans-serif;font-size:9px;color:var(--muted);">${time}</div>` : ''}
+        ${time ? `<div style="font-family:Montserrat,sans-serif;font-size:9px;color:var(--muted);">${time}</div>` : ''}
       </div>
       <div class="history-count">${s.signalCount} signals</div>
     </div>`;
@@ -1076,7 +1170,9 @@ async function runScan() {
   loading.classList.add('active');
 
   const sources = [...document.querySelectorAll('.source-tag.selected')].map(t => t.textContent.trim());
-  const themes = [...document.querySelectorAll('.theme-chip.selected')].map(t => t.textContent.trim());
+  const macroThemes   = [...document.querySelectorAll('.theme-chip.macro-theme.selected')].map(t => t.textContent.trim());
+  const tourismThemes = [...document.querySelectorAll('.theme-chip.tourism-theme.selected')].map(t => t.textContent.trim());
+  const themes = [...macroThemes, ...tourismThemes];
 
   let si = 0;
   const iv = setInterval(() => { if (si < SCAN_STAGES.length) stageEl.textContent = SCAN_STAGES[si++]; }, 500);
@@ -1085,7 +1181,7 @@ async function runScan() {
     const resp = await fetch('/api/scan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sources, themes })
+      body: JSON.stringify({ sources, themes, macroThemes, tourismThemes })
     });
     clearInterval(iv);
     const data = await resp.json().catch(() => ({}));
@@ -1696,75 +1792,345 @@ function copyWriteOutput() {
 }
 
 // ══ ANALYTICS ══
+// Seeded with verified historical data from LinkedIn exports
+var HISTORICAL_ANALYTICS = [{"id":"7455431159905316864","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7455431159905316864","postDate":"Apr 30, 2026","publishTime":"7:30 AM","title":"The Cheap Alternative Trap (BBC follow-up)","angle":"Overtourism / Structural Critique / News Anchor","impressions":42333,"reached":31424,"linkClicks":85,"profileViews":42,"followersGained":12,"reactions":36,"comments":11,"reposts":0,"saves":8,"sends":4,"reactTopJob":"Project Manager","reactTopLoc":"London Area, United Kingdom","reactTopIndustry":"Travel Arrangements","commentTopJob":"Founder","commentTopLoc":"Stuttgart Region","topLocations":"Greater Toronto Area, Canada (8.0%) | London Area, United Kingdom (6.6%) | Brussels Metropolitan Area (2.3%) | Greater Ottawa Metropolitan Area (2.2%) | Greater Vancouver Metropolitan Area (2.2%)","topJobTitles":"Founder (2.6%) | Project Manager (1.9%) | Owner (1.5%) | Chief Executive Officer (1.1%) | Co-Founder (< 1%)","topCompanies":"European Commission, TUI, Amadeus, Marriott International, City of Toronto","topIndustries":"Travel Arrangements (11.2%) | Hospitality (9.4%) | Government Administration (5.9%)","topSeniorities":"Senior (29.9%) | Entry (23.4%) | Director (10.7%)","topCompanySizes":"11-50 employees (13.6%) | 51-200 employees (13.0%) | 1001-5000 employees (11.3%)","notes":"","engagementRate":0.14},{"id":"7441501520589795328","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7441501520589795328","postDate":"Apr 2, 2026","publishTime":"7:15 AM","title":"Rural Areas Hold 44% of EU Tourism Beds","angle":"Policy / Regional Distribution / EU Data","impressions":1111,"reached":791,"linkClicks":0,"profileViews":6,"followersGained":7,"reactions":14,"comments":4,"reposts":0,"saves":1,"sends":2,"reactTopJob":"Corporate Sales Specialist","reactTopLoc":"Greater Paris Metropolitan Region","reactTopIndustry":"Travel Arrangements","commentTopJob":"Founder","commentTopLoc":"Viljandi","topLocations":"Greater Paris Metropolitan Region (3.7%) | London Area, United Kingdom (2.5%) | Brussels Metropolitan Area (2.4%) | Greater Toronto Area, Canada (2.0%) | Greater Dublin (1.9%)","topJobTitles":"Founder (7.8%) | Owner (3.0%) | Chief Executive Officer (2.4%) | Project Manager (1.9%) | Co-Founder (1.6%)","topCompanies":"Airbnb","topIndustries":"Travel Arrangements (25.3%) | Hospitality (12.0%) | Business Consulting and Services (5.3%)","topSeniorities":"Senior (28.1%) | Entry (16.7%) | Director (11.8%)","topCompanySizes":"1-10 employees (19.3%) | 11-50 employees (12.6%) | 51-200 employees (11.6%)","notes":"","engagementRate":1.89},{"id":"7441500635671359488","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7441500635671359488","postDate":"Mar 31, 2026","publishTime":"7:15 AM","title":"UN Best Tourism Villages Competition","angle":"Policy / Rural Tourism / International Recognition","impressions":2003,"reached":1337,"linkClicks":0,"profileViews":6,"followersGained":6,"reactions":23,"comments":0,"reposts":0,"saves":1,"sends":1,"reactTopJob":"Founder","reactTopLoc":"Greater Madrid Metropolitan Area","reactTopIndustry":"Travel Arrangements","commentTopJob":"","commentTopLoc":"","topLocations":"Greater Delhi Area (2.0%) | Kathmandu (1.9%) | London Area, United Kingdom (1.8%) | Greater Toronto Area, Canada (1.3%) | Johannesburg Metropolitan Area (1.2%)","topJobTitles":"Founder (6.6%) | Professor (2.3%) | Lecturer (2.3%) | Co-Founder (1.9%) | Owner (1.9%)","topCompanies":"Self Employed","topIndustries":"Travel Arrangements (28.3%) | Hospitality (16.1%) | Higher Education (4.7%)","topSeniorities":"Senior (30.4%) | Entry (18.1%) | Director (7.8%)","topCompanySizes":"11-50 employees (15.7%) | 1-10 employees (15.0%) | 51-200 employees (10.5%)","notes":"","engagementRate":1.25},{"id":"7441496083819753472","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7441496083819753472","postDate":"Mar 26, 2026","publishTime":"7:00 AM","title":"European Parliament TRAN Committee Vote","angle":"Policy / Legislative News Anchor","impressions":16326,"reached":12375,"linkClicks":0,"profileViews":18,"followersGained":4,"reactions":13,"comments":19,"reposts":0,"saves":5,"sends":1,"reactTopJob":"Owner","reactTopLoc":"Utrecht Area","reactTopIndustry":"IT Services and IT Consulting","commentTopJob":"Founder","commentTopLoc":"Greater Hyderabad Area","topLocations":"Amsterdam Area (5.3%) | London Area, United Kingdom (5.2%) | Greater Toronto Area, Canada (3.4%) | Greater Barcelona Metropolitan Area (2.1%) | Greater Dublin (1.5%)","topJobTitles":"Founder (3.6%) | General Manager (2.1%) | Owner (1.9%) | Co-Founder (1.7%) | Sales Manager (1.7%)","topCompanies":"Booking.com, IHG Hotels & Resorts, Marriott International, Amadeus, Accor","topIndustries":"Hospitality (20.3%) | Travel Arrangements (15.5%) | Advertising Services (4.0%)","topSeniorities":"Senior (29.1%) | Entry (17.4%) | Director (13.7%)","topCompanySizes":"10,001+ employees (14.7%) | 51-200 employees (13.4%) | 11-50 employees (13.2%)","notes":"","engagementRate":0.23},{"id":"7435392736469430272","postUrl":"","postDate":"Mar 5, 2026","publishTime":"6:36 PM","title":"From Counting Visitors to Controlling Flows","angle":"Policy / Thought Leadership (Flagship)","impressions":1378,"reached":994,"linkClicks":0,"profileViews":1,"followersGained":1,"reactions":6,"comments":0,"reposts":0,"saves":1,"sends":0,"reactTopJob":"Director of Public Policy","reactTopLoc":"Greater Milan","reactTopIndustry":"Travel Arrangements (21.3%)","commentTopJob":"","commentTopLoc":"","topLocations":"London (5.6%) | Zagreb (5.6%)","topJobTitles":"","topCompanies":"Airbnb, Booking.com, Hilton","topIndustries":"Travel Arrangements (21.3%)","topSeniorities":"Senior (29.2%)","topCompanySizes":"","engagementRate":0.51,"notes":"VERIFIED. 6:36 PM timing failure \u2014 would have reached 4,000\u20136,000 at optimal time. Director of Public Policy in Milan reacted."},{"id":"7430551828758487040","postUrl":"","postDate":"Feb 20, 2026","publishTime":"10:00 AM","title":"What Happens When Tourism Is Treated As\u2026 [rhetorical question post]","angle":"Conversational / Rhetorical","impressions":634,"reached":487,"linkClicks":0,"profileViews":3,"followersGained":1,"reactions":8,"comments":8,"reposts":0,"saves":1,"sends":0,"reactTopJob":"","reactTopLoc":"","reactTopIndustry":"","commentTopJob":"","commentTopLoc":"","topLocations":"","topJobTitles":"","topCompanies":"","topIndustries":"","topSeniorities":"","topCompanySizes":"","engagementRate":2.68,"notes":"ANOMALY: 1.26% comment rate \u2014 highest in full dataset. 8 comments on 634 impressions. Rhetorical question format drove conversation depth."},{"id":"7429923579653435392","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7429923579653435392","postDate":"Feb 19, 2026","publishTime":"9:30 AM","title":"The Startup\u2013Policy Nexus","angle":"Policy / Startup Positioning","impressions":4922,"reached":3420,"linkClicks":9,"profileViews":16,"followersGained":20,"reactions":23,"comments":9,"reposts":1,"saves":5,"sends":4,"reactTopJob":"Founder","reactTopLoc":"London Area, United Kingdom","reactTopIndustry":"Travel Arrangements","commentTopJob":"Production Manager","commentTopLoc":"Cork Metropolitan Area","topLocations":"London Area, United Kingdom (6.7%) | Greater Toronto Area, Canada (2.8%) | Greater Delhi Area (1.8%) | Greater Sydney Area (1.6%) | Greater Dublin (1.5%)","topJobTitles":"Founder (6.0%) | Chief Executive Officer (2.9%) | Managing Director (2.3%) | Co-Founder (2.3%) | Owner (2.3%)","topCompanies":"F\u00e1ilte Ireland, VisitScotland, TUI, Intrepid Travel, Accor","topIndustries":"Travel Arrangements (27.7%) | Hospitality (10.7%) | Business Consulting and Services (4.7%)","topSeniorities":"Senior (28.5%) | Entry (16.5%) | Director (12.4%)","topCompanySizes":"1-10 employees (18.4%) | 11-50 employees (14.8%) | 51-200 employees (11.6%)","notes":"","engagementRate":0.85},{"id":"7419093573054189568","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7419093573054189568","postDate":"Jan 19, 2026","publishTime":"7:09 PM","title":"Tourism as a Trillion-Dollar Problem Waiting for Tech Solutions","angle":"Investor / Market Framing","impressions":27248,"reached":20349,"linkClicks":87,"profileViews":61,"followersGained":40,"reactions":95,"comments":37,"reposts":11,"saves":15,"sends":0,"reactTopJob":"Founder","reactTopLoc":"Greater Toronto Area, Canada","reactTopIndustry":"Travel Arrangements","commentTopJob":"Travel Advisor","commentTopLoc":"Singapore","topLocations":"Greater Toronto Area, Canada (10.5%) | London Area, United Kingdom (5.0%) | Greater Vancouver Metropolitan Area (3.1%) | Greater Ottawa Metropolitan Area (2.1%) | New York City Metropolitan Area (2.0%)","topJobTitles":"Founder (3.5%) | Owner (2.2%) | Chief Executive Officer (1.8%) | Co-Founder (1.5%) | Project Manager (1.3%)","topCompanies":"City of Toronto, TUI, Expedia Group, Marriott International, University of Toronto","topIndustries":"Travel Arrangements (16.3%) | Hospitality (9.5%) | Government Administration (5.3%)","topSeniorities":"Senior (30.0%) | Entry (21.2%) | Director (11.8%)","topCompanySizes":"11-50 employees (14.7%) | 1-10 employees (13.6%) | 51-200 employees (13.2%)","notes":"","engagementRate":0.58}];
+
 var analyticsData = [];
 
 async function loadAnalytics() {
   try {
-    const resp = await fetch('/api/config');
-    if (!resp.ok) return;
-    const cfg = await resp.json();
-    analyticsData = cfg.analyticsData || [];
-    var published = pipelineArticles.filter(a => a.stage === 'published' || a.publishedDate);
-    published.forEach(art => {
-      if (!analyticsData.find(a => a.id === art.id)) analyticsData.push({ id: art.id, title: art.headline || art.ideaText || 'Untitled', publishedDate: art.publishedDate || '', blogUrl: art.blogUrl || '', linkedinDate: art.linkedinDate || '', imp10:'', imp30:'', engage:'', notes:'' });
-    });
+    // Start with historical seed data
+    var seed = HISTORICAL_ANALYTICS.map(r => Object.assign({}, r));
+
+    // Try to load any user-added or updated records from KV
+    var resp = await fetch('/api/config');
+    if (resp.ok) {
+      var cfg = await resp.json();
+      var kvData = cfg.analyticsData || [];
+      // Merge: KV records override seed records with same id; new KV records appended
+      kvData.forEach(function(kv) {
+        var idx = seed.findIndex(function(s) { return s.id === kv.id; });
+        if (idx > -1) seed[idx] = Object.assign(seed[idx], kv);
+        else seed.unshift(kv);
+      });
+    }
+
+    analyticsData = seed;
     renderAnalytics();
-  } catch(e) {}
+  } catch(e) {
+    analyticsData = HISTORICAL_ANALYTICS.map(r => Object.assign({}, r));
+    renderAnalytics();
+  }
 }
 
 function renderAnalytics() {
-  const tbody = document.getElementById('analytics-tbody');
-  const sub = document.getElementById('analytics-sub');
+  var tbody = document.getElementById('analytics-tbody');
+  var sub   = document.getElementById('analytics-sub');
   if (!tbody) return;
-  if (sub) sub.textContent = analyticsData.length + ' articles tracked · enter data from LinkedIn after 10 and 30 days';
-  if (analyticsData.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);font-style:italic;">No published articles yet.</td></tr>'; document.getElementById('analytics-insights').innerHTML = ''; return; }
-  tbody.innerHTML = analyticsData.map((row, i) =>
-    `<tr><td><input class="analytics-input" value="${esc(row.publishedDate||'')}" onchange="updateAnalyticsRow(${i},'publishedDate',this.value)" type="date"></td>
-    <td style="font-family:'Montserrat',sans-serif;font-size:13px;font-weight:500;">${row.blogUrl ? `<a href="${esc(row.blogUrl)}" target="_blank" style="color:var(--orange);text-decoration:none;">${esc(row.title)}</a>` : esc(row.title)}</td>
-    <td><input class="analytics-input" value="${esc(row.imp10||'')}" onchange="updateAnalyticsRow(${i},'imp10',this.value)" placeholder="—" style="width:70px;"></td>
-    <td><input class="analytics-input" value="${esc(row.imp30||'')}" onchange="updateAnalyticsRow(${i},'imp30',this.value)" placeholder="—" style="width:70px;"></td>
-    <td><input class="analytics-input" value="${esc(row.engage||'')}" onchange="updateAnalyticsRow(${i},'engage',this.value)" placeholder="—" style="width:60px;"></td>
-    <td><input class="analytics-input" value="${esc(row.linkedinDate||'')}" onchange="updateAnalyticsRow(${i},'linkedinDate',this.value)" type="date"></td>
-    <td><input class="analytics-input" value="${esc(row.notes||'')}" onchange="updateAnalyticsRow(${i},'notes',this.value)" placeholder="Audience signals, geography, engagement notes…"></td>
-    <td><button onclick="deleteAnalyticsRow(${i})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;">✕</button></td></tr>`
-  ).join('');
-  var imp10s = analyticsData.map(r=>parseInt(r.imp10)).filter(n=>!isNaN(n));
-  var imp30s = analyticsData.map(r=>parseInt(r.imp30)).filter(n=>!isNaN(n));
-  var engages = analyticsData.map(r=>parseFloat(r.engage)).filter(n=>!isNaN(n));
-  var avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length).toLocaleString('en-GB') : '—';
-  document.getElementById('avg-10day').textContent = avg(imp10s);
-  document.getElementById('avg-30day').textContent = avg(imp30s);
-  document.getElementById('avg-engage').textContent = engages.length ? (engages.reduce((a,b)=>a+b,0)/engages.length).toFixed(1)+'%' : '—';
+
+  var totalImp = analyticsData.reduce(function(s,r) { return s + (r.impressions||0); }, 0);
+  var totalFollowers = analyticsData.reduce(function(s,r) { return s + (r.followersGained||0); }, 0);
+  var totalComments  = analyticsData.reduce(function(s,r) { return s + (r.comments||0); }, 0);
+  var totalReactions = analyticsData.reduce(function(s,r) { return s + (r.reactions||0); }, 0);
+  var avgEng = analyticsData.length ? (analyticsData.reduce(function(s,r) { return s + (r.engagementRate||0); }, 0) / analyticsData.length) : 0;
+
+  if (sub) sub.textContent = analyticsData.length + ' posts tracked · ' + totalImp.toLocaleString('en-GB') + ' total impressions · drop a LinkedIn .xlsx to update';
+
+  // KPI cards
+  var kpiEl = document.getElementById('analytics-kpis');
+  if (kpiEl) {
+    var maxPost = analyticsData.slice().sort(function(a,b){ return (b.impressions||0)-(a.impressions||0); })[0];
+    kpiEl.innerHTML = [
+      { label:'Total Impressions', value: totalImp.toLocaleString('en-GB'), sub: analyticsData.length + ' posts' },
+      { label:'Record Post', value: maxPost ? (maxPost.impressions||0).toLocaleString('en-GB') : '—', sub: maxPost ? maxPost.postDate : '' },
+      { label:'Total Followers Gained', value: '+' + totalFollowers, sub: 'across all posts' },
+      { label:'Total Comments', value: totalComments, sub: 'Total reactions: ' + totalReactions.toLocaleString('en-GB') },
+      { label:'Avg Engagement Rate', value: avgEng.toFixed(2) + '%', sub: 'reactions + comments + saves' },
+    ].map(function(k) {
+      return '<div class="kpi-card"><div class="kpi-label">' + k.label + '</div><div class="kpi-value">' + k.value + '</div><div class="kpi-sub">' + k.sub + '</div></div>';
+    }).join('');
+  }
+
+  if (analyticsData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted);font-style:italic;">No posts yet — import a LinkedIn .xlsx to begin.</td></tr>';
+    return;
+  }
+
+  var maxImp = Math.max.apply(null, analyticsData.map(function(r){ return r.impressions||0; }));
+  var recordId = analyticsData.slice().sort(function(a,b){ return (b.impressions||0)-(a.impressions||0); })[0]?.id;
+
+  tbody.innerHTML = '';
+  analyticsData.forEach(function(row, i) {
+    var isRecord = row.id === recordId;
+    var isAnomaly = row.notes && row.notes.toUpperCase().includes('ANOMALY');
+    var rowClass = isRecord ? 'record-row' : isAnomaly ? 'anomaly-row' : '';
+    var pct = maxImp > 0 ? Math.round((row.impressions||0)/maxImp*100) : 0;
+    var engRate = row.engagementRate != null ? row.engagementRate : '—';
+
+    var tr = document.createElement('tr');
+    tr.className = rowClass;
+    tr.style.cursor = 'pointer';
+    tr.onclick = function(){ toggleAnalyticsDetail(i); };
+    tr.innerHTML =
+      '<td><button class="expand-btn" id="aebtn-' + i + '" style="font-size:12px;padding:1px 4px;">⌄</button></td>' +
+      '<td style="font-family:Montserrat,sans-serif;font-size:10px;white-space:nowrap;">' + esc(row.postDate||'') + '</td>' +
+      '<td style="font-weight:500;">' + (row.postUrl ? '<a href="' + esc(row.postUrl) + '" target="_blank" style="color:var(--orange);text-decoration:none;">' + esc(row.title||'Untitled') + '</a>' : esc(row.title||'Untitled')) + '</td>' +
+      '<td style="text-align:right;"><div class="at-bar-wrap" style="justify-content:flex-end;"><div class="at-bar"><div class="at-bar-fill" style="width:' + pct + '%"></div></div><span style="font-family:Montserrat,sans-serif;font-size:10px;">' + (row.impressions||0).toLocaleString('en-GB') + '</span></div></td>' +
+      '<td style="text-align:right;font-family:Montserrat,sans-serif;font-size:10px;">' + (row.reached||0).toLocaleString('en-GB') + '</td>' +
+      '<td style="text-align:right;font-family:Montserrat,sans-serif;font-size:10px;">' + (row.reactions||0) + '</td>' +
+      '<td style="text-align:right;font-family:Montserrat,sans-serif;font-size:10px;">' + (row.comments||0) + '</td>' +
+      '<td style="text-align:right;font-family:Montserrat,sans-serif;font-size:10px;">' + (row.followersGained > 0 ? '+'+row.followersGained : '—') + '</td>' +
+      '<td style="text-align:right;font-family:Montserrat,sans-serif;font-size:10px;">' + (row.linkClicks > 0 ? row.linkClicks : '—') + '</td>' +
+      '<td style="text-align:right;font-family:Montserrat,sans-serif;font-size:10px;">' + (typeof engRate === 'number' ? engRate.toFixed(2)+'%' : engRate) + '</td>' +
+      '<td><button onclick="event.stopPropagation();deleteAnalyticsRow(' + i + ')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;">✕</button></td>';
+    tbody.appendChild(tr);
+
+    // Detail row
+    var dtr = document.createElement('tr');
+    dtr.className = 'detail-row';
+    dtr.id = 'adetail-' + i;
+    dtr.innerHTML = '<td colspan="11"><div class="detail-inner">' +
+      '<div class="detail-grid">' +
+      '<div><div class="detail-item-label">Publish Time</div><div class="detail-item-value">' + esc(row.publishTime||'—') + '</div></div>' +
+      '<div><div class="detail-item-label">Reposts</div><div class="detail-item-value">' + (row.reposts||0) + '</div></div>' +
+      '<div><div class="detail-item-label">Saves</div><div class="detail-item-value">' + (row.saves||0) + '</div></div>' +
+      '<div><div class="detail-item-label">Sends</div><div class="detail-item-value">' + (row.sends||0) + '</div></div>' +
+      '<div><div class="detail-item-label">Profile Views</div><div class="detail-item-value">' + (row.profileViews||0) + '</div></div>' +
+      '<div><div class="detail-item-label">Reaction — Top Job</div><div class="detail-item-value">' + esc(row.reactTopJob||'—') + '</div></div>' +
+      '<div><div class="detail-item-label">Reaction — Top Location</div><div class="detail-item-value">' + esc(row.reactTopLoc||'—') + '</div></div>' +
+      '<div><div class="detail-item-label">Comment — Top Job</div><div class="detail-item-value">' + esc(row.commentTopJob||'—') + '</div></div>' +
+      '<div><div class="detail-item-label">Comment — Top Location</div><div class="detail-item-value">' + esc(row.commentTopLoc||'—') + '</div></div>' +
+      '<div><div class="detail-item-label">Top Locations</div><div class="detail-item-value">' + esc(row.topLocations||'—') + '</div></div>' +
+      '<div><div class="detail-item-label">Top Companies</div><div class="detail-item-value">' + esc(row.topCompanies||'—') + '</div></div>' +
+      '<div><div class="detail-item-label">Top Industries</div><div class="detail-item-value">' + esc(row.topIndustries||'—') + '</div></div>' +
+      '<div><div class="detail-item-label">Top Seniority</div><div class="detail-item-value">' + esc(row.topSeniorities||'—') + '</div></div>' +
+      '<div><div class="detail-item-label">Top Job Titles</div><div class="detail-item-value">' + esc(row.topJobTitles||'—') + '</div></div>' +
+      '</div>' +
+      (row.notes ? '<div class="detail-notes">' + esc(row.notes) + '</div>' : '') +
+      '</div></td>';
+    tbody.appendChild(dtr);
+  });
+
+  // Footer totals
+  var totalEl = document.getElementById('total-impressions');
+  if (totalEl) totalEl.textContent = totalImp.toLocaleString('en-GB');
+  var engEl = document.getElementById('avg-engage');
+  if (engEl) engEl.textContent = 'Avg ' + avgEng.toFixed(2) + '%';
+
   renderInsights();
 }
 
+
+
 function renderInsights() {
-  const el = document.getElementById('analytics-insights');
-  if (!el || analyticsData.length < 2) { if(el) el.innerHTML = ''; return; }
-  var withData = analyticsData.filter(r => r.imp30 && !isNaN(parseInt(r.imp30)));
-  if (withData.length === 0) { el.innerHTML = ''; return; }
-  var sorted = withData.slice().sort((a,b) => parseInt(b.imp30)-parseInt(a.imp30));
-  var avg30 = Math.round(sorted.reduce((s,r)=>s+parseInt(r.imp30),0)/sorted.length);
-  el.innerHTML = `<div class="insight-card"><div class="insight-label">Best Performer (30-day)</div><div class="insight-text"><strong>${esc(sorted[0].title)}</strong> — ${parseInt(sorted[0].imp30).toLocaleString('en-GB')} impressions</div></div>
-    <div class="insight-card"><div class="insight-label">Average 30-Day Impressions</div><div class="insight-text">${avg30.toLocaleString('en-GB')} across ${sorted.length} articles with data</div></div>
-    <div class="insight-card"><div class="insight-label">Lowest Performer (30-day)</div><div class="insight-text"><strong>${esc(sorted[sorted.length-1].title)}</strong> — ${parseInt(sorted[sorted.length-1].imp30).toLocaleString('en-GB')} impressions</div></div>`;
+  var el = document.getElementById('analytics-insights');
+  if (!el) return;
+  var withImp = analyticsData.filter(function(r){ return r.impressions > 0; });
+  if (withImp.length < 2) { el.innerHTML = ''; return; }
+  var sorted = withImp.slice().sort(function(a,b){ return (b.impressions||0)-(a.impressions||0); });
+  var avgImp = Math.round(sorted.reduce(function(s,r){ return s+(r.impressions||0); },0)/sorted.length);
+  el.innerHTML =
+    '<div class="insight-card"><div class="insight-label">Record Post</div><div class="insight-text"><strong>' + esc(sorted[0].title) + '</strong><br>' + (sorted[0].impressions||0).toLocaleString('en-GB') + ' impressions · ' + esc(sorted[0].postDate) + '</div></div>' +
+    '<div class="insight-card"><div class="insight-label">Average Impressions</div><div class="insight-text">' + avgImp.toLocaleString('en-GB') + ' per post across ' + sorted.length + ' posts with data</div></div>' +
+    '<div class="insight-card"><div class="insight-label">Lowest Performer</div><div class="insight-text"><strong>' + esc(sorted[sorted.length-1].title) + '</strong><br>' + (sorted[sorted.length-1].impressions||0).toLocaleString('en-GB') + ' impressions</div></div>';
 }
 
-async function updateAnalyticsRow(idx, field, value) {
-  analyticsData[idx][field] = value;
-  await saveAnalyticsData(); renderInsights();
-  var imp10s = analyticsData.map(r=>parseInt(r.imp10)).filter(n=>!isNaN(n));
-  var imp30s = analyticsData.map(r=>parseInt(r.imp30)).filter(n=>!isNaN(n));
-  var engages = analyticsData.map(r=>parseFloat(r.engage)).filter(n=>!isNaN(n));
-  var avg = arr => arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length).toLocaleString('en-GB') : '—';
-  document.getElementById('avg-10day').textContent = avg(imp10s);
-  document.getElementById('avg-30day').textContent = avg(imp30s);
-  document.getElementById('avg-engage').textContent = engages.length ? (engages.reduce((a,b)=>a+b,0)/engages.length).toFixed(1)+'%' : '—';
+function toggleAnalyticsDetail(i) {
+  var dtr = document.getElementById('adetail-' + i);
+  var btn = document.getElementById('aebtn-' + i);
+  if (!dtr) return;
+  var isOpen = dtr.classList.contains('open');
+  dtr.classList.toggle('open');
+  if (btn) btn.style.transform = isOpen ? '' : 'rotate(180deg)';
 }
 
-async function deleteAnalyticsRow(idx) { analyticsData.splice(idx,1); await saveAnalyticsData(); renderAnalytics(); }
-function addAnalyticsRow() { analyticsData.unshift({ id:'manual_'+Date.now(), title:'New article', publishedDate:'', blogUrl:'', linkedinDate:'', imp10:'', imp30:'', engage:'', notes:'' }); renderAnalytics(); }
-async function saveAnalyticsData() { try { await fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ analyticsData }) }); } catch(e) {} }
+// ── LinkedIn .xlsx import ────────────────────────────────────────────────────
+function handleAnalyticsFileDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  var file = e.dataTransfer.files[0];
+  if (file) parseLinkedInAnalytics(file);
+}
+
+function handleAnalyticsFileUpload(e) {
+  var file = e.target.files[0];
+  if (file) parseLinkedInAnalytics(file);
+  e.target.value = '';
+}
+
+function parseLinkedInAnalytics(file) {
+  var resultEl = document.getElementById('upload-result');
+  resultEl.className = 'upload-result show';
+  resultEl.textContent = 'Reading file…';
+
+  if (typeof XLSX === 'undefined') {
+    resultEl.className = 'upload-result error show';
+    resultEl.textContent = '✗ SheetJS not loaded — add the xlsx CDN script to the page head.';
+    return;
+  }
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = new Uint8Array(e.target.result);
+      var wb = XLSX.read(data, { type: 'array' });
+
+      // ── PERFORMANCE sheet ──────────────────────────────────────────────
+      var perfSheet = wb.Sheets['PERFORMANCE'];
+      if (!perfSheet) throw new Error('PERFORMANCE sheet not found — is this a LinkedIn analytics export?');
+      var perfRows = XLSX.utils.sheet_to_json(perfSheet, { header: 1, defval: null });
+
+      var kv = {};
+      var highlightSection = null;
+      var reactJob = '', reactLoc = '', reactInd = '', commentJob = '', commentLoc = '';
+
+      perfRows.forEach(function(row) {
+        var key = row[0] ? String(row[0]).trim() : '';
+        var val = row[1];
+        if (!key) return;
+        if (key.includes('Reactions Highlights')) { highlightSection = 'reactions'; return; }
+        if (key.includes('Comments Highlights'))  { highlightSection = 'comments';  return; }
+        if (key === 'Top job title') {
+          if (highlightSection === 'reactions') reactJob    = String(val || '');
+          if (highlightSection === 'comments')  commentJob  = String(val || '');
+        } else if (key === 'Top location') {
+          if (highlightSection === 'reactions') reactLoc    = String(val || '');
+          if (highlightSection === 'comments')  commentLoc  = String(val || '');
+        } else if (key === 'Top industry' && highlightSection === 'reactions') {
+          reactInd = String(val || '');
+        } else if (!key.startsWith('http')) {
+          kv[key] = val;
+        }
+      });
+
+      var parseNum = function(v) { return v ? parseInt(String(v).replace(/,/g,'')) || 0 : 0; };
+
+      // Extract post ID from filename or URL
+      var idMatch = file.name.match(/(\d{16,19})/);
+      var postUrl = String(kv['Post URL'] || '');
+      if (!idMatch && postUrl) idMatch = postUrl.match(/(\d{16,19})/);
+      var postId = idMatch ? idMatch[1] : 'import-' + Date.now();
+
+      // ── TOP DEMOGRAPHICS sheet ─────────────────────────────────────────
+      var demoSheet = wb.Sheets['TOP DEMOGRAPHICS'];
+      var locations = [], jobTitles = [], companies = [], industries = [], seniorities = [], companySizes = [];
+
+      if (demoSheet) {
+        var demoRows = XLSX.utils.sheet_to_json(demoSheet, { header: 1, defval: null });
+        demoRows.forEach(function(row) {
+          var cat = row[0] ? String(row[0]).trim() : '';
+          var val = row[1] ? String(row[1]).trim() : '';
+          var pct = row[2];
+          if (!cat || cat === 'Category') return;
+          var pctStr = typeof pct === 'number' ? ' (' + (pct*100).toFixed(1) + '%)' : (pct ? ' ('+pct+')' : '');
+          var entry = val + pctStr;
+          if      (cat === 'Location')     locations.push(entry);
+          else if (cat === 'Job title')    jobTitles.push(entry);
+          else if (cat === 'Company')      companies.push(val);
+          else if (cat === 'Industry')     industries.push(entry);
+          else if (cat === 'Seniority')    seniorities.push(entry);
+          else if (cat === 'Company size') companySizes.push(entry);
+        });
+      }
+
+      var impressions = parseNum(kv['Impressions']);
+      var reactions   = parseNum(kv['Reactions']);
+      var comments    = parseNum(kv['Comments']);
+      var reposts     = parseNum(kv['Reposts']);
+      var saves       = parseNum(kv['Saves']);
+      var sends       = parseNum(kv['Sends on LinkedIn']);
+      var eng = reactions + comments + reposts + saves + sends;
+      var engRate = impressions > 0 ? Math.round(eng/impressions*10000)/100 : 0;
+
+      var record = {
+        id:              postId,
+        postUrl:         postUrl,
+        postDate:        String(kv['Post Date'] || ''),
+        publishTime:     String(kv['Post Publish Time'] || ''),
+        title:           '',   // Not in export — user can add via notes
+        angle:           '',
+        impressions:     impressions,
+        reached:         parseNum(kv['Members reached']),
+        linkClicks:      parseNum(kv['Visits to links in this post']),
+        profileViews:    parseNum(kv['Profile viewers from this post']),
+        followersGained: parseNum(kv['Followers gained from this post']),
+        reactions:       reactions,
+        comments:        comments,
+        reposts:         reposts,
+        saves:           saves,
+        sends:           sends,
+        reactTopJob:     reactJob,
+        reactTopLoc:     reactLoc,
+        reactTopIndustry:reactInd,
+        commentTopJob:   commentJob,
+        commentTopLoc:   commentLoc,
+        topLocations:    locations.slice(0,5).join(' | '),
+        topJobTitles:    jobTitles.slice(0,5).join(' | '),
+        topCompanies:    companies.slice(0,8).join(', '),
+        topIndustries:   industries.slice(0,3).join(' | '),
+        topSeniorities:  seniorities.slice(0,3).join(' | '),
+        topCompanySizes: companySizes.slice(0,3).join(' | '),
+        engagementRate:  engRate,
+        notes:           'Imported from ' + file.name,
+      };
+
+      // Merge with existing — if same ID exists, update it preserving title/angle/notes
+      var existingIdx = analyticsData.findIndex(function(r){ return r.id === postId; });
+      if (existingIdx > -1) {
+        var existing = analyticsData[existingIdx];
+        if (existing.title) record.title = existing.title;
+        if (existing.angle) record.angle = existing.angle;
+        if (existing.notes && !existing.notes.startsWith('Imported from')) record.notes = existing.notes;
+        analyticsData[existingIdx] = record;
+        resultEl.className = 'upload-result show';
+        resultEl.textContent = '✓ Updated: ' + record.postDate + ' · ' + impressions.toLocaleString('en-GB') + ' impressions';
+      } else {
+        analyticsData.unshift(record);
+        resultEl.className = 'upload-result show';
+        resultEl.textContent = '✓ Added: ' + record.postDate + ' · ' + impressions.toLocaleString('en-GB') + ' impressions · ' + reactions + ' reactions';
+      }
+
+      saveAnalyticsData();
+      renderAnalytics();
+
+    } catch(err) {
+      document.getElementById('upload-result').className = 'upload-result error show';
+      document.getElementById('upload-result').textContent = '✗ Parse error: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function deleteAnalyticsRow(idx) {
+  analyticsData.splice(idx, 1);
+  await saveAnalyticsData();
+  renderAnalytics();
+}
+
+function addAnalyticsRow() {
+  analyticsData.unshift({
+    id: 'manual-' + Date.now(),
+    postDate: '', publishTime: '', title: 'New post', angle: '', postUrl: '',
+    impressions: 0, reached: 0, linkClicks: 0, profileViews: 0, followersGained: 0,
+    reactions: 0, comments: 0, reposts: 0, saves: 0, sends: 0,
+    reactTopJob: '', reactTopLoc: '', reactTopIndustry: '',
+    commentTopJob: '', commentTopLoc: '',
+    topLocations: '', topJobTitles: '', topCompanies: '',
+    topIndustries: '', topSeniorities: '', topCompanySizes: '',
+    engagementRate: 0, notes: '',
+  });
+  renderAnalytics();
+}
+
+async function saveAnalyticsData() {
+  try {
+    await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ analyticsData: analyticsData }),
+    });
+  } catch(e) {}
+}
 
 // ══ CALENDAR ══
 function renderCalendar() {
@@ -1780,12 +2146,12 @@ function renderCalendar() {
       var displayDate = dateStr ? new Date(dateStr+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
       var isToday = dateStr === today;
       return `<tr${isToday?' style="background:#eef7fb;"':''}>
-        <td style="font-family:'Montserrat',sans-serif;font-size:11px;font-weight:${isToday?'700':'400'};color:${isToday?'var(--orange)':'inherit'}">${displayDate}${isToday?' ◄ TODAY':''}</td>
-        <td style="font-family:'Montserrat',sans-serif;font-size:11px;">${a.scheduledTime||'—'}</td>
-        <td style="font-family:'Montserrat',sans-serif;font-size:13px;font-weight:500;">${esc(a.headline||a.ideaText||'Untitled')}</td>
-        <td style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;color:var(--orange);">${esc(a.signalSource||'—')}</td>
+        <td style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:${isToday?'700':'400'};color:${isToday?'var(--orange)':'inherit'}">${displayDate}${isToday?' ◄ TODAY':''}</td>
+        <td style="font-family:Montserrat,sans-serif;font-size:11px;">${a.scheduledTime||'—'}</td>
+        <td style="font-family:Montserrat,sans-serif;font-size:13px;font-weight:500;">${esc(a.headline||a.ideaText||'Untitled')}</td>
+        <td style="font-family:Montserrat,sans-serif;font-size:10px;font-weight:600;color:var(--orange);">${esc(a.signalSource||'—')}</td>
         <td><span class="cal-status cal-${a.stage||'shortlisted'}">${(a.stage||'shortlisted').replace('_',' ')}</span></td>
-        <td>${a.blogUrl?`<a href="${esc(a.blogUrl)}" target="_blank" style="font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;color:var(--orange);">View →</a>`:'—'}</td>
+        <td>${a.blogUrl?`<a href="${esc(a.blogUrl)}" target="_blank" style="font-family:Montserrat,sans-serif;font-size:10px;font-weight:600;color:var(--orange);">View →</a>`:'—'}</td>
       </tr>`;
     }).join('') + '</tbody></table>';
 }
