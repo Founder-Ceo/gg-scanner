@@ -192,27 +192,71 @@ module.exports = async function handler(req, res) {
     };
 
     const topicsBlock = truncateTopics(existingTopics);
-    const sourceFilter = sources.length > 0 ? sources.join(', ') : 'EU policy, national DMOs, Skift, Phocuswire, major EU press';
-    const themeFilter = themes.length > 0 ? themes.join(', ') : 'all';
+    const sourceFilter   = sources.length > 0 ? sources.join(', ') : 'EU policy, national DMOs, Skift, Phocuswire, major EU press';
+    const macroThemes    = (body.macroThemes   || []).filter(Boolean);
+    const tourismThemes  = (body.tourismThemes  || []).filter(Boolean);
+    const macroFilter    = macroThemes.length   > 0 ? macroThemes.join(', ')   : '';
+    const tourismFilter  = tourismThemes.length > 0 ? tourismThemes.join(', ') : '';
 
-    const scanPrompt = `Intelligence analyst for Guest Guide. Today: ${today}. Use web search (max 5 searches). Return exactly 5 signals published within the last 14 days (on or after ${cutoffDate}).
+    const macroFlag    = macroFilter.length > 0;
+    const tourismFlag  = tourismFilter.length > 0;
 
-Context: ${GG_CONTEXT}
+    const scanPrompt = `You are an intelligence analyst for Guest Guide Interactive. Today is ${today}. You have web search — use it actively (up to 5 searches).
 
-Do NOT repeat topics already covered: ${topicsBlock}
+Return exactly 5 signals, each published within the last 14 days (on or after ${cutoffDate}). Every signal must have a real URL from web search. No invented statistics or reports.
 
-Focus: ${sourceFilter}. Themes: ${themeFilter}. Gaps: coolcation, OTA/platform risk, DMO spatial data, DACH rural tourism.
+COMPANY CONTEXT: ${GG_CONTEXT}
 
-Rules: real URLs from search only; no invented reports/stats; url required per signal. Reject anything older than 14 days.
+DO NOT REPEAT already-published topics: ${topicsBlock}
 
-Output: raw JSON array only, no markdown. Fields per signal: id, type (policy|ai|ota|dmo|market|research), typeLabel, badge (badge-*), title (≤85c), source, date, url, relevance (70-99), summary (≤175c), ideas[{text,angle}], positioning (≤130c).
+━━━ PRIMARY TASK: WORLD EVENTS → TOURISM IMPACT ━━━
+${macroFlag ? `WORLD EVENT THEMES SELECTED: ${macroFilter}
 
-Example object:
-{"id":"slug","type":"policy","typeLabel":"Policy","badge":"badge-policy","title":"Title","source":"Org","date":"Mar 2026","url":"https://example.com/article","relevance":85,"summary":"Fact with data point.","ideas":[{"text":"Article A","angle":"GG angle"},{"text":"Article B","angle":"GG angle"}],"positioning":"GG positioning."}
+Search general news and current affairs for stories matching these themes FIRST, then translate their implications for European destination managers. DMO directors need to understand macro events before specialist tourism media covers them. Prioritise finding real news from the past 14 days on these topics:
 
-Search and return the JSON array:`;
+${macroFilter.includes('Fuel') || macroFilter.includes('Energy') ? '⛽ FUEL & ENERGY: Search for jet fuel price movements, energy cost impacts on transport, airline profitability pressures affecting European route networks.' : ''}
+${macroFilter.includes('Aviation') || macroFilter.includes('Route') ? '✈️ AVIATION & ROUTES: Search for airline route announcements, capacity changes, new or cut services to secondary European airports.' : ''}
+${macroFilter.includes('Consumer') || macroFilter.includes('Inflation') ? '💶 CONSUMER SPENDING: Search for European consumer confidence data, household spending on travel, cost-of-holiday trends.' : ''}
+${macroFilter.includes('Monetary') || macroFilter.includes('Interest') ? '🏦 MONETARY POLICY: Search for ECB decisions, interest rate changes and their household income effect on travel spending.' : ''}
+${macroFilter.includes('Heatwave') || macroFilter.includes('Weather') ? '🌡 EXTREME WEATHER: Search for heatwaves, heat alerts, or weather disruptions affecting European tourist destinations.' : ''}
+${macroFilter.includes('Wildfire') || macroFilter.includes('Flood') ? '🔥 WILDFIRE & FLOOD: Search for wildfire, flooding or natural disaster impacts on European tourism regions.' : ''}
+${macroFilter.includes('Geopolit') || macroFilter.includes('Conflict') ? '🌍 GEOPOLITICS: Search for conflicts, political instability or diplomatic developments reshaping travel flows to Europe.' : ''}
+${macroFilter.includes('Visa') || macroFilter.includes('Border') ? '🛂 VISA & BORDER: Search for Schengen zone changes, visa policy updates, border control announcements affecting visitor access.' : ''}
+${macroFilter.includes('EU Reg') || macroFilter.includes('Legislat') ? '⚖️ EU REGULATION: Search for new EU directives or legislation affecting short-term rentals, aviation, hospitality or tourism.' : ''}
+${macroFilter.includes('Platform') || macroFilter.includes('AI') ? '📱 PLATFORM & AI: Search for OTA policy changes, AI search developments, or technology shifts affecting travel discovery.' : ''}
+${macroFilter.includes('Currency') || macroFilter.includes('Exchange') ? '💱 CURRENCY: Search for sterling/euro/dollar movements and their effect on inbound European tourism affordability.' : ''}
+${macroFilter.includes('Recession') || macroFilter.includes('Cost of Living') ? '📉 COST OF LIVING: Search for recession signals, consumer debt, or discretionary income shifts affecting holiday demand.' : ''}
+${macroFilter.includes('Road') || macroFilter.includes('Rail') ? '🚗 ROAD & RAIL: Search for fuel cost impacts on drive-to tourism, rail capacity changes, or intermodal travel shifts.' : ''}
+${macroFilter.includes('Infrastructure') || macroFilter.includes('Investment') ? '🏗 INFRASTRUCTURE: Search for major transport, hospitality or destination infrastructure investments or cancellations.' : ''}
+${macroFilter.includes('Retail') || macroFilter.includes('Hospitality') ? '🛍 RETAIL & HOSPITALITY: Search for consumer retail trends, restaurant/hotel closures or openings, visitor economy data.' : ''}
 
-    const data = await callWithWebSearch(apiKey, {
+Primary search sources for macro themes: Reuters, AP, BBC News, Financial Times, Politico Europe, Euractiv, ARD, NOS, Le Monde, Frankfurter Allgemeine, ECB, Eurostat, Copernicus Climate Service.` : ''}
+
+${tourismFlag ? `TOURISM INDUSTRY THEMES: ${tourismFilter}
+${macroFlag ? 'Use these to supplement macro signals if needed to reach 5 total.' : 'Search tourism-native sources for signals on these themes.'} Sources: Skift, Phocuswire, ETC, national DMO announcements, WTTC, Euromonitor, national tourism ministries.` : ''}
+
+${!macroFlag && !tourismFlag ? `Cast wide across both macro news (transport, energy, consumer economics, climate, geopolitics) and tourism-native sources. Prioritise macro events with clear, unaddressed implications for European destination management.` : ''}
+
+Additional sources to consider: ${sourceFilter}.
+
+━━━ GGI POSITIONING ANGLES ━━━
+For each signal's "positioning" field, choose the strongest of:
+A) GOVERNANCE GAP — story reveals a decision being made without territorial intelligence. Guest Guide provides that layer.
+B) REDISTRIBUTION EVIDENCE — story shows flows concentrating where they should not, or bypassing places that are ready. Guest Guide produces the evidence EU funders require.
+C) OPERATOR VISIBILITY — story shows demand that cannot reach the operators who would serve it. Guest Guide is the routing layer.
+
+━━━ OUTPUT FORMAT ━━━
+Raw JSON array only. No markdown. No backticks. No prose before or after.
+Every string value on one line. No trailing commas.
+Reject any signal without a real, working URL from your search.
+Fields: id (short slug), type (policy|ai|ota|dmo|market|research), typeLabel, badge (badge-policy|badge-ai|badge-ota|badge-dmo|badge-market|badge-research), title (≤85 chars), source, date, url (real URL from search), relevance (integer 70-99), summary (≤175 chars with specific fact or data point), ideas (2 objects: {text, angle}), positioning (≤130 chars using one GGI angle).
+
+Example:
+{"id":"fuel-routes-2026","type":"market","typeLabel":"Transport Economics","badge":"badge-market","title":"Fuel Cost Spike Forces Ryanair to Cut 12 Peripheral European Routes","source":"Reuters","date":"19 May 2026","url":"https://www.reuters.com/business/ryanair-route-cuts","relevance":92,"summary":"Ryanair cuts 12 secondary airport routes citing 18% jet fuel cost increase, disproportionately hitting peripheral destinations.","ideas":[{"text":"When Airlines Cut Routes, Who Protects the Destination?","angle":"Governance gap — peripheral destinations need verified territorial data to survive air connectivity loss"},{"text":"The Hidden Cost of Fuel Prices: Rural Tourism Loses Its Runway","angle":"Redistribution evidence — destinations with ground-truth operator data can pivot to drive-to demand"}],"positioning":"Governance gap: losing air access means destinations need verified operator data to redirect demand to ground-level experiences — exactly what GG provides."}
+
+Search now and return the JSON array:`;
+
+        const data = await callWithWebSearch(apiKey, {
       messages: [{ role: 'user', content: scanPrompt }],
       maxTokens: 4096,
       maxRounds: 3,
