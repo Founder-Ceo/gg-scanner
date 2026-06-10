@@ -1,332 +1,363 @@
+// api/scan.js — gg-scanner
+// KV via raw Upstash REST (UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN)
+// Falls back gracefully if KV unavailable — signals always returned to UI
+
 export const config = { maxDuration: 120 };
 
-const {
-  callWithWebSearch,
-  extractText,
-  filterVerifiedSignals,
-  repairSignalsJson,
-  truncateTopics,
-} = require('./integrity');
+const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
 
-// ── Upstash KV helpers (raw REST — @vercel/kv must never be imported) ─────────
-// KV is optional: scan works without it (no history persistence). Only HTTP failures throw.
-function kvConfigured() {
-  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
-}
+// ── UPSTASH REST HELPERS ──────────────────────────────────────────────────────
+// Uses UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
+// (set these two variables in Vercel project settings)
 
-async function kvSet(key, value) {
-  if (!kvConfigured()) return null;
-  const url   = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  const res = await fetch(`${url}/set/${encodeURIComponent(key)}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(value),
-  });
-  if (!res.ok) throw new Error(`KV set failed: ${res.status}`);
-  return res.json();
-}
+function kv() {
+  const url   = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) throw new Error('UPSTASH_REDIS_REST_URL / TOKEN not set');
 
-async function kvGet(key) {
-  if (!kvConfigured()) return null;
-  const url   = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  const res = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`KV get failed: ${res.status}`);
-  const data = await res.json();
-  return data.result;          // null if key does not exist
-}
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-async function kvList(prefix) {
-  if (!kvConfigured()) return [];
-  const url   = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  const res = await fetch(`${url}/keys/${encodeURIComponent(prefix + '*')}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`KV list failed: ${res.status}`);
-  const data = await res.json();
-  return data.result || [];
-}
-
-// ── GG context (compact — large prompts trigger org input-token-per-minute limits) ─
-const GG_CONTEXT =
-  'Guest Guide Interactive: European tourism tech (Arezzo, Tuscany). AI visitor-dispersion layer over verified geospatial POI data for DMOs. Markets: Italy (Arezzo-Siena), DACH, NL, FR. Governance/evidence tool for EU tourism policy — not itineraries or marketing.';
-
-const DEFAULT_EXISTING_TOPICS = `Already published (do not repeat): overtourism intro, slow travel intro, SaaS market sizing for DMOs, social licence/resident voice, founder origin story, data-driven tourism, wellness travel demand, resident backlash (Barcelona/Venice), investor market sizing (Trillion-dollar), DMO digital tools vs campaigns, temporary resident traveller framing, heritage preservation vs prosperity, startup-policy nexus, EU Green Deal dispersion mandates, DMO analytics testing, spatial governance flagship (Counting Visitors to Controlling Flows), Italian mid-cities dispersion (Arezzo Is Not Venice), slow tourism infrastructure (What Slow Tourism Requires), ETC Barometer demand shift (Long-Haul Traveller), ENIT Italian tools gap, OTA vs governance accountability (Booking.com Crowd Avoidance), EU startup single market (EU Inc), operator economics/OTA costs (Hidden Tax on Operators), islands and villages excluded from frameworks, rural tourism digital infrastructure gap.`;
-
-// ── Safe JSON parse helper — handles double-serialised KV values ──────────────
-function safeParseKv(raw) {
-  if (raw === null || raw === undefined) return null;
-  if (typeof raw === 'object') return raw;   // already parsed by Upstash client
-  if (typeof raw === 'string') {
-    try { return JSON.parse(raw); } catch (_) { return raw; }
+  async function call(path, method = 'GET', body = undefined) {
+    const resp = await fetch(`${url}${path}`, {
+      method,
+      headers,
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {})
+    });
+    if (!resp.ok) throw new Error(`Upstash ${method} ${path} → ${resp.status}`);
+    return resp.json();
   }
-  return raw;
+
+  return {
+    async set(key, value) {
+      const v = typeof value === 'string' ? value : JSON.stringify(value);
+      return call(`/set/${encodeURIComponent(key)}`, 'POST', v);
+    },
+    async get(key) {
+      const d = await call(`/get/${encodeURIComponent(key)}`);
+      return d.result;
+    },
+    async hset(key, fields) {
+      return call(`/hset/${encodeURIComponent(key)}`, 'POST', Object.entries(fields).flat());
+    },
+    async hgetall(key) {
+      const d = await call(`/hgetall/${encodeURIComponent(key)}`);
+      const r = d.result;
+      if (!Array.isArray(r)) return null;
+      const obj = {};
+      for (let i = 0; i < r.length; i += 2) obj[r[i]] = r[i + 1];
+      return obj;
+    },
+    async lpush(key, value) {
+      return call(`/lpush/${encodeURIComponent(key)}`, 'POST', [value]);
+    },
+    async lrange(key, start, stop) {
+      const d = await call(`/lrange/${encodeURIComponent(key)}/${start}/${stop}`);
+      return d.result || [];
+    },
+    async ltrim(key, start, stop) {
+      return call(`/ltrim/${encodeURIComponent(key)}/${start}/${stop}`, 'POST');
+    }
+  };
 }
 
-// ── Main handler ──────────────────────────────────────────────────────────────
-module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin',  '*');
+// ── DATE WINDOW ───────────────────────────────────────────────────────────────
+
+function dateCtx() {
+  const now    = new Date();
+  const cutoff = new Date(now);
+  cutoff.setDate(cutoff.getDate() - 90);
+  const fmt = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const months = [];
+  for (let i = 0; i < 3; i++) {
+    const m = new Date(now);
+    m.setMonth(m.getMonth() - i);
+    months.push(m.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }));
+  }
+  return {
+    today:        fmt(now),
+    todayISO:     now.toISOString().slice(0, 10),
+    cutoffDate:   fmt(cutoff),
+    cutoffISO:    cutoff.toISOString().slice(0, 10),
+    currentYear:  now.getFullYear(),
+    currentMonth: now.toLocaleDateString('en-GB', { month: 'long' }),
+    recentMonths: months
+  };
+}
+
+// ── SOURCE → QUERY MAP ────────────────────────────────────────────────────────
+
+const SOURCE_QUERIES = {
+  'EU Commission':              ['site:ec.europa.eu tourism', 'European Commission tourism policy'],
+  'EU Parliament':              ['site:europarl.europa.eu tourism', 'European Parliament tourism regulation'],
+  'UN Tourism':                 ['site:unwto.org', 'UNWTO tourism report'],
+  'Interreg':                   ['Interreg Europe tourism project'],
+  'ETC':                        ['European Travel Commission tourism'],
+  'OECD Tourism':               ['OECD tourism statistics report'],
+  'VisitBritain':               ['site:visitbritain.org', 'VisitBritain tourism report'],
+  'Tourism Ireland':            ['site:tourismireland.com', 'Tourism Ireland strategy'],
+  'ENIT Italy':                 ['site:enit.it', 'ENIT Italian tourism'],
+  'Turespaña':                  ['site:tourspain.es', 'Turespaña Spain tourism'],
+  'Turismo de Portugal':        ['site:turismodeportugal.pt', 'Portugal tourism statistics'],
+  'Visit Greece':               ['site:visitgreece.gr', 'Greece tourism GNTO'],
+  'Croatia Tourism':            ['Croatian National Tourist Board', 'Croatia HTZ tourism'],
+  'NBTC Netherlands':           ['site:nbtc.nl', 'NBTC Netherlands tourism'],
+  'Visit Norway':               ['site:visitnorway.com', 'Visit Norway tourism'],
+  'Visit Sweden':               ['site:visitsweden.com', 'Visit Sweden tourism'],
+  'Visit Denmark':              ['site:visitdenmark.com', 'VisitDenmark tourism'],
+  'Visit Finland':              ['site:visitfinland.com', 'Visit Finland tourism'],
+  'Germany Tourism':            ['site:germany.travel', 'DZT Germany National Tourist Board'],
+  'Austria Tourism':            ['Austrian National Tourist Office ANTO'],
+  'Switzerland Tourism':        ['site:myswitzerland.com', 'Switzerland Tourism'],
+  'Atout France':               ['site:atout-france.fr', 'Atout France tourism'],
+  'Slovenia Tourism':           ['Slovenian Tourist Board', 'Slovenia tourism'],
+  'Skift':                      ['site:skift.com'],
+  'Phocuswire':                 ['site:phocuswire.com'],
+  'Phocuswright':               ['site:phocuswright.com'],
+  'Travel Weekly':              ['site:travelweekly.com', 'site:travelweekly.co.uk'],
+  'TTG Media':                  ['site:ttgmedia.com'],
+  'Travel Trade Gazette':       ['site:ttglive.com'],
+  'The Guardian Travel':        ['site:theguardian.com/travel'],
+  'The Times Travel':           ['site:thetimes.co.uk travel'],
+  'The Telegraph Travel':       ['site:telegraph.co.uk/travel'],
+  'The Independent Travel':     ['site:independent.co.uk/travel'],
+  'Financial Times Travel':     ['site:ft.com travel'],
+  'Le Monde Voyages':           ['site:lemonde.fr voyages'],
+  'Der Spiegel Reise':          ['site:spiegel.de reise'],
+  'Die Zeit Reisen':            ['site:zeit.de reisen'],
+  'NRC Handelsblad':            ['site:nrc.nl toerisme'],
+  'El País Viajes':             ['site:elpais.com viajes'],
+  'Corriere della Sera Viaggi': ['site:corriere.it viaggi'],
+  'La Repubblica Viaggi':       ['site:repubblica.it viaggi'],
+  'Condé Nast Traveller':       ['site:cntraveller.com'],
+  'NatGeo Traveller':           ['site:nationalgeographic.com/travel'],
+  'Geo Magazin (DE)':           ['site:geo.de reise'],
+  'BBC Travel':                 ['site:bbc.com/travel'],
+  'WTTC':                       ['site:wttc.org', 'WTTC world travel tourism council report'],
+  'McKinsey Travel':            ['McKinsey travel tourism report'],
+  'PwC Hospitality':            ['PwC hospitality travel report'],
+  'BCG Travel':                 ['Boston Consulting Group travel tourism'],
+  'Deloitte Travel':            ['Deloitte travel hospitality report'],
+  'Oliver Wyman Travel':        ['Oliver Wyman travel aviation hospitality'],
+  'EY Hospitality':             ['EY Ernst Young hospitality travel report'],
+  'Euromonitor':                ['Euromonitor travel tourism report'],
+  'Oxford Economics':           ['Oxford Economics tourism report'],
+  'Our World In Data':          ['site:ourworldindata.org tourism'],
+  'ECTN':                       ['European Centre for Ecological Tourism ECTN'],
+  'ETOA':                       ['European Tourism Association ETOA'],
+  'LEADER Programme':           ['LEADER rural tourism EU programme'],
+  'Ruraltour EU':               ['rural tourism Europe slow travel']
+};
+
+const THEME_TERMS = {
+  'Dispersion Policy':      ['tourism dispersion policy overtourism Europe', 'visitor flow management DMO'],
+  'AI in Travel Planning':  ['AI travel planning technology tourism'],
+  'Sustainable Tourism':    ['sustainable tourism policy Europe'],
+  'Nordic & Coolcation':    ['coolcation tourism trend Nordic'],
+  'Rural & Village Tourism': ['rural tourism Europe village slow travel'],
+  'Spatial Intelligence':   ['geospatial tourism data destination intelligence'],
+  'Investment & Funding':   ['tourism startup investment funding Europe'],
+  'DMO Strategy':           ['destination management organisation strategy digital'],
+  'Community Impact':       ['community based tourism impact Europe'],
+  'Operator Economics':     ['tourism operator revenue platform commission'],
+  'Platform Dependency':    ['OTA dependency tourism booking platform'],
+  'Traveller Research':     ['traveller behaviour research consumer trends'],
+  'DACH Market':            ['German tourism market DACH Austria Switzerland']
+};
+
+function buildQueries(sources, themes, dc) {
+  const q   = new Set();
+  const my  = `${dc.currentMonth} ${dc.currentYear}`;
+  const yr  = String(dc.currentYear);
+
+  sources.forEach(src => {
+    const sq = SOURCE_QUERIES[src];
+    if (sq) sq.forEach((s, i) => q.add(i === 0 ? `${s} ${my}` : `${s} ${yr}`));
+  });
+
+  const active = themes.length > 0 ? themes : Object.keys(THEME_TERMS);
+  active.forEach(t => {
+    const key = t.replace(/^[\p{Emoji}\s]+/u, '').trim();
+    const terms = THEME_TERMS[key] || THEME_TERMS[t];
+    if (terms) q.add(`${terms[0]} ${my}`);
+  });
+
+  q.add(`European tourism news ${my}`);
+  q.add(`sustainable travel policy Europe ${yr}`);
+  return [...q].slice(0, 5);
+}
+
+// ── HANDLER ───────────────────────────────────────────────────────────────────
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
-  if (req.method === 'OPTIONS') { res.status(200).end(); return; }
-
-  // ── GET /api/scan — return saved scan history ─────────────────────────────
+  // ── GET: scan history ──
   if (req.method === 'GET') {
     try {
-      const keys = await kvList('scan:');
-      // Filter to only summary keys (not the full signal payloads)
-      const summaryKeys = keys.filter(k => k.endsWith(':summary'));
-      const scans = [];
-      for (const key of summaryKeys) {
+      const db   = kv();
+      const keys = await db.lrange('scan:index', 0, 49);
+      if (!keys || keys.length === 0) return res.status(200).json({ scans: [] });
+      const scans = (await Promise.all(keys.map(async key => {
         try {
-          const raw = await kvGet(key);
-          const summary = safeParseKv(raw);
-          if (summary && summary.key) scans.push(summary);
-        } catch (_) {}
-      }
-      // Sort newest first
-      scans.sort((a, b) => (b.date || 0) - (a.date || 0));
-      res.status(200).json({
-        scans,
-        kvConfigured: kvConfigured(),
-        storageMode: kvConfigured() ? 'vercel_kv' : 'browser',
-      });
+          const meta = await db.hgetall(key + ':meta');
+          return { key, date: meta?.date || null, dateLabel: meta?.dateLabel || null, signalCount: parseInt(meta?.signalCount || '0') };
+        } catch { return null; }
+      }))).filter(Boolean);
+      return res.status(200).json({ scans });
     } catch (err) {
-      res.status(200).json({
-        scans: [],
-        kvConfigured: kvConfigured(),
-        storageMode: kvConfigured() ? 'vercel_kv' : 'browser',
-        error: err.message,
-      });
+      console.error('GET /scan error:', err.message);
+      return res.status(200).json({ scans: [], error: err.message });
     }
-    return;
   }
 
-  // ── PATCH /api/scan — update a signal's status ────────────────────────────
-  // Body: { scanKey, signalId, status }
-  if (req.method === 'PATCH') {
-    try {
-      if (!kvConfigured()) {
-        res.status(200).json({
-          ok: true,
-          kvConfigured: false,
-          storageMode: 'browser',
-          hint: 'Status updated in this browser session only.',
-        });
-        return;
-      }
-      const { scanKey, signalId, status } = req.body || {};
-      if (!scanKey || !signalId || !status) {
-        res.status(400).json({ error: 'scanKey, signalId and status are required' }); return;
-      }
-      const signalsKey = scanKey + ':signals';
-      const raw = await kvGet(signalsKey);
-      const signals = safeParseKv(raw);
-      if (!Array.isArray(signals)) {
-        res.status(404).json({ error: 'Scan signals not found' }); return;
-      }
-      const idx = signals.findIndex(s => s.id === signalId);
-      if (idx === -1) {
-        res.status(404).json({ error: 'Signal not found' }); return;
-      }
-      signals[idx].status = status;
-      await kvSet(signalsKey, JSON.stringify(signals));
-      res.status(200).json({ ok: true, signal: signals[idx] });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-    return;
-  }
-
-  // ── POST /api/scan — run a new intelligence scan ──────────────────────────
-  if (req.method !== 'POST') {
-    res.status(405).end('Method not allowed'); return;
-  }
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured on server' }); return;
+  if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+
+  const { sources = [], themes = [] } = req.body || {};
+  const dc = dateCtx();
+
+  let publishedTopics = '';
+  try {
+    const raw = await kv().get('config:published-topics');
+    if (raw) publishedTopics = typeof raw === 'string' ? raw : JSON.stringify(raw);
+  } catch { /* non-fatal */ }
+
+  const queries = buildQueries(sources, themes, dc);
+
+  const systemPrompt = `You are an expert intelligence analyst for Guest Guide Interactive, a European tourism technology startup based in Arezzo, Tuscany. Identify high-signal news, reports, policy developments, and research relevant to European tourism technology, DMO strategy, sustainable travel, and AI-assisted destination management.
+
+RECENCY — NON-NEGOTIABLE:
+Today: ${dc.today}. Window opens: ${dc.cutoffDate}.
+Only surface signals published ON OR AFTER ${dc.cutoffDate}. Discard anything older or undatable.
+
+GUEST GUIDE CONTEXT:
+Pre-revenue startup. AI-driven intelligence layer over verified, locally curated geospatial POI database. Core value: dispersion of tourist flows toward authentic slow-tourism experiences. Product: dashboard for DMOs. Primary: Italy. Secondary: DACH, Netherlands, France, Spain, Portugal, UK/Ireland, Greece, Adriatic.
+
+AUDIENCES: (1) DMO directors — policy, strategy, dispersion, digital tools. (2) Tourism operators — market shifts, platform economics. (3) Investors — market size, policy tailwinds.
+
+PUBLISHED TOPICS TO EXCLUDE:
+${publishedTopics || '(none)'}
+
+OUTPUT — CRITICAL:
+Your ENTIRE response must be a raw JSON array. Start with [ and end with ]. No prose, no markdown, no triple backticks before or after. Begin immediately with [.
+
+Return exactly 5 signal objects:
+[
+  {
+    "id": "sig_[8 alphanumeric]",
+    "title": "Source headline or close paraphrase",
+    "source": "Publication name",
+    "date": "DD Mon YYYY — must be within last 90 days. Omit signal if undatable.",
+    "url": "Verified URL only. Omit field if unverifiable.",
+    "type": "policy|research|market|ai|dmo|operator",
+    "typeLabel": "Policy|Research|Market|AI & Tech|DMO Strategy|Operator",
+    "badge": "badge-policy|badge-research|badge-market|badge-ai|badge-dmo|badge-market",
+    "relevance": 85,
+    "summary": "2 sentences. Factual. Attribute claims to source.",
+    "ideas": [
+      { "text": "Article idea — specific, 8-15 words", "angle": "Guest Guide angle — 1 sentence" },
+      { "text": "Second article idea — different angle on same signal, 8-15 words", "angle": "Guest Guide angle — 1 sentence" }
+    ],
+    "positioning": "2 sentences on strategic relevance to Guest Guide Interactive."
   }
+]`;
+
+  const userMsg = `Scan for Guest Guide Interactive.
+
+TODAY: ${dc.today}
+WINDOW: On or after ${dc.cutoffDate} (90 days)
+PRIORITISE: ${dc.recentMonths[0]} and ${dc.recentMonths[1]}
+SOURCES: ${sources.length > 0 ? sources.join(', ') : 'All'}
+THEMES: ${themes.length > 0 ? themes.join(', ') : 'All'}
+
+SEARCH QUERIES:
+${queries.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+
+Verify each result: date within 90 days, URL real. Discard if either fails.
+Return exactly 5 signals. Start your response with [ and nothing else.`;
 
   try {
-    const body = req.body || {};
-    const { sources = [], themes = [] } = body;
+    const aiResp = await fetch(ANTHROPIC_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 6000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMsg }]
+      })
+    });
 
-    // Load published topics from config KV when available — else hardcoded default
-    let existingTopics = DEFAULT_EXISTING_TOPICS;
-    if (kvConfigured()) {
-      try {
-        const cfgRaw = await kvGet('config:published-topics');
-        const cfgVal = safeParseKv(cfgRaw);
-        if (typeof cfgVal === 'string' && cfgVal.trim()) {
-          existingTopics = cfgVal;
-        } else if (cfgVal && typeof cfgVal.publishedTopics === 'string') {
-          existingTopics = cfgVal.publishedTopics;
-        }
-      } catch (_) {}
+    if (!aiResp.ok) throw new Error(`Anthropic ${aiResp.status}: ${await aiResp.text()}`);
+
+    const data    = await aiResp.json();
+    const rawText = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    if (!rawText) throw new Error('No text content returned from AI');
+
+    // Robust extraction — find outermost [ ... ]
+    let signals;
+    try {
+      const first = rawText.indexOf('[');
+      const last  = rawText.lastIndexOf(']');
+      if (first === -1 || last <= first) throw new Error('No JSON array found in response');
+      signals = JSON.parse(rawText.slice(first, last + 1));
+      if (!Array.isArray(signals)) throw new Error('Parsed value is not an array');
+    } catch (e) {
+      console.error('Parse error:', e.message, '| Preview:', rawText.slice(0, 200));
+      throw new Error('Failed to parse signals: ' + e.message);
     }
 
-    // 14-day recency guardrail — aligned to twice-weekly publishing cadence
-    const todayDate = new Date();
-    const recencyStart = new Date(todayDate);
-    recencyStart.setDate(recencyStart.getDate() - 14);
-    const cutoffDate = recencyStart.toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
+    // Server-side 90-day filter
+    const cutoff = new Date(dc.cutoffISO).getTime();
+    signals = signals.filter(s => {
+      if (!s.date) return false;
+      const p = new Date(s.date);
+      if (isNaN(p.getTime())) {
+        const y = s.date.match(/\b(202\d)\b/);
+        return y && parseInt(y[1]) >= dc.currentYear - 1;
+      }
+      return p.getTime() >= cutoff;
     });
-    const today = todayDate.toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-    const contentWindow = {
-      days: 14,
-      from: recencyStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-      to: todayDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-    };
-
-    const topicsBlock = truncateTopics(existingTopics);
-    const sourceFilter   = sources.length > 0 ? sources.join(', ') : 'EU policy, national DMOs, Skift, Phocuswire, major EU press';
-    const macroThemes    = (body.macroThemes   || []).filter(Boolean);
-    const tourismThemes  = (body.tourismThemes  || []).filter(Boolean);
-    const macroFilter    = macroThemes.length   > 0 ? macroThemes.join(', ')   : '';
-    const tourismFilter  = tourismThemes.length > 0 ? tourismThemes.join(', ') : '';
-
-    const macroFlag    = macroFilter.length > 0;
-    const tourismFlag  = tourismFilter.length > 0;
-
-    const scanPrompt = `You are an intelligence analyst for Guest Guide Interactive. Today is ${today}. You have web search — use it actively (up to 5 searches).
-
-Return exactly 5 signals, each published within the last 14 days (on or after ${cutoffDate}). Every signal must have a real URL from web search. No invented statistics or reports.
-
-COMPANY CONTEXT: ${GG_CONTEXT}
-
-DO NOT REPEAT already-published topics: ${topicsBlock}
-
-━━━ PRIMARY TASK: WORLD EVENTS → TOURISM IMPACT ━━━
-${macroFlag ? `WORLD EVENT THEMES SELECTED: ${macroFilter}
-
-Search general news and current affairs for stories matching these themes FIRST, then translate their implications for European destination managers. DMO directors need to understand macro events before specialist tourism media covers them. Prioritise finding real news from the past 14 days on these topics:
-
-${macroFilter.includes('Fuel') || macroFilter.includes('Energy') ? '⛽ FUEL & ENERGY: Search for jet fuel price movements, energy cost impacts on transport, airline profitability pressures affecting European route networks.' : ''}
-${macroFilter.includes('Aviation') || macroFilter.includes('Route') ? '✈️ AVIATION & ROUTES: Search for airline route announcements, capacity changes, new or cut services to secondary European airports.' : ''}
-${macroFilter.includes('Consumer') || macroFilter.includes('Inflation') ? '💶 CONSUMER SPENDING: Search for European consumer confidence data, household spending on travel, cost-of-holiday trends.' : ''}
-${macroFilter.includes('Monetary') || macroFilter.includes('Interest') ? '🏦 MONETARY POLICY: Search for ECB decisions, interest rate changes and their household income effect on travel spending.' : ''}
-${macroFilter.includes('Heatwave') || macroFilter.includes('Weather') ? '🌡 EXTREME WEATHER: Search for heatwaves, heat alerts, or weather disruptions affecting European tourist destinations.' : ''}
-${macroFilter.includes('Wildfire') || macroFilter.includes('Flood') ? '🔥 WILDFIRE & FLOOD: Search for wildfire, flooding or natural disaster impacts on European tourism regions.' : ''}
-${macroFilter.includes('Geopolit') || macroFilter.includes('Conflict') ? '🌍 GEOPOLITICS: Search for conflicts, political instability or diplomatic developments reshaping travel flows to Europe.' : ''}
-${macroFilter.includes('Visa') || macroFilter.includes('Border') ? '🛂 VISA & BORDER: Search for Schengen zone changes, visa policy updates, border control announcements affecting visitor access.' : ''}
-${macroFilter.includes('EU Reg') || macroFilter.includes('Legislat') ? '⚖️ EU REGULATION: Search for new EU directives or legislation affecting short-term rentals, aviation, hospitality or tourism.' : ''}
-${macroFilter.includes('Platform') || macroFilter.includes('AI') ? '📱 PLATFORM & AI: Search for OTA policy changes, AI search developments, or technology shifts affecting travel discovery.' : ''}
-${macroFilter.includes('Currency') || macroFilter.includes('Exchange') ? '💱 CURRENCY: Search for sterling/euro/dollar movements and their effect on inbound European tourism affordability.' : ''}
-${macroFilter.includes('Recession') || macroFilter.includes('Cost of Living') ? '📉 COST OF LIVING: Search for recession signals, consumer debt, or discretionary income shifts affecting holiday demand.' : ''}
-${macroFilter.includes('Road') || macroFilter.includes('Rail') ? '🚗 ROAD & RAIL: Search for fuel cost impacts on drive-to tourism, rail capacity changes, or intermodal travel shifts.' : ''}
-${macroFilter.includes('Infrastructure') || macroFilter.includes('Investment') ? '🏗 INFRASTRUCTURE: Search for major transport, hospitality or destination infrastructure investments or cancellations.' : ''}
-${macroFilter.includes('Retail') || macroFilter.includes('Hospitality') ? '🛍 RETAIL & HOSPITALITY: Search for consumer retail trends, restaurant/hotel closures or openings, visitor economy data.' : ''}
-
-Primary search sources for macro themes: Reuters, AP, BBC News, Financial Times, Politico Europe, Euractiv, ARD, NOS, Le Monde, Frankfurter Allgemeine, ECB, Eurostat, Copernicus Climate Service.` : ''}
-
-${tourismFlag ? `TOURISM INDUSTRY THEMES: ${tourismFilter}
-${macroFlag ? 'Use these to supplement macro signals if needed to reach 5 total.' : 'Search tourism-native sources for signals on these themes.'} Sources: Skift, Phocuswire, ETC, national DMO announcements, WTTC, Euromonitor, national tourism ministries.` : ''}
-
-${!macroFlag && !tourismFlag ? `Cast wide across both macro news (transport, energy, consumer economics, climate, geopolitics) and tourism-native sources. Prioritise macro events with clear, unaddressed implications for European destination management.` : ''}
-
-Additional sources to consider: ${sourceFilter}.
-
-━━━ GGI POSITIONING ANGLES ━━━
-For each signal's "positioning" field, choose the strongest of:
-A) GOVERNANCE GAP — story reveals a decision being made without territorial intelligence. Guest Guide provides that layer.
-B) REDISTRIBUTION EVIDENCE — story shows flows concentrating where they should not, or bypassing places that are ready. Guest Guide produces the evidence EU funders require.
-C) OPERATOR VISIBILITY — story shows demand that cannot reach the operators who would serve it. Guest Guide is the routing layer.
-
-━━━ OUTPUT FORMAT ━━━
-Raw JSON array only. No markdown. No backticks. No prose before or after.
-Every string value on one line. No trailing commas.
-Reject any signal without a real, working URL from your search.
-Fields: id (short slug), type (policy|ai|ota|dmo|market|research), typeLabel, badge (badge-policy|badge-ai|badge-ota|badge-dmo|badge-market|badge-research), title (≤85 chars), source, date, url (real URL from search), relevance (integer 70-99), summary (≤175 chars with specific fact or data point), ideas (2 objects: {text, angle}), positioning (≤130 chars using one GGI angle).
-
-Example:
-{"id":"fuel-routes-2026","type":"market","typeLabel":"Transport Economics","badge":"badge-market","title":"Fuel Cost Spike Forces Ryanair to Cut 12 Peripheral European Routes","source":"Reuters","date":"19 May 2026","url":"https://www.reuters.com/business/ryanair-route-cuts","relevance":92,"summary":"Ryanair cuts 12 secondary airport routes citing 18% jet fuel cost increase, disproportionately hitting peripheral destinations.","ideas":[{"text":"When Airlines Cut Routes, Who Protects the Destination?","angle":"Governance gap — peripheral destinations need verified territorial data to survive air connectivity loss"},{"text":"The Hidden Cost of Fuel Prices: Rural Tourism Loses Its Runway","angle":"Redistribution evidence — destinations with ground-truth operator data can pivot to drive-to demand"}],"positioning":"Governance gap: losing air access means destinations need verified operator data to redirect demand to ground-level experiences — exactly what GG provides."}
-
-Search now and return the JSON array:`;
-
-        const data = await callWithWebSearch(apiKey, {
-      messages: [{ role: 'user', content: scanPrompt }],
-      maxTokens: 4096,
-      maxRounds: 3,
-      maxUses: 5,
-    });
-
-    const jsonText = extractText(data);
-    if (!jsonText) throw new Error('No text response from intelligence scan');
-
-    let signals = repairSignalsJson(jsonText);
-
-    // Sequential URL checks — avoids burst traffic; scan already consumed most TPM budget
-    const { kept, rejected } = await filterVerifiedSignals(signals, { sequential: true });
-    signals = kept;
 
     if (signals.length === 0) {
-      res.status(422).json({
-        error:
-          'No verifiable signals returned. Every signal must have a working source URL found via live web search.',
-        rejected,
-      });
-      return;
+      return res.status(200).json({ signals: [], key: null, error: `No signals within 90-day window (since ${dc.cutoffDate}). Try broadening sources or themes.` });
     }
 
-    // Ensure every signal has an id
-    signals = signals.map((s, i) => ({
-      id: s.id || `signal-${Date.now()}-${i}`,
-      status: 'new',
-      ...s,
-    }));
+    signals = signals.map((s, i) => ({ ...s, id: s.id || `sig_${Date.now()}_${i}`, status: 'new' }));
 
-    // Save to KV
-    const now      = new Date();
-    const scanKey  = `scan:${now.toISOString().replace(/[:.]/g, '-')}`;
-    const dateLabel = now.toLocaleDateString('en-GB', {
-      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-    });
+    // ── KV STORAGE — non-fatal ────────────────────────────────────────────────
+    const now       = new Date();
+    const scanKey   = `scan:${now.toISOString().slice(0, 10)}_${Date.now()}`;
+    const dateLabel = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    let storageError = null;
 
-    const summary = {
-      key:         scanKey,
-      date:        now.getTime(),
-      dateLabel,
-      signalCount: signals.length,
-      sources:     sources.slice(0, 10),
-      themes:      themes.slice(0, 8),
-    };
-
-    const persisted = kvConfigured();
-    const localKey = persisted
-      ? scanKey
-      : `scan:local-${now.getTime()}`;
-    if (persisted) {
-      await kvSet(scanKey + ':summary', JSON.stringify(summary));
-      await kvSet(scanKey + ':signals', JSON.stringify(signals));
+    try {
+      const db = kv();
+      await db.set(scanKey, { signals, dateLabel, date: now.toISOString() });
+      await db.hset(scanKey + ':meta', { date: now.toISOString(), dateLabel, signalCount: String(signals.length) });
+      await db.lpush('scan:index', scanKey);
+      await db.ltrim('scan:index', 0, 99);
+    } catch (kvErr) {
+      console.error('KV storage error (non-fatal):', kvErr.message);
+      storageError = kvErr.message;
     }
 
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.status(200).json({
+    return res.status(200).json({
       signals,
-      key: persisted ? scanKey : localKey,
+      key:          storageError ? null : scanKey,
       dateLabel,
-      persisted,
-      kvConfigured: persisted,
-      storageMode: persisted ? 'vercel_kv' : 'browser',
-      contentWindow,
-      integrity: { rejectedCount: rejected.length, rejected },
+      storageError: storageError || undefined,
+      contentWindow: { from: dc.cutoffDate, to: dc.today, days: 90 }
     });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
-    return;
+    console.error('Scan error:', err.message);
+    return res.status(500).json({ error: err.message });
   }
-};
+}
