@@ -70,9 +70,9 @@ module.exports = async function handler(req, res) {
       });
       if (!verification.verified) {
         res.status(422).json({
-          error: `Editorial integrity check failed: ${verification.reason}`,
+          error: String(`Editorial integrity check: ${verification.reason}`),
           integrity_failed: true,
-          verification,
+          reason: String(verification.reason || 'Integrity check failed'),
         });
         return;
       }
@@ -207,7 +207,10 @@ Start directly with the article title as # heading.`;
     res.status(400).json({ error: 'Unknown action. Use action:"brief" or action:"article"' });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    const msg = err instanceof Error
+      ? err.message
+      : (typeof err === 'string' ? err : JSON.stringify(err));
+    res.status(500).json({ error: msg || 'Internal server error' });
     return;
   }
 };
