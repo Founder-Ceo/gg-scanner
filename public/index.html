@@ -18,18 +18,18 @@
   --orange:       #F34D3C;   /* Dark Orange */
 
   /* UI mapping */
-  --ink:          #1D4A7A;   /* Primary Blue — replaces near-black */
-  --paper:        #f0f6fc;   /* Very light blue-tinted white */
-  --cream:        #e2eef7;   /* Tinted surface */
-  --rust:         #F34D3C;   /* Orange — replaces rust for CTAs/accents */
-  --sage:         #449D80;   /* Olive Green — replaces sage */
-  --slate:        #48A4C5;   /* Peacock Blue — replaces slate */
-  --gold:         #55B8D8;   /* Light Blue — replaces gold */
-  --muted:        #6b8caa;   /* Desaturated primary blue */
-  --border:       #c2d8ea;   /* Soft blue border */
+  --ink:          #1D4A7A;
+  --paper:        #f0f6fc;
+  --cream:        #e2eef7;
+  --rust:         #F34D3C;
+  --sage:         #449D80;
+  --slate:        #48A4C5;
+  --gold:         #55B8D8;
+  --muted:        #6b8caa;
+  --border:       #c2d8ea;
   --white:        #ffffff;
 
-  /* Status colours — kept neutral for readability */
+  /* Status colours */
   --status-new:              #e8ecf0;
   --status-new-text:         #3d4f5c;
   --status-shortlisted:      #fdf6e3;
@@ -541,7 +541,6 @@ main{max-width:1480px;margin:0 auto;padding:32px 40px;}
         </div>
       </div>
 
-
       <!-- SOURCE GROUP: General News & Current Affairs -->
       <div class="sidebar-card">
         <div class="sidebar-card-header">
@@ -595,7 +594,7 @@ main{max-width:1480px;margin:0 auto;padding:32px 40px;}
         </div>
       </div>
 
-      <!-- Theme Focus -->
+      <!-- Theme Focus: World Events -->
       <div class="sidebar-card">
         <div class="sidebar-card-header">
           <span class="sidebar-label">World Events — Tourism Impact</span>
@@ -750,7 +749,7 @@ main{max-width:1480px;margin:0 auto;padding:32px 40px;}
           <div><label class="field-label">Signal Date</label><input type="text" class="field-input" id="f-signalDate" placeholder="e.g. Mar 2026"></div>
         </div>
         <div class="form-row single"><div><label class="field-label">Source URL</label><input type="url" class="field-input" id="f-signalUrl" placeholder="https://…"></div></div>
-        <div class="form-row single"><div><label class="field-label">Guest Guide Angle</label><input type="text" class="field-input" id="f-angle" placeholder="e.g. GG's verified POI database solves the discovery gap"></div></div>
+        <div class="form-row single"><div><label class="field-label">Guest Guide Angle</label><input type="text" class="field-input" id="f-angle" placeholder="e.g. GG's verified destination dataset solves the discovery gap"></div></div>
       </div>
       <div class="modal-section">
         <div class="modal-section-title">Brief & Headline</div>
@@ -808,7 +807,7 @@ main{max-width:1480px;margin:0 auto;padding:32px 40px;}
        ondrop="handleAnalyticsFileDrop(event)">
     <div class="upload-zone-icon">📊</div>
     <div class="upload-zone-label">Drop LinkedIn Analytics .xlsx here or click to browse</div>
-    <div class="upload-zone-sub">PostAnalytics_WaltCudlip_[PostID].xlsx — reads PERFORMANCE + TOP DEMOGRAPHICS sheets</div>
+    <div class="upload-zone-sub">Supports Content Analytics and Single Post Analytics exports from LinkedIn</div>
   </div>
   <input type="file" id="xlsx-upload" accept=".xlsx,.xls" style="display:none" onchange="handleAnalyticsFileUpload(event)">
   <div class="upload-result" id="upload-result"></div>
@@ -1048,7 +1047,6 @@ function switchTab(tab, btn) {
 // ══ SOURCE TAG HELPERS ══
 function toggleTag(el) {
   el.classList.toggle('selected');
-  // Update group toggle button state
   const group = el.dataset.group;
   if (group) updateGroupToggleState(group);
 }
@@ -1073,12 +1071,6 @@ function updateGroupToggleState(group) {
 
 function toggleThemeGroup(groupClass) {
   const chips = document.querySelectorAll('.theme-chip.' + groupClass);
-  const allOn = [...chips].every(c => c.classList.contains('selected'));
-  chips.forEach(c => { if (allOn) c.classList.remove('selected'); else c.classList.add('selected'); });
-}
-
-function toggleAllThemes() {
-  const chips = document.querySelectorAll('.theme-chip');
   const allOn = [...chips].every(c => c.classList.contains('selected'));
   chips.forEach(c => { if (allOn) c.classList.remove('selected'); else c.classList.add('selected'); });
 }
@@ -1554,6 +1546,7 @@ async function deleteCurrentArticle() {
 }
 
 document.getElementById('article-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
 // ══ SCANNER → PIPELINE BRIDGE ══
 function addSignalToPipeline(signalIdx, ideaText, angle) {
   const signal = currentSignals[signalIdx];
@@ -1579,7 +1572,6 @@ let writeArticleId = null, writeBriefText = '', writeParsedHeadlines = [], write
 
 async function generateBriefFromModal() {
   await saveArticle();
-  // currentModalId is set either by openEditModal (edit) or by saveArticle (new article — set in PATCH B)
   const article = pipelineArticles.find(a => a.id === currentModalId) || pipelineArticles[0];
   if (!article) { showToast('Could not locate article — please save it first and try again.'); return; }
   writeArticleId = article.id; closeModal(); openWritePanel(article);
@@ -1672,16 +1664,13 @@ async function fetchBrief(article) {
 function extractHeadlines(text) {
   const lines = text.split('\n'); const headlines = [];
   for (const line of lines) {
-    // Strip leading whitespace and markdown bold markers before matching
     const clean = line.replace(/^\s+/, '').replace(/\*\*/g, '');
-    // Match A) / A. / A: / Option A — with optional leading number like "1. A)"
     const m = clean.match(/^(?:\d+\.\s*)?([ABC])[):.\s]\s*(.+)/);
     if (m && m[2].trim().length > 20) {
       headlines.push(m[2].trim());
       if (headlines.length === 3) break;
     }
   }
-  // Fallback: grab any quoted strings > 20 chars
   if (headlines.length < 2) {
     const quoted = [...text.matchAll(/[""]([^""]{20,150})[""]/g)].map(m => m[1]);
     quoted.forEach(q => { if (headlines.length < 3 && !headlines.includes(q)) headlines.push(q); });
@@ -1792,29 +1781,23 @@ function copyWriteOutput() {
 }
 
 // ══ ANALYTICS ══
-// Seeded with verified historical data from LinkedIn exports
-var HISTORICAL_ANALYTICS = [{"id":"7455431159905316864","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7455431159905316864","postDate":"Apr 30, 2026","publishTime":"7:30 AM","title":"The Cheap Alternative Trap (BBC follow-up)","angle":"Overtourism / Structural Critique / News Anchor","impressions":42333,"reached":31424,"linkClicks":85,"profileViews":42,"followersGained":12,"reactions":36,"comments":11,"reposts":0,"saves":8,"sends":4,"reactTopJob":"Project Manager","reactTopLoc":"London Area, United Kingdom","reactTopIndustry":"Travel Arrangements","commentTopJob":"Founder","commentTopLoc":"Stuttgart Region","topLocations":"Greater Toronto Area, Canada (8.0%) | London Area, United Kingdom (6.6%) | Brussels Metropolitan Area (2.3%) | Greater Ottawa Metropolitan Area (2.2%) | Greater Vancouver Metropolitan Area (2.2%)","topJobTitles":"Founder (2.6%) | Project Manager (1.9%) | Owner (1.5%) | Chief Executive Officer (1.1%) | Co-Founder (< 1%)","topCompanies":"European Commission, TUI, Amadeus, Marriott International, City of Toronto","topIndustries":"Travel Arrangements (11.2%) | Hospitality (9.4%) | Government Administration (5.9%)","topSeniorities":"Senior (29.9%) | Entry (23.4%) | Director (10.7%)","topCompanySizes":"11-50 employees (13.6%) | 51-200 employees (13.0%) | 1001-5000 employees (11.3%)","notes":"","engagementRate":0.14},{"id":"7441501520589795328","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7441501520589795328","postDate":"Apr 2, 2026","publishTime":"7:15 AM","title":"Rural Areas Hold 44% of EU Tourism Beds","angle":"Policy / Regional Distribution / EU Data","impressions":1111,"reached":791,"linkClicks":0,"profileViews":6,"followersGained":7,"reactions":14,"comments":4,"reposts":0,"saves":1,"sends":2,"reactTopJob":"Corporate Sales Specialist","reactTopLoc":"Greater Paris Metropolitan Region","reactTopIndustry":"Travel Arrangements","commentTopJob":"Founder","commentTopLoc":"Viljandi","topLocations":"Greater Paris Metropolitan Region (3.7%) | London Area, United Kingdom (2.5%) | Brussels Metropolitan Area (2.4%) | Greater Toronto Area, Canada (2.0%) | Greater Dublin (1.9%)","topJobTitles":"Founder (7.8%) | Owner (3.0%) | Chief Executive Officer (2.4%) | Project Manager (1.9%) | Co-Founder (1.6%)","topCompanies":"Airbnb","topIndustries":"Travel Arrangements (25.3%) | Hospitality (12.0%) | Business Consulting and Services (5.3%)","topSeniorities":"Senior (28.1%) | Entry (16.7%) | Director (11.8%)","topCompanySizes":"1-10 employees (19.3%) | 11-50 employees (12.6%) | 51-200 employees (11.6%)","notes":"","engagementRate":1.89},{"id":"7441500635671359488","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7441500635671359488","postDate":"Mar 31, 2026","publishTime":"7:15 AM","title":"UN Best Tourism Villages Competition","angle":"Policy / Rural Tourism / International Recognition","impressions":2003,"reached":1337,"linkClicks":0,"profileViews":6,"followersGained":6,"reactions":23,"comments":0,"reposts":0,"saves":1,"sends":1,"reactTopJob":"Founder","reactTopLoc":"Greater Madrid Metropolitan Area","reactTopIndustry":"Travel Arrangements","commentTopJob":"","commentTopLoc":"","topLocations":"Greater Delhi Area (2.0%) | Kathmandu (1.9%) | London Area, United Kingdom (1.8%) | Greater Toronto Area, Canada (1.3%) | Johannesburg Metropolitan Area (1.2%)","topJobTitles":"Founder (6.6%) | Professor (2.3%) | Lecturer (2.3%) | Co-Founder (1.9%) | Owner (1.9%)","topCompanies":"Self Employed","topIndustries":"Travel Arrangements (28.3%) | Hospitality (16.1%) | Higher Education (4.7%)","topSeniorities":"Senior (30.4%) | Entry (18.1%) | Director (7.8%)","topCompanySizes":"11-50 employees (15.7%) | 1-10 employees (15.0%) | 51-200 employees (10.5%)","notes":"","engagementRate":1.25},{"id":"7441496083819753472","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7441496083819753472","postDate":"Mar 26, 2026","publishTime":"7:00 AM","title":"European Parliament TRAN Committee Vote","angle":"Policy / Legislative News Anchor","impressions":16326,"reached":12375,"linkClicks":0,"profileViews":18,"followersGained":4,"reactions":13,"comments":19,"reposts":0,"saves":5,"sends":1,"reactTopJob":"Owner","reactTopLoc":"Utrecht Area","reactTopIndustry":"IT Services and IT Consulting","commentTopJob":"Founder","commentTopLoc":"Greater Hyderabad Area","topLocations":"Amsterdam Area (5.3%) | London Area, United Kingdom (5.2%) | Greater Toronto Area, Canada (3.4%) | Greater Barcelona Metropolitan Area (2.1%) | Greater Dublin (1.5%)","topJobTitles":"Founder (3.6%) | General Manager (2.1%) | Owner (1.9%) | Co-Founder (1.7%) | Sales Manager (1.7%)","topCompanies":"Booking.com, IHG Hotels & Resorts, Marriott International, Amadeus, Accor","topIndustries":"Hospitality (20.3%) | Travel Arrangements (15.5%) | Advertising Services (4.0%)","topSeniorities":"Senior (29.1%) | Entry (17.4%) | Director (13.7%)","topCompanySizes":"10,001+ employees (14.7%) | 51-200 employees (13.4%) | 11-50 employees (13.2%)","notes":"","engagementRate":0.23},{"id":"7435392736469430272","postUrl":"","postDate":"Mar 5, 2026","publishTime":"6:36 PM","title":"From Counting Visitors to Controlling Flows","angle":"Policy / Thought Leadership (Flagship)","impressions":1378,"reached":994,"linkClicks":0,"profileViews":1,"followersGained":1,"reactions":6,"comments":0,"reposts":0,"saves":1,"sends":0,"reactTopJob":"Director of Public Policy","reactTopLoc":"Greater Milan","reactTopIndustry":"Travel Arrangements (21.3%)","commentTopJob":"","commentTopLoc":"","topLocations":"London (5.6%) | Zagreb (5.6%)","topJobTitles":"","topCompanies":"Airbnb, Booking.com, Hilton","topIndustries":"Travel Arrangements (21.3%)","topSeniorities":"Senior (29.2%)","topCompanySizes":"","engagementRate":0.51,"notes":"VERIFIED. 6:36 PM timing failure \u2014 would have reached 4,000\u20136,000 at optimal time. Director of Public Policy in Milan reacted."},{"id":"7430551828758487040","postUrl":"","postDate":"Feb 20, 2026","publishTime":"10:00 AM","title":"What Happens When Tourism Is Treated As\u2026 [rhetorical question post]","angle":"Conversational / Rhetorical","impressions":634,"reached":487,"linkClicks":0,"profileViews":3,"followersGained":1,"reactions":8,"comments":8,"reposts":0,"saves":1,"sends":0,"reactTopJob":"","reactTopLoc":"","reactTopIndustry":"","commentTopJob":"","commentTopLoc":"","topLocations":"","topJobTitles":"","topCompanies":"","topIndustries":"","topSeniorities":"","topCompanySizes":"","engagementRate":2.68,"notes":"ANOMALY: 1.26% comment rate \u2014 highest in full dataset. 8 comments on 634 impressions. Rhetorical question format drove conversation depth."},{"id":"7429923579653435392","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7429923579653435392","postDate":"Feb 19, 2026","publishTime":"9:30 AM","title":"The Startup\u2013Policy Nexus","angle":"Policy / Startup Positioning","impressions":4922,"reached":3420,"linkClicks":9,"profileViews":16,"followersGained":20,"reactions":23,"comments":9,"reposts":1,"saves":5,"sends":4,"reactTopJob":"Founder","reactTopLoc":"London Area, United Kingdom","reactTopIndustry":"Travel Arrangements","commentTopJob":"Production Manager","commentTopLoc":"Cork Metropolitan Area","topLocations":"London Area, United Kingdom (6.7%) | Greater Toronto Area, Canada (2.8%) | Greater Delhi Area (1.8%) | Greater Sydney Area (1.6%) | Greater Dublin (1.5%)","topJobTitles":"Founder (6.0%) | Chief Executive Officer (2.9%) | Managing Director (2.3%) | Co-Founder (2.3%) | Owner (2.3%)","topCompanies":"F\u00e1ilte Ireland, VisitScotland, TUI, Intrepid Travel, Accor","topIndustries":"Travel Arrangements (27.7%) | Hospitality (10.7%) | Business Consulting and Services (4.7%)","topSeniorities":"Senior (28.5%) | Entry (16.5%) | Director (12.4%)","topCompanySizes":"1-10 employees (18.4%) | 11-50 employees (14.8%) | 51-200 employees (11.6%)","notes":"","engagementRate":0.85},{"id":"7419093573054189568","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7419093573054189568","postDate":"Jan 19, 2026","publishTime":"7:09 PM","title":"Tourism as a Trillion-Dollar Problem Waiting for Tech Solutions","angle":"Investor / Market Framing","impressions":27248,"reached":20349,"linkClicks":87,"profileViews":61,"followersGained":40,"reactions":95,"comments":37,"reposts":11,"saves":15,"sends":0,"reactTopJob":"Founder","reactTopLoc":"Greater Toronto Area, Canada","reactTopIndustry":"Travel Arrangements","commentTopJob":"Travel Advisor","commentTopLoc":"Singapore","topLocations":"Greater Toronto Area, Canada (10.5%) | London Area, United Kingdom (5.0%) | Greater Vancouver Metropolitan Area (3.1%) | Greater Ottawa Metropolitan Area (2.1%) | New York City Metropolitan Area (2.0%)","topJobTitles":"Founder (3.5%) | Owner (2.2%) | Chief Executive Officer (1.8%) | Co-Founder (1.5%) | Project Manager (1.3%)","topCompanies":"City of Toronto, TUI, Expedia Group, Marriott International, University of Toronto","topIndustries":"Travel Arrangements (16.3%) | Hospitality (9.5%) | Government Administration (5.3%)","topSeniorities":"Senior (30.0%) | Entry (21.2%) | Director (11.8%)","topCompanySizes":"11-50 employees (14.7%) | 1-10 employees (13.6%) | 51-200 employees (13.2%)","notes":"","engagementRate":0.58}];
+var HISTORICAL_ANALYTICS = [{"id":"7455431159905316864","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7455431159905316864","postDate":"Apr 30, 2026","publishTime":"7:30 AM","title":"The Cheap Alternative Trap (BBC follow-up)","angle":"Overtourism / Structural Critique / News Anchor","impressions":42333,"reached":31424,"linkClicks":85,"profileViews":42,"followersGained":12,"reactions":36,"comments":11,"reposts":0,"saves":8,"sends":4,"reactTopJob":"Project Manager","reactTopLoc":"London Area, United Kingdom","reactTopIndustry":"Travel Arrangements","commentTopJob":"Founder","commentTopLoc":"Stuttgart Region","topLocations":"Greater Toronto Area, Canada (8.0%) | London Area, United Kingdom (6.6%) | Brussels Metropolitan Area (2.3%) | Greater Ottawa Metropolitan Area (2.2%) | Greater Vancouver Metropolitan Area (2.2%)","topJobTitles":"Founder (2.6%) | Project Manager (1.9%) | Owner (1.5%) | Chief Executive Officer (1.1%) | Co-Founder (< 1%)","topCompanies":"European Commission, TUI, Amadeus, Marriott International, City of Toronto","topIndustries":"Travel Arrangements (11.2%) | Hospitality (9.4%) | Government Administration (5.9%)","topSeniorities":"Senior (29.9%) | Entry (23.4%) | Director (10.7%)","topCompanySizes":"11-50 employees (13.6%) | 51-200 employees (13.0%) | 1001-5000 employees (11.3%)","notes":"","engagementRate":0.14},{"id":"7441501520589795328","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7441501520589795328","postDate":"Apr 2, 2026","publishTime":"7:15 AM","title":"Rural Areas Hold 44% of EU Tourism Beds","angle":"Policy / Regional Distribution / EU Data","impressions":1111,"reached":791,"linkClicks":0,"profileViews":6,"followersGained":7,"reactions":14,"comments":4,"reposts":0,"saves":1,"sends":2,"reactTopJob":"Corporate Sales Specialist","reactTopLoc":"Greater Paris Metropolitan Region","reactTopIndustry":"Travel Arrangements","commentTopJob":"Founder","commentTopLoc":"Viljandi","topLocations":"Greater Paris Metropolitan Region (3.7%) | London Area, United Kingdom (2.5%) | Brussels Metropolitan Area (2.4%) | Greater Toronto Area, Canada (2.0%) | Greater Dublin (1.9%)","topJobTitles":"Founder (7.8%) | Owner (3.0%) | Chief Executive Officer (2.4%) | Project Manager (1.9%) | Co-Founder (1.6%)","topCompanies":"Airbnb","topIndustries":"Travel Arrangements (25.3%) | Hospitality (12.0%) | Business Consulting and Services (5.3%)","topSeniorities":"Senior (28.1%) | Entry (16.7%) | Director (11.8%)","topCompanySizes":"1-10 employees (19.3%) | 11-50 employees (12.6%) | 51-200 employees (11.6%)","notes":"","engagementRate":1.89},{"id":"7441500635671359488","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7441500635671359488","postDate":"Mar 31, 2026","publishTime":"7:15 AM","title":"UN Best Tourism Villages Competition","angle":"Policy / Rural Tourism / International Recognition","impressions":2003,"reached":1337,"linkClicks":0,"profileViews":6,"followersGained":6,"reactions":23,"comments":0,"reposts":0,"saves":1,"sends":1,"reactTopJob":"Founder","reactTopLoc":"Greater Madrid Metropolitan Area","reactTopIndustry":"Travel Arrangements","commentTopJob":"","commentTopLoc":"","topLocations":"Greater Delhi Area (2.0%) | Kathmandu (1.9%) | London Area, United Kingdom (1.8%) | Greater Toronto Area, Canada (1.3%) | Johannesburg Metropolitan Area (1.2%)","topJobTitles":"Founder (6.6%) | Professor (2.3%) | Lecturer (2.3%) | Co-Founder (1.9%) | Owner (1.9%)","topCompanies":"Self Employed","topIndustries":"Travel Arrangements (28.3%) | Hospitality (16.1%) | Higher Education (4.7%)","topSeniorities":"Senior (30.4%) | Entry (18.1%) | Director (7.8%)","topCompanySizes":"11-50 employees (15.7%) | 1-10 employees (15.0%) | 51-200 employees (10.5%)","notes":"","engagementRate":1.25},{"id":"7441496083819753472","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7441496083819753472","postDate":"Mar 26, 2026","publishTime":"7:00 AM","title":"European Parliament TRAN Committee Vote","angle":"Policy / Legislative News Anchor","impressions":16326,"reached":12375,"linkClicks":0,"profileViews":18,"followersGained":4,"reactions":13,"comments":19,"reposts":0,"saves":5,"sends":1,"reactTopJob":"Owner","reactTopLoc":"Utrecht Area","reactTopIndustry":"IT Services and IT Consulting","commentTopJob":"Founder","commentTopLoc":"Greater Hyderabad Area","topLocations":"Amsterdam Area (5.3%) | London Area, United Kingdom (5.2%) | Greater Toronto Area, Canada (3.4%) | Greater Barcelona Metropolitan Area (2.1%) | Greater Dublin (1.5%)","topJobTitles":"Founder (3.6%) | General Manager (2.1%) | Owner (1.9%) | Co-Founder (1.7%) | Sales Manager (1.7%)","topCompanies":"Booking.com, IHG Hotels & Resorts, Marriott International, Amadeus, Accor","topIndustries":"Hospitality (20.3%) | Travel Arrangements (15.5%) | Advertising Services (4.0%)","topSeniorities":"Senior (29.1%) | Entry (17.4%) | Director (13.7%)","topCompanySizes":"10,001+ employees (14.7%) | 51-200 employees (13.4%) | 11-50 employees (13.2%)","notes":"","engagementRate":0.23},{"id":"7435392736469430272","postUrl":"","postDate":"Mar 5, 2026","publishTime":"6:36 PM","title":"From Counting Visitors to Controlling Flows","angle":"Policy / Thought Leadership (Flagship)","impressions":1378,"reached":994,"linkClicks":0,"profileViews":1,"followersGained":1,"reactions":6,"comments":0,"reposts":0,"saves":1,"sends":0,"reactTopJob":"Director of Public Policy","reactTopLoc":"Greater Milan","reactTopIndustry":"Travel Arrangements (21.3%)","commentTopJob":"","commentTopLoc":"","topLocations":"London (5.6%) | Zagreb (5.6%)","topJobTitles":"","topCompanies":"Airbnb, Booking.com, Hilton","topIndustries":"Travel Arrangements (21.3%)","topSeniorities":"Senior (29.2%)","topCompanySizes":"","engagementRate":0.51,"notes":"VERIFIED. 6:36 PM timing failure — would have reached 4,000–6,000 at optimal time. Director of Public Policy in Milan reacted."},{"id":"7430551828758487040","postUrl":"","postDate":"Feb 20, 2026","publishTime":"10:00 AM","title":"What Happens When Tourism Is Treated As… [rhetorical question post]","angle":"Conversational / Rhetorical","impressions":634,"reached":487,"linkClicks":0,"profileViews":3,"followersGained":1,"reactions":8,"comments":8,"reposts":0,"saves":1,"sends":0,"reactTopJob":"","reactTopLoc":"","reactTopIndustry":"","commentTopJob":"","commentTopLoc":"","topLocations":"","topJobTitles":"","topCompanies":"","topIndustries":"","topSeniorities":"","topCompanySizes":"","engagementRate":2.68,"notes":"ANOMALY: 1.26% comment rate — highest in full dataset. 8 comments on 634 impressions. Rhetorical question format drove conversation depth."},{"id":"7429923579653435392","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7429923579653435392","postDate":"Feb 19, 2026","publishTime":"9:30 AM","title":"The Startup–Policy Nexus","angle":"Policy / Startup Positioning","impressions":4922,"reached":3420,"linkClicks":9,"profileViews":16,"followersGained":20,"reactions":23,"comments":9,"reposts":1,"saves":5,"sends":4,"reactTopJob":"Founder","reactTopLoc":"London Area, United Kingdom","reactTopIndustry":"Travel Arrangements","commentTopJob":"Production Manager","commentTopLoc":"Cork Metropolitan Area","topLocations":"London Area, United Kingdom (6.7%) | Greater Toronto Area, Canada (2.8%) | Greater Delhi Area (1.8%) | Greater Sydney Area (1.6%) | Greater Dublin (1.5%)","topJobTitles":"Founder (6.0%) | Chief Executive Officer (2.9%) | Managing Director (2.3%) | Co-Founder (2.3%) | Owner (2.3%)","topCompanies":"Fáilte Ireland, VisitScotland, TUI, Intrepid Travel, Accor","topIndustries":"Travel Arrangements (27.7%) | Hospitality (10.7%) | Business Consulting and Services (4.7%)","topSeniorities":"Senior (28.5%) | Entry (16.5%) | Director (12.4%)","topCompanySizes":"1-10 employees (18.4%) | 11-50 employees (14.8%) | 51-200 employees (11.6%)","notes":"","engagementRate":0.85},{"id":"7419093573054189568","postUrl":"https://www.linkedin.com/feed/update/urn:li:share:7419093573054189568","postDate":"Jan 19, 2026","publishTime":"7:09 PM","title":"Tourism as a Trillion-Dollar Problem Waiting for Tech Solutions","angle":"Investor / Market Framing","impressions":27248,"reached":20349,"linkClicks":87,"profileViews":61,"followersGained":40,"reactions":95,"comments":37,"reposts":11,"saves":15,"sends":0,"reactTopJob":"Founder","reactTopLoc":"Greater Toronto Area, Canada","reactTopIndustry":"Travel Arrangements","commentTopJob":"Travel Advisor","commentTopLoc":"Singapore","topLocations":"Greater Toronto Area, Canada (10.5%) | London Area, United Kingdom (5.0%) | Greater Vancouver Metropolitan Area (3.1%) | Greater Ottawa Metropolitan Area (2.1%) | New York City Metropolitan Area (2.0%)","topJobTitles":"Founder (3.5%) | Owner (2.2%) | Chief Executive Officer (1.8%) | Co-Founder (1.5%) | Project Manager (1.3%)","topCompanies":"City of Toronto, TUI, Expedia Group, Marriott International, University of Toronto","topIndustries":"Travel Arrangements (16.3%) | Hospitality (9.5%) | Government Administration (5.3%)","topSeniorities":"Senior (30.0%) | Entry (21.2%) | Director (11.8%)","topCompanySizes":"11-50 employees (14.7%) | 1-10 employees (13.6%) | 51-200 employees (13.2%)","notes":"","engagementRate":0.58}];
 
 var analyticsData = [];
 
 async function loadAnalytics() {
   try {
-    // Start with historical seed data
     var seed = HISTORICAL_ANALYTICS.map(r => Object.assign({}, r));
-
-    // Try to load any user-added or updated records from KV
     var resp = await fetch('/api/config');
     if (resp.ok) {
       var cfg = await resp.json();
       var kvData = cfg.analyticsData || [];
-      // Merge: KV records override seed records with same id; new KV records appended
       kvData.forEach(function(kv) {
         var idx = seed.findIndex(function(s) { return s.id === kv.id; });
         if (idx > -1) seed[idx] = Object.assign(seed[idx], kv);
         else seed.unshift(kv);
       });
     }
-
     analyticsData = seed;
     renderAnalytics();
   } catch(e) {
@@ -1836,7 +1819,6 @@ function renderAnalytics() {
 
   if (sub) sub.textContent = analyticsData.length + ' posts tracked · ' + totalImp.toLocaleString('en-GB') + ' total impressions · drop a LinkedIn .xlsx to update';
 
-  // KPI cards
   var kpiEl = document.getElementById('analytics-kpis');
   if (kpiEl) {
     var maxPost = analyticsData.slice().sort(function(a,b){ return (b.impressions||0)-(a.impressions||0); })[0];
@@ -1885,7 +1867,6 @@ function renderAnalytics() {
       '<td><button onclick="event.stopPropagation();deleteAnalyticsRow(' + i + ')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;">✕</button></td>';
     tbody.appendChild(tr);
 
-    // Detail row
     var dtr = document.createElement('tr');
     dtr.className = 'detail-row';
     dtr.id = 'adetail-' + i;
@@ -1911,7 +1892,6 @@ function renderAnalytics() {
     tbody.appendChild(dtr);
   });
 
-  // Footer totals
   var totalEl = document.getElementById('total-impressions');
   if (totalEl) totalEl.textContent = totalImp.toLocaleString('en-GB');
   var engEl = document.getElementById('avg-engage');
@@ -1919,8 +1899,6 @@ function renderAnalytics() {
 
   renderInsights();
 }
-
-
 
 function renderInsights() {
   var el = document.getElementById('analytics-insights');
@@ -1944,7 +1922,7 @@ function toggleAnalyticsDetail(i) {
   if (btn) btn.style.transform = isOpen ? '' : 'rotate(180deg)';
 }
 
-// ── LinkedIn .xlsx import ────────────────────────────────────────────────────
+// ── LinkedIn .xlsx import ─────────────────────────────────────────────────────
 function handleAnalyticsFileDrop(e) {
   e.preventDefault();
   document.getElementById('upload-zone').classList.remove('drag-over');
@@ -1975,107 +1953,165 @@ function parseLinkedInAnalytics(file) {
       var data = new Uint8Array(e.target.result);
       var wb = XLSX.read(data, { type: 'array' });
 
-      // ── PERFORMANCE sheet ──────────────────────────────────────────────
-      var perfSheet = wb.Sheets['PERFORMANCE'];
-      if (!perfSheet) throw new Error('PERFORMANCE sheet not found — is this a LinkedIn analytics export?');
-      var perfRows = XLSX.utils.sheet_to_json(perfSheet, { header: 1, defval: null });
+      // ── Detect export format ───────────────────────────────────────────
+      // LinkedIn produces two different export formats:
+      //   "Content Analytics" export  → sheet named 'PERFORMANCE' + separate 'TOP DEMOGRAPHICS'
+      //   "Single Post Analytics" export → single sheet named 'Post analytics' (all-in-one)
+      var perfSheet   = wb.Sheets['PERFORMANCE'];
+      var singleSheet = wb.Sheets['Post analytics'];
 
-      var kv = {};
-      var highlightSection = null;
-      var reactJob = '', reactLoc = '', reactInd = '', commentJob = '', commentLoc = '';
-
-      perfRows.forEach(function(row) {
-        var key = row[0] ? String(row[0]).trim() : '';
-        var val = row[1];
-        if (!key) return;
-        if (key.includes('Reactions Highlights')) { highlightSection = 'reactions'; return; }
-        if (key.includes('Comments Highlights'))  { highlightSection = 'comments';  return; }
-        if (key === 'Top job title') {
-          if (highlightSection === 'reactions') reactJob    = String(val || '');
-          if (highlightSection === 'comments')  commentJob  = String(val || '');
-        } else if (key === 'Top location') {
-          if (highlightSection === 'reactions') reactLoc    = String(val || '');
-          if (highlightSection === 'comments')  commentLoc  = String(val || '');
-        } else if (key === 'Top industry' && highlightSection === 'reactions') {
-          reactInd = String(val || '');
-        } else if (!key.startsWith('http')) {
-          kv[key] = val;
-        }
-      });
+      if (!perfSheet && !singleSheet) {
+        throw new Error('Unrecognised LinkedIn export — expected a sheet named "PERFORMANCE" or "Post analytics".');
+      }
 
       var parseNum = function(v) { return v ? parseInt(String(v).replace(/,/g,'')) || 0 : 0; };
 
-      // Extract post ID from filename or URL
-      var idMatch = file.name.match(/(\d{16,19})/);
-      var postUrl = String(kv['Post URL'] || '');
-      if (!idMatch && postUrl) idMatch = postUrl.match(/(\d{16,19})/);
-      var postId = idMatch ? idMatch[1] : 'import-' + Date.now();
-
-      // ── TOP DEMOGRAPHICS sheet ─────────────────────────────────────────
-      var demoSheet = wb.Sheets['TOP DEMOGRAPHICS'];
+      var kv = {};
+      var reactJob = '', reactLoc = '', reactInd = '', commentJob = '', commentLoc = '';
       var locations = [], jobTitles = [], companies = [], industries = [], seniorities = [], companySizes = [];
+      var linkClicksFromUrl = 0;
+      var formatDetected = '';
 
-      if (demoSheet) {
-        var demoRows = XLSX.utils.sheet_to_json(demoSheet, { header: 1, defval: null });
-        demoRows.forEach(function(row) {
-          var cat = row[0] ? String(row[0]).trim() : '';
-          var val = row[1] ? String(row[1]).trim() : '';
-          var pct = row[2];
-          if (!cat || cat === 'Category') return;
-          var pctStr = typeof pct === 'number' ? ' (' + (pct*100).toFixed(1) + '%)' : (pct ? ' ('+pct+')' : '');
-          var entry = val + pctStr;
-          if      (cat === 'Location')     locations.push(entry);
-          else if (cat === 'Job title')    jobTitles.push(entry);
-          else if (cat === 'Company')      companies.push(val);
-          else if (cat === 'Industry')     industries.push(entry);
-          else if (cat === 'Seniority')    seniorities.push(entry);
-          else if (cat === 'Company size') companySizes.push(entry);
+      if (perfSheet) {
+        // ── CONTENT ANALYTICS format (PERFORMANCE sheet) ──────────────────
+        formatDetected = 'Content Analytics';
+        var perfRows = XLSX.utils.sheet_to_json(perfSheet, { header: 1, defval: null });
+        var highlightSection = null;
+
+        perfRows.forEach(function(row) {
+          var key = row[0] ? String(row[0]).trim() : '';
+          var val = row[1];
+          if (!key) return;
+          if (key.includes('Reactions Highlights')) { highlightSection = 'reactions'; return; }
+          if (key.includes('Comments Highlights'))  { highlightSection = 'comments';  return; }
+          if (key === 'Top job title') {
+            if (highlightSection === 'reactions') reactJob   = String(val || '');
+            if (highlightSection === 'comments')  commentJob = String(val || '');
+          } else if (key === 'Top location') {
+            if (highlightSection === 'reactions') reactLoc   = String(val || '');
+            if (highlightSection === 'comments')  commentLoc = String(val || '');
+          } else if (key === 'Top industry' && highlightSection === 'reactions') {
+            reactInd = String(val || '');
+          } else if (!key.startsWith('http')) {
+            kv[key] = val;
+          }
         });
+
+        // TOP DEMOGRAPHICS is a separate sheet in this format
+        var demoSheet = wb.Sheets['TOP DEMOGRAPHICS'];
+        if (demoSheet) {
+          var demoRows = XLSX.utils.sheet_to_json(demoSheet, { header: 1, defval: null });
+          demoRows.forEach(function(row) {
+            var cat = row[0] ? String(row[0]).trim() : '';
+            var val = row[1] ? String(row[1]).trim() : '';
+            var pct = row[2];
+            if (!cat || cat === 'Category') return;
+            var pctStr = typeof pct === 'number' ? ' (' + (pct * 100).toFixed(1) + '%)' : (pct ? ' (' + pct + ')' : '');
+            var entry = val + pctStr;
+            if      (cat === 'Location')     locations.push(entry);
+            else if (cat === 'Job title')    jobTitles.push(entry);
+            else if (cat === 'Company')      companies.push(val);
+            else if (cat === 'Industry')     industries.push(entry);
+            else if (cat === 'Seniority')    seniorities.push(entry);
+            else if (cat === 'Company size') companySizes.push(entry);
+          });
+        }
+
+      } else {
+        // ── SINGLE POST ANALYTICS format (Post analytics sheet) ───────────
+        // Layout: col A = label/category, col B = value, col C = % (demographics rows)
+        // Sections: header metadata, Post Performance (kv), then Post viewer demographics (category rows)
+        formatDetected = 'Single Post Analytics';
+        var singleRows = XLSX.utils.sheet_to_json(singleSheet, { header: 1, defval: null });
+        var inDemographics = false;
+
+        singleRows.forEach(function(row) {
+          var col0 = row[0] ? String(row[0]).trim() : '';
+          var col1 = row[1] != null ? String(row[1]).trim() : '';
+          var col2 = row[2] != null ? String(row[2]).trim() : '';
+
+          if (!col0) return;
+
+          // Detect transition to demographics section
+          if (col0 === 'Post viewer demographics') { inDemographics = true; return; }
+          if (col0 === 'Category') return; // demographics header row
+
+          if (inDemographics) {
+            // col0 = category, col1 = value, col2 = percentage string e.g. "8%"
+            var pctStr = col2 ? ' (' + col2 + ')' : '';
+            var entry = col1 + pctStr;
+            if      (col0 === 'Location')     locations.push(entry);
+            else if (col0 === 'Job title')    jobTitles.push(entry);
+            else if (col0 === 'Company')      companies.push(col1);
+            else if (col0 === 'Industry')     industries.push(entry);
+            else if (col0 === 'Seniority')    seniorities.push(entry);
+            else if (col0 === 'Company size') companySizes.push(entry);
+          } else {
+            // Key-value performance rows — also catch URL-keyed link engagement rows
+            if (col0.startsWith('http')) {
+              linkClicksFromUrl += parseNum(col1);
+            } else {
+              kv[col0] = col1;
+            }
+          }
+        });
+        // No Highlights section in this format — top reactor/commenter data not available
       }
 
-      var impressions = parseNum(kv['Impressions']);
-      var reactions   = parseNum(kv['Reactions']);
-      var comments    = parseNum(kv['Comments']);
-      var reposts     = parseNum(kv['Reposts']);
-      var saves       = parseNum(kv['Saves']);
-      var sends       = parseNum(kv['Sends on LinkedIn']);
-      var eng = reactions + comments + reposts + saves + sends;
-      var engRate = impressions > 0 ? Math.round(eng/impressions*10000)/100 : 0;
+      // ── Build unified record ───────────────────────────────────────────
+      var postUrl  = String(kv['Post URL'] || '');
+      var idMatch  = file.name.match(/(\d{16,19})/);
+      if (!idMatch && postUrl) idMatch = postUrl.match(/(\d{16,19})/);
+      var postId   = idMatch ? idMatch[1] : 'import-' + Date.now();
+
+      var impressions     = parseNum(kv['Impressions']);
+      var reactions       = parseNum(kv['Reactions']);
+      var comments        = parseNum(kv['Comments']);
+      var reposts         = parseNum(kv['Reposts']);
+      var saves           = parseNum(kv['Saves']);
+      var sends           = parseNum(kv['Sends on LinkedIn']);
+      // 'Link engagements' is the total in Single Post format
+      // 'Visits to links in this post' is used in Content Analytics format
+      var linkClicks      = parseNum(kv['Visits to links in this post']) ||
+                            parseNum(kv['Link engagements'])             ||
+                            linkClicksFromUrl;
+      var eng             = reactions + comments + reposts + saves + sends;
+      var engRate         = impressions > 0 ? Math.round(eng / impressions * 10000) / 100 : 0;
 
       var record = {
-        id:              postId,
-        postUrl:         postUrl,
-        postDate:        String(kv['Post Date'] || ''),
-        publishTime:     String(kv['Post Publish Time'] || ''),
-        title:           '',   // Not in export — user can add via notes
-        angle:           '',
-        impressions:     impressions,
-        reached:         parseNum(kv['Members reached']),
-        linkClicks:      parseNum(kv['Visits to links in this post']),
-        profileViews:    parseNum(kv['Profile viewers from this post']),
-        followersGained: parseNum(kv['Followers gained from this post']),
-        reactions:       reactions,
-        comments:        comments,
-        reposts:         reposts,
-        saves:           saves,
-        sends:           sends,
-        reactTopJob:     reactJob,
-        reactTopLoc:     reactLoc,
-        reactTopIndustry:reactInd,
-        commentTopJob:   commentJob,
-        commentTopLoc:   commentLoc,
-        topLocations:    locations.slice(0,5).join(' | '),
-        topJobTitles:    jobTitles.slice(0,5).join(' | '),
-        topCompanies:    companies.slice(0,8).join(', '),
-        topIndustries:   industries.slice(0,3).join(' | '),
-        topSeniorities:  seniorities.slice(0,3).join(' | '),
-        topCompanySizes: companySizes.slice(0,3).join(' | '),
-        engagementRate:  engRate,
-        notes:           'Imported from ' + file.name,
+        id:               postId,
+        postUrl:          postUrl,
+        postDate:         String(kv['Post Date'] || ''),
+        publishTime:      String(kv['Post Publish Time'] || ''),
+        title:            '',
+        angle:            '',
+        impressions:      impressions,
+        reached:          parseNum(kv['Members reached']),
+        linkClicks:       linkClicks,
+        profileViews:     parseNum(kv['Profile viewers from this post']),
+        followersGained:  parseNum(kv['Followers gained from this post']),
+        reactions:        reactions,
+        comments:         comments,
+        reposts:          reposts,
+        saves:            saves,
+        sends:            sends,
+        reactTopJob:      reactJob,
+        reactTopLoc:      reactLoc,
+        reactTopIndustry: reactInd,
+        commentTopJob:    commentJob,
+        commentTopLoc:    commentLoc,
+        topLocations:     locations.slice(0, 5).join(' | '),
+        topJobTitles:     jobTitles.slice(0, 5).join(' | '),
+        topCompanies:     companies.slice(0, 8).join(', '),
+        topIndustries:    industries.slice(0, 3).join(' | '),
+        topSeniorities:   seniorities.slice(0, 3).join(' | '),
+        topCompanySizes:  companySizes.slice(0, 3).join(' | '),
+        engagementRate:   engRate,
+        notes:            'Imported from ' + file.name + ' (' + formatDetected + ')',
       };
 
-      // Merge with existing — if same ID exists, update it preserving title/angle/notes
-      var existingIdx = analyticsData.findIndex(function(r){ return r.id === postId; });
+      // Merge: if record with same ID already exists, preserve user-edited title/angle/notes
+      var existingIdx = analyticsData.findIndex(function(r) { return r.id === postId; });
       if (existingIdx > -1) {
         var existing = analyticsData[existingIdx];
         if (existing.title) record.title = existing.title;
@@ -2083,11 +2119,11 @@ function parseLinkedInAnalytics(file) {
         if (existing.notes && !existing.notes.startsWith('Imported from')) record.notes = existing.notes;
         analyticsData[existingIdx] = record;
         resultEl.className = 'upload-result show';
-        resultEl.textContent = '✓ Updated: ' + record.postDate + ' · ' + impressions.toLocaleString('en-GB') + ' impressions';
+        resultEl.textContent = '✓ Updated (' + formatDetected + '): ' + record.postDate + ' · ' + impressions.toLocaleString('en-GB') + ' impressions';
       } else {
         analyticsData.unshift(record);
         resultEl.className = 'upload-result show';
-        resultEl.textContent = '✓ Added: ' + record.postDate + ' · ' + impressions.toLocaleString('en-GB') + ' impressions · ' + reactions + ' reactions';
+        resultEl.textContent = '✓ Added (' + formatDetected + '): ' + record.postDate + ' · ' + impressions.toLocaleString('en-GB') + ' impressions · ' + reactions + ' reactions · ' + comments + ' comments';
       }
 
       saveAnalyticsData();
