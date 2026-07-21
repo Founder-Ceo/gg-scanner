@@ -2,7 +2,9 @@ export const config = { maxDuration: 180 };
 
 const { enforceEditorialIntegrity } = require('./integrity');
 
-const GG_CONTEXT = `Guest Guide Interactive is a European tourism technology company founded by Walt Cudlip, based in Arezzo, Tuscany. The platform uses AI-driven visitor dispersion technology — operating as an intelligence layer over a verified, locally curated destination dataset — to help DMOs redirect visitor flows from overcrowded areas toward under-visited destinations, authentic operators, and off-season periods. Target customers: DMOs and regional tourism boards (Segment A), authentic local operators including agriturismi, guides and artisans (Segment B), travellers seeking authentic experiences (Segment C). Primary markets: Italy (Arezzo-Siena corridor pilot active), DACH region (priority expansion), Netherlands, France. Pre-revenue, actively fundraising €3.5M Seed/Series A. In dialogue with Visit Tuscany and Fondazione Arezzo Intour. Policy alignment: EU Transition Pathway for Tourism, Interreg Central Europe Priority 2, NBTC Perspective 2030, ENIT national frameworks. Core claim: produces redistribution evidence that EU funding bodies require — not just redistribution itself. Governance tool, not a marketing or itinerary tool. Never describe the internal ranking or curation mechanism.`;
+const GG_CONTEXT = `Guest Guide Interactive is a European tourism technology company founded by Walt Cudlip, operating across Europe with no single country market prioritised over another in content or framing (Walt is based in Arezzo, Tuscany). The platform uses AI-driven visitor dispersion technology — operating as an intelligence layer over a verified, locally curated destination dataset — to help DMOs redirect visitor flows from overcrowded areas toward under-visited destinations, authentic operators, and off-season periods. Target customers: DMOs and regional tourism boards (Segment A), authentic local operators including agriturismi, guides and artisans (Segment B), travellers seeking authentic experiences (Segment C). Policy alignment: EU Transition Pathway for Tourism, Interreg Central Europe Priority 2, NBTC Perspective 2030, ENIT and other national tourism frameworks across Europe. Core claim: produces redistribution evidence that EU funding bodies require — not just redistribution itself. Governance tool, not a marketing or itinerary tool. Never describe the internal ranking or curation mechanism. DEFAULT STANCE: write as general, pan-European industry thought leadership on tourism, technology and policy — not as a company update. Do not treat Italy, or any other single market, as the lens for the article. Do not frame the piece around Guest Guide's operational stage, fundraising status, or market entry timing.`;
+
+const COMMERCIAL_STATUS = `Guest Guide is pre-revenue and actively fundraising, and is in dialogue with prospective DMO partners across Europe. Only mention this when it directly serves the brief. Do not name a specific DMO unless Walt has explicitly approved that name for this article.`;
 
 const EXISTING_TOPICS = `Already published (do not repeat): overtourism intro, slow travel intro, SaaS market sizing for DMOs, social licence/resident voice, founder origin story, data-driven tourism, wellness travel demand, resident backlash (Barcelona/Venice), investor market sizing, DMO digital tools vs campaigns, temporary resident traveller framing, heritage preservation vs prosperity, startup-policy nexus, EU Green Deal dispersion mandates, DMO analytics testing, spatial governance flagship, Italian mid-cities dispersion (Arezzo Is Not Venice), slow tourism infrastructure, ETC Barometer demand shift, ENIT Italian tools gap, OTA vs governance accountability, EU startup single market.`;
 
@@ -101,6 +103,7 @@ module.exports = async function handler(req, res) {
 
 COMPANY CONTEXT:
 ${GG_CONTEXT}
+${(angle === 'investor' || angle === 'case-study') ? '\nCOMMERCIAL STATUS (relevant to this angle only):\n' + COMMERCIAL_STATUS : ''}
 
 ARTICLE SPECIFICATION:
 ${ARTICLE_SPEC}
@@ -169,6 +172,7 @@ Be specific and intelligent. Write as someone who deeply understands European to
 
 COMPANY CONTEXT:
 ${GG_CONTEXT}
+${(angle === 'investor' || angle === 'case-study') ? '\nCOMMERCIAL STATUS (relevant to this angle only):\n' + COMMERCIAL_STATUS : ''}
 
 ARTICLE SPECIFICATION — follow every instruction precisely:
 ${ARTICLE_SPEC}

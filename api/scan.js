@@ -65,7 +65,7 @@ function kv() {
 function dateCtx() {
   const now    = new Date();
   const cutoff = new Date(now);
-  cutoff.setDate(cutoff.getDate() - 90);
+  cutoff.setDate(cutoff.getDate() - 14);
   const fmt = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   const months = [];
   for (let i = 0; i < 3; i++) {
@@ -237,7 +237,7 @@ Today: ${dc.today}. Window opens: ${dc.cutoffDate}.
 Only surface signals published ON OR AFTER ${dc.cutoffDate}. Discard anything older or undatable.
 
 GUEST GUIDE CONTEXT:
-Pre-revenue startup. AI-driven intelligence layer over verified, locally curated geospatial POI database. Core value: dispersion of tourist flows toward authentic slow-tourism experiences. Product: dashboard for DMOs. Primary: Italy. Secondary: DACH, Netherlands, France, Spain, Portugal, UK/Ireland, Greece, Adriatic.
+Pre-revenue startup. AI-driven intelligence layer over verified, locally curated geospatial POI database. Core value: dispersion of tourist flows toward authentic slow-tourism experiences. Product: dashboard for DMOs. Pan-European focus across Italy, DACH, Netherlands, France, Spain, Portugal, UK/Ireland, Greece and the Adriatic — treat all markets as equally relevant. Do not rank Italy above other markets, and do not use Guest Guide's operational or fundraising stage as a lens for signal relevance or positioning notes.
 
 AUDIENCES: (1) DMO directors — policy, strategy, dispersion, digital tools. (2) Tourism operators — market shifts, platform economics. (3) Investors — market size, policy tailwinds.
 
@@ -253,7 +253,7 @@ Return exactly 5 signal objects:
     "id": "sig_[8 alphanumeric]",
     "title": "Source headline or close paraphrase",
     "source": "Publication name",
-    "date": "DD Mon YYYY — must be within last 90 days. Omit signal if undatable.",
+    "date": "DD Mon YYYY — must be within last 14 days. Omit signal if undatable.",
     "url": "Verified URL only. Omit field if unverifiable.",
     "type": "policy|research|market|ai|dmo|operator",
     "typeLabel": "Policy|Research|Market|AI & Tech|DMO Strategy|Operator",
@@ -271,7 +271,7 @@ Return exactly 5 signal objects:
   const userMsg = `Scan for Guest Guide Interactive.
 
 TODAY: ${dc.today}
-WINDOW: On or after ${dc.cutoffDate} (90 days)
+WINDOW: On or after ${dc.cutoffDate} (14 days)
 PRIORITISE: ${dc.recentMonths[0]} and ${dc.recentMonths[1]}
 SOURCES: ${sources.length > 0 ? sources.join(', ') : 'All'}
 THEMES: ${themes.length > 0 ? themes.join(', ') : 'All'}
@@ -279,7 +279,7 @@ THEMES: ${themes.length > 0 ? themes.join(', ') : 'All'}
 SEARCH QUERIES:
 ${queries.map((q, i) => `${i + 1}. ${q}`).join('\n')}
 
-Verify each result: date within 90 days, URL real. Discard if either fails.
+Verify each result: date within 14 days, URL real. Discard if either fails.
 Return exactly 5 signals. Start your response with [ and nothing else.`;
 
   try {
@@ -314,7 +314,7 @@ Return exactly 5 signals. Start your response with [ and nothing else.`;
       throw new Error('Failed to parse signals: ' + e.message);
     }
 
-    // Server-side 90-day filter
+    // Server-side 14-day filter
     const cutoff = new Date(dc.cutoffISO).getTime();
     signals = signals.filter(s => {
       if (!s.date) return false;
@@ -327,7 +327,7 @@ Return exactly 5 signals. Start your response with [ and nothing else.`;
     });
 
     if (signals.length === 0) {
-      return res.status(200).json({ signals: [], key: null, error: `No signals within 90-day window (since ${dc.cutoffDate}). Try broadening sources or themes.` });
+      return res.status(200).json({ signals: [], key: null, error: `No signals within 14-day window (since ${dc.cutoffDate}). Try broadening sources or themes.` });
     }
 
     signals = signals.map((s, i) => ({ ...s, id: s.id || `sig_${Date.now()}_${i}`, status: 'new' }));
@@ -354,7 +354,7 @@ Return exactly 5 signals. Start your response with [ and nothing else.`;
       key:          storageError ? null : scanKey,
       dateLabel,
       storageError: storageError || undefined,
-      contentWindow: { from: dc.cutoffDate, to: dc.today, days: 90 }
+      contentWindow: { from: dc.cutoffDate, to: dc.today, days: 14 }
     });
 
   } catch (err) {
