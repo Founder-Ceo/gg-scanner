@@ -113,6 +113,7 @@ const SOURCE_QUERIES = {
   'Skift':                      ['site:skift.com'],
   'Phocuswire':                 ['site:phocuswire.com'],
   'Phocuswright':               ['site:phocuswright.com'],
+  'Scoop.it': ['site:scoop.it tourism', 'site:scoop.it travel Europe'],
   'Travel Weekly':              ['site:travelweekly.com', 'site:travelweekly.co.uk'],
   'TTG Media':                  ['site:ttgmedia.com'],
   'Travel Trade Gazette':       ['site:ttglive.com'],
