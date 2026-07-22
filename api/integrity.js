@@ -377,6 +377,7 @@ Do NOT reject because:
 - the story mentions policy effective dates or consultation deadlines on or near the publication date (commentary is allowed);
 - the signal month matches the publication month (e.g. signal "May 2026", publish 20 May 2026);
 - the news is recent/current-month journalism.
+- the URL path is a short, opaque ID, hash, or code instead of a readable title slug — many CMS platforms (including Travel And Tour World and other trade press) generate opaque article IDs; this alone is not evidence of fabrication, since the URL already returned HTTP 2xx above.
 This gate targets AI-hallucinated sources, not commentary timing.
 
 Return ONLY one line JSON: {"verified":true|false,"reason":"..."}`;

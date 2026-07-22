@@ -241,6 +241,8 @@ Pre-revenue startup. AI-driven intelligence layer over verified, locally curated
 
 AUDIENCES: (1) DMO directors — policy, strategy, dispersion, digital tools. (2) Tourism operators — market shifts, platform economics. (3) Investors — market size, policy tailwinds.
 
+EXCLUDED SOURCES — NEVER cite or surface signals from these domains, regardless of what the query returns: travelandtourworld.com. These are not trusted sources for Guest Guide content.
+
 PUBLISHED TOPICS TO EXCLUDE:
 ${publishedTopics || '(none)'}
 
@@ -289,7 +291,7 @@ Return exactly 5 signals. Start your response with [ and nothing else.`;
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 6000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5, blocked_domains: ['travelandtourworld.com'] }],
         system: systemPrompt,
         messages: [{ role: 'user', content: userMsg }]
       })
