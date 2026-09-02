@@ -1,4 +1,4 @@
-export const config = { maxDuration: 180 };
+export const config = { maxDuration: 300 };
 
 const { enforceEditorialIntegrity } = require('./integrity');
 
