@@ -42,7 +42,7 @@ async function loadArticles() {
 }
 
 async function saveArticles(articles) {
-  await kvSet(PIPELINE_KEY, JSON.stringify(articles));
+    await kvSet(PIPELINE_KEY, articles);
 }
 
 function storageMeta() {
