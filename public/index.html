@@ -1870,7 +1870,7 @@ function renderAnalytics() {
       '<td><button class="expand-btn" id="aebtn-' + i + '" style="font-size:12px;padding:1px 4px;">⌄</button></td>' +
       '<td style="font-family:Montserrat,sans-serif;font-size:10px;white-space:nowrap;">' + esc(row.postDate||'') + '</td>' +
       '<td style="font-weight:500;">' + (row.postUrl ? '<a href="' + esc(row.postUrl) + '" target="_blank" style="color:var(--orange);text-decoration:none;">' + esc(row.title||'Untitled') + '</a>' : esc(row.title||'Untitled')) +
-          ' <button onclick="event.stopPropagation();openArticleLinkPicker(' + i + ',this)" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:10px;" title="Link to a pipeline article">' + (row.title ? '\u270E' : '\uD83D\uDD17 Link') + '</button></td>' +
+          ' <button onclick="event.stopPropagation();openArticleLinkPicker(' + i + ',this)" style="background:var(--cream);border:1px solid var(--slate);border-radius:4px;cursor:pointer;color:var(--primary);font-size:10px;padding:2px 6px;margin-left:6px;" title="Link to a pipeline article">' + (row.title ? '\u270E Edit' : '\uD83D\uDD17 Link title') + '</button></td>' +
       '<td style="text-align:right;"><div class="at-bar-wrap" style="justify-content:flex-end;"><div class="at-bar"><div class="at-bar-fill" style="width:' + pct + '%"></div></div><span style="font-family:Montserrat,sans-serif;font-size:10px;">' + (row.impressions||0).toLocaleString('en-GB') + '</span></div></td>' +
       '<td style="text-align:right;font-family:Montserrat,sans-serif;font-size:10px;">' + (row.reached||0).toLocaleString('en-GB') + '</td>' +
       '<td style="text-align:right;font-family:Montserrat,sans-serif;font-size:10px;">' + (row.reactions||0) + '</td>' +
