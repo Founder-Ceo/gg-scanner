@@ -287,6 +287,7 @@ main{max-width:1480px;margin:0 auto;padding:32px 40px;}
 .analytics-table tr:hover td{background:var(--cream);}
 .analytics-table tr.record-row td{background:#EEF7FF;}
 .analytics-table tr.anomaly-row td{background:#FFFDE7;}
+.analytics-table tr.pending-row td{background:#F7F7F5;color:var(--muted);}
 .analytics-table tfoot td{background:var(--cream);font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;border-top:2px solid var(--primary);}
 .analytics-add-btn{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:var(--orange);color:white;border:none;padding:10px 20px;cursor:pointer;border-radius:2px;}
 .analytics-add-btn:hover{background:#d43d2c;}
@@ -1449,6 +1450,7 @@ async function advanceStage(id, stage) {
     const data = await resp.json();
     const idx = pipelineArticles.findIndex(a => a.id === id);
     if (idx !== -1) pipelineArticles[idx] = data.article;
+    if (stage === 'published') createAnalyticsPlaceholder(data.article);
     renderPipeline(); showToast('Moved to ' + STAGE_LABELS[stage]);
   } catch(err) { showToast('Error: ' + err.message); }
 }
@@ -1532,6 +1534,7 @@ async function saveArticle() {
       const data = await resp.json();
       const idx = pipelineArticles.findIndex(a => a.id === currentModalId);
       if (idx !== -1) pipelineArticles[idx] = data.article;
+      if (payload.stage === 'published') createAnalyticsPlaceholder(data.article);
       savePipelineLocal();
       showToast('Article updated');
     } else {
@@ -1539,6 +1542,7 @@ async function saveArticle() {
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) throw new Error(data.error || 'Create failed');
       pipelineArticles.unshift(data.article);
+      if (payload.stage === 'published') createAnalyticsPlaceholder(data.article);
       currentModalId = data.article.id;
       savePipelineLocal();
       showToast(data.persisted === false ? 'Article saved in this browser' : 'Article added to pipeline');
@@ -1824,19 +1828,22 @@ function renderAnalytics() {
   var sub   = document.getElementById('analytics-sub');
   if (!tbody) return;
 
-  var totalImp = analyticsData.reduce(function(s,r) { return s + (r.impressions||0); }, 0);
-  var totalFollowers = analyticsData.reduce(function(s,r) { return s + (r.followersGained||0); }, 0);
-  var totalComments  = analyticsData.reduce(function(s,r) { return s + (r.comments||0); }, 0);
-  var totalReactions = analyticsData.reduce(function(s,r) { return s + (r.reactions||0); }, 0);
-  var avgEng = analyticsData.length ? (analyticsData.reduce(function(s,r) { return s + (r.engagementRate||0); }, 0) / analyticsData.length) : 0;
+  var trackedData = analyticsData.filter(function(r) { return !r.pending; });
+  var pendingCount = analyticsData.length - trackedData.length;
 
-  if (sub) sub.textContent = analyticsData.length + ' posts tracked · ' + totalImp.toLocaleString('en-GB') + ' total impressions · drop a LinkedIn .xlsx to update';
+  var totalImp = trackedData.reduce(function(s,r) { return s + (r.impressions||0); }, 0);
+  var totalFollowers = trackedData.reduce(function(s,r) { return s + (r.followersGained||0); }, 0);
+  var totalComments  = trackedData.reduce(function(s,r) { return s + (r.comments||0); }, 0);
+  var totalReactions = trackedData.reduce(function(s,r) { return s + (r.reactions||0); }, 0);
+  var avgEng = trackedData.length ? (trackedData.reduce(function(s,r) { return s + (r.engagementRate||0); }, 0) / trackedData.length) : 0;
+
+  if (sub) sub.textContent = trackedData.length + ' posts tracked' + (pendingCount ? ' · ' + pendingCount + ' awaiting stats' : '') + ' · ' + totalImp.toLocaleString('en-GB') + ' total impressions · drop a LinkedIn .xlsx to update';
 
   var kpiEl = document.getElementById('analytics-kpis');
   if (kpiEl) {
-    var maxPost = analyticsData.slice().sort(function(a,b){ return (b.impressions||0)-(a.impressions||0); })[0];
+    var maxPost = trackedData.slice().sort(function(a,b){ return (b.impressions||0)-(a.impressions||0); })[0];
     kpiEl.innerHTML = [
-      { label:'Total Impressions', value: totalImp.toLocaleString('en-GB'), sub: analyticsData.length + ' posts' },
+      { label:'Total Impressions', value: totalImp.toLocaleString('en-GB'), sub: trackedData.length + ' posts' },
       { label:'Record Post', value: maxPost ? (maxPost.impressions||0).toLocaleString('en-GB') : '—', sub: maxPost ? maxPost.postDate : '' },
       { label:'Total Followers Gained', value: '+' + totalFollowers, sub: 'across all posts' },
       { label:'Total Comments', value: totalComments, sub: 'Total reactions: ' + totalReactions.toLocaleString('en-GB') },
@@ -1851,14 +1858,14 @@ function renderAnalytics() {
     return;
   }
 
-  var maxImp = Math.max.apply(null, analyticsData.map(function(r){ return r.impressions||0; }));
-  var recordId = analyticsData.slice().sort(function(a,b){ return (b.impressions||0)-(a.impressions||0); })[0]?.id;
+  var maxImp = Math.max.apply(null, trackedData.map(function(r){ return r.impressions||0; }));
+  var recordId = trackedData.slice().sort(function(a,b){ return (b.impressions||0)-(a.impressions||0); })[0]?.id;
 
   tbody.innerHTML = '';
   analyticsData.forEach(function(row, i) {
     var isRecord = row.id === recordId;
     var isAnomaly = row.notes && row.notes.toUpperCase().includes('ANOMALY');
-    var rowClass = isRecord ? 'record-row' : isAnomaly ? 'anomaly-row' : '';
+    var rowClass = row.pending ? 'pending-row' : isRecord ? 'record-row' : isAnomaly ? 'anomaly-row' : '';
     var pct = maxImp > 0 ? Math.round((row.impressions||0)/maxImp*100) : 0;
     var engRate = row.engagementRate != null ? row.engagementRate : '—';
 
@@ -1870,6 +1877,7 @@ function renderAnalytics() {
       '<td><button class="expand-btn" id="aebtn-' + i + '" style="font-size:12px;padding:1px 4px;">⌄</button></td>' +
       '<td style="font-family:Montserrat,sans-serif;font-size:10px;white-space:nowrap;">' + esc(row.postDate||'') + '</td>' +
       '<td style="font-weight:500;">' + (row.postUrl ? '<a href="' + esc(row.postUrl) + '" target="_blank" style="color:var(--orange);text-decoration:none;">' + esc(row.title||'Untitled') + '</a>' : esc(row.title||'Untitled')) +
+          (row.pending ? ' <span style="font-family:Montserrat,sans-serif;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--border);border-radius:3px;padding:2px 6px;margin-left:6px;">Awaiting Stats</span>' : '') +
           ' <button onclick="event.stopPropagation();openArticleLinkPicker(' + i + ',this)" style="background:var(--cream);border:1px solid var(--slate);border-radius:4px;cursor:pointer;color:var(--primary);font-size:10px;padding:2px 6px;margin-left:6px;" title="Link to a pipeline article">' + (row.title ? '\u270E Edit' : '\uD83D\uDD17 Link title') + '</button></td>' +
       '<td style="text-align:right;"><div class="at-bar-wrap" style="justify-content:flex-end;"><div class="at-bar"><div class="at-bar-fill" style="width:' + pct + '%"></div></div><span style="font-family:Montserrat,sans-serif;font-size:10px;">' + (row.impressions||0).toLocaleString('en-GB') + '</span></div></td>' +
       '<td style="text-align:right;font-family:Montserrat,sans-serif;font-size:10px;">' + (row.reached||0).toLocaleString('en-GB') + '</td>' +
@@ -1979,6 +1987,30 @@ function matchArticleToPost(postDateStr) {
   if (scored.length === 0) return { article: null, candidates: [] };
   if (scored.length === 1 || scored[0].diffDays < scored[1].diffDays) return { article: scored[0].article, candidates: [] };
   return { article: null, candidates: scored.map(function(s) { return s.article; }) };
+}
+
+function createAnalyticsPlaceholder(article) {
+  if (!article) return;
+  if (analyticsData.some(function(r) { return r.articleId === article.id; })) return;
+  analyticsData.unshift({
+    id: 'pending-' + article.id,
+    pending: true,
+    postDate: article.linkedinDate || article.publishedDate || '',
+    publishTime: '',
+    title: article.headline || article.ideaText || 'Untitled',
+    articleId: article.id,
+    angle: article.angle || '',
+    postUrl: article.blogUrl || '',
+    impressions: 0, reached: 0, linkClicks: 0, profileViews: 0, followersGained: 0,
+    reactions: 0, comments: 0, reposts: 0, saves: 0, sends: 0,
+    reactTopJob: '', reactTopLoc: '', reactTopIndustry: '',
+    commentTopJob: '', commentTopLoc: '',
+    topLocations: '', topJobTitles: '', topCompanies: '',
+    topIndustries: '', topSeniorities: '', topCompanySizes: '',
+    engagementRate: 0, notes: 'Awaiting LinkedIn stats import',
+  });
+  saveAnalyticsData();
+  renderAnalytics();
 }
 
 function openArticleLinkPicker(i, btnEl) {
@@ -2191,6 +2223,8 @@ function parseLinkedInAnalytics(file) {
 
       // Merge: if record with same ID already exists, preserve user-edited title/angle/notes
       var existingIdx = analyticsData.findIndex(function(r) { return r.id === postId; });
+      // If no exact match, but a pending placeholder (created when the article was marked Published) matches by article, fill that in instead of creating a duplicate row.
+      var pendingIdx = existingIdx === -1 && record.articleId ? analyticsData.findIndex(function(r) { return r.pending && r.articleId === record.articleId; }) : -1;
       if (existingIdx > -1) {
         var existing = analyticsData[existingIdx];
         if (existing.articleId) { record.articleId = existing.articleId; record.title = existing.title; }
@@ -2200,6 +2234,10 @@ function parseLinkedInAnalytics(file) {
         analyticsData[existingIdx] = record;
         resultEl.className = 'upload-result show';
         resultEl.textContent = '✓ Updated (' + formatDetected + '): ' + record.postDate + ' · ' + impressions.toLocaleString('en-GB') + ' impressions';
+      } else if (pendingIdx > -1) {
+        analyticsData[pendingIdx] = record;
+        resultEl.className = 'upload-result show';
+        resultEl.textContent = '✓ Matched to pending article (' + formatDetected + '): ' + record.postDate + ' · ' + impressions.toLocaleString('en-GB') + ' impressions';
       } else {
         analyticsData.unshift(record);
         resultEl.className = 'upload-result show';
