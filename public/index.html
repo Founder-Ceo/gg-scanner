@@ -1430,9 +1430,21 @@ function renderPipeline() {
   if (calPanel && calPanel.classList.contains('active')) renderCalendar();
 }
 
+async function patchArticleResilient(id, updates) {
+  let resp = await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, ...updates }) });
+  if (resp.status === 404) {
+    const existing = pipelineArticles.find(a => a.id === id);
+    if (existing) {
+      await fetch('/api/pipeline', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ...existing, ...updates, id }) });
+      resp = await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, ...updates }) });
+    }
+  }
+  return resp;
+}
+
 async function advanceStage(id, stage) {
   try {
-    const resp = await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, stage }) });
+    const resp = await patchArticleResilient(id, { stage });
     if (!resp.ok) throw new Error('Failed');
     const data = await resp.json();
     const idx = pipelineArticles.findIndex(a => a.id === id);
@@ -1515,7 +1527,7 @@ async function saveArticle() {
   if (!payload.ideaText && !payload.headline && !payload.signalTitle) { showToast('Please enter a working title or headline — or paste the signal name.'); return; }
   try {
     if (currentModalId) {
-      const resp = await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: currentModalId, ...payload }) });
+            const resp = await patchArticleResilient(currentModalId, payload);
       if (!resp.ok) throw new Error('Update failed');
       const data = await resp.json();
       const idx = pipelineArticles.findIndex(a => a.id === currentModalId);
@@ -1642,7 +1654,7 @@ async function fetchBrief(article) {
     writeParsedHeadlines = extractHeadlines(data.brief);
     document.getElementById('write-brief-output').textContent = data.brief;
     if (writeArticleId) {
-      const patchResp = await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: writeArticleId, brief: data.brief, stage: 'briefed' }) });
+            const patchResp = await patchArticleResilient(writeArticleId, { brief: data.brief, stage: 'briefed' });
       const patchData = await patchResp.json().catch(() => ({}));
       const idx = pipelineArticles.findIndex(a => a.id === writeArticleId);
       if (patchResp.ok && patchData.article) {
@@ -1709,7 +1721,7 @@ async function proceedWritePanel() {
     document.getElementById('write-back-btn').style.display = 'none';
     document.getElementById('write-article-output').innerHTML = '<div style="padding:40px;text-align:center;font-family:Montserrat,sans-serif;font-size:11px;color:var(--muted);"><span class="write-spinner"></span>Writing article — this takes about 30 seconds…</div>';
     if (writeArticleId) {
-      await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id: writeArticleId, headline }) });
+            await patchArticleResilient(writeArticleId, { headline });
       const idx = pipelineArticles.findIndex(a => a.id === writeArticleId);
       if (idx !== -1) pipelineArticles[idx].headline = headline;
     }
@@ -1726,8 +1738,8 @@ async function fetchArticle(headline) {
     renderArticleOutput(data.article);
     if (writeArticleId) {
       const words = data.article.split(/\s+/).filter(w => w.length > 0).length;
-      const patchBody = { id: writeArticleId, stage: 'written', wordCount: words.toLocaleString('en-GB'), draft: data.article, headline };
-      const patchResp = await fetch('/api/pipeline', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(patchBody) });
+            const patchBody = { stage: 'written', wordCount: words.toLocaleString('en-GB'), draft: data.article, headline };
+      const patchResp = await patchArticleResilient(writeArticleId, patchBody);
       const patchData = await patchResp.json().catch(() => ({}));
       const idx = pipelineArticles.findIndex(a => a.id === writeArticleId);
       if (patchResp.ok && patchData.article) {
@@ -1857,7 +1869,8 @@ function renderAnalytics() {
     tr.innerHTML =
       '<td><button class="expand-btn" id="aebtn-' + i + '" style="font-size:12px;padding:1px 4px;">⌄</button></td>' +
       '<td style="font-family:Montserrat,sans-serif;font-size:10px;white-space:nowrap;">' + esc(row.postDate||'') + '</td>' +
-      '<td style="font-weight:500;">' + (row.postUrl ? '<a href="' + esc(row.postUrl) + '" target="_blank" style="color:var(--orange);text-decoration:none;">' + esc(row.title||'Untitled') + '</a>' : esc(row.title||'Untitled')) + '</td>' +
+      '<td style="font-weight:500;">' + (row.postUrl ? '<a href="' + esc(row.postUrl) + '" target="_blank" style="color:var(--orange);text-decoration:none;">' + esc(row.title||'Untitled') + '</a>' : esc(row.title||'Untitled')) +
+          ' <button onclick="event.stopPropagation();openArticleLinkPicker(' + i + ',this)" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:10px;" title="Link to a pipeline article">' + (row.title ? '\u270E' : '\uD83D\uDD17 Link') + '</button></td>' +
       '<td style="text-align:right;"><div class="at-bar-wrap" style="justify-content:flex-end;"><div class="at-bar"><div class="at-bar-fill" style="width:' + pct + '%"></div></div><span style="font-family:Montserrat,sans-serif;font-size:10px;">' + (row.impressions||0).toLocaleString('en-GB') + '</span></div></td>' +
       '<td style="text-align:right;font-family:Montserrat,sans-serif;font-size:10px;">' + (row.reached||0).toLocaleString('en-GB') + '</td>' +
       '<td style="text-align:right;font-family:Montserrat,sans-serif;font-size:10px;">' + (row.reactions||0) + '</td>' +
@@ -1935,6 +1948,64 @@ function handleAnalyticsFileUpload(e) {
   var file = e.target.files[0];
   if (file) parseLinkedInAnalytics(file);
   e.target.value = '';
+}
+
+function parseAnyDate(str) {
+  if (!str) return null;
+  var s = String(str).trim();
+  var d = new Date(s);
+  if (!isNaN(d.getTime())) return d;
+  var m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (m) {
+    var a = parseInt(m[1], 10), b = parseInt(m[2], 10), y = parseInt(m[3], 10);
+    var month = a <= 12 ? a - 1 : b - 1;
+    var day = a <= 12 ? b : a;
+    var d2 = new Date(y, month, day);
+    if (!isNaN(d2.getTime())) return d2;
+  }
+  return null;
+}
+
+function matchArticleToPost(postDateStr) {
+  var target = parseAnyDate(postDateStr);
+  if (!target) return { article: null, candidates: [] };
+  var DAY = 86400000;
+  var scored = pipelineArticles.map(function(a) {
+    var d = parseAnyDate(a.linkedinDate) || parseAnyDate(a.publishedDate) || parseAnyDate(a.scheduledDate);
+    if (!d) return null;
+    var diffDays = Math.abs(d.getTime() - target.getTime()) / DAY;
+    return diffDays <= 2 ? { article: a, diffDays: diffDays } : null;
+  }).filter(Boolean).sort(function(x, y) { return x.diffDays - y.diffDays; });
+  if (scored.length === 0) return { article: null, candidates: [] };
+  if (scored.length === 1 || scored[0].diffDays < scored[1].diffDays) return { article: scored[0].article, candidates: [] };
+  return { article: null, candidates: scored.map(function(s) { return s.article; }) };
+}
+
+function openArticleLinkPicker(i, btnEl) {
+  var row = analyticsData[i];
+  var options = pipelineArticles.slice().sort(function(a, b) {
+    return (b.scheduledDate || b.publishedDate || '').localeCompare(a.scheduledDate || a.publishedDate || '');
+  }).map(function(a) {
+    var label = (a.headline || a.ideaText || 'Untitled') + ' — ' + (a.scheduledDate || a.publishedDate || 'no date');
+    return { id: a.id, label: label };
+  });
+  var current = row.articleId || '';
+  var html = '<select id="link-picker-select" style="font-family:Montserrat,sans-serif;font-size:10px;padding:2px;max-width:260px;">' +
+    '<option value="">— Unlinked —</option>' +
+    options.map(function(o) { return '<option value="' + o.id + '"' + (o.id === current ? ' selected' : '') + '>' + esc(o.label) + '</option>'; }).join('') +
+    '</select>';
+  var cell = btnEl.closest('td');
+  cell.innerHTML = html;
+  var sel = document.getElementById('link-picker-select');
+  sel.focus();
+  sel.onchange = function() {
+    var chosen = pipelineArticles.find(function(a) { return a.id === sel.value; });
+    analyticsData[i].articleId = sel.value;
+    analyticsData[i].title = chosen ? (chosen.headline || chosen.ideaText || 'Untitled') : '';
+    saveAnalyticsData();
+    renderAnalytics();
+  };
+  sel.onblur = function() { renderAnalytics(); };
 }
 
 function parseLinkedInAnalytics(file) {
@@ -2084,7 +2155,8 @@ function parseLinkedInAnalytics(file) {
         postUrl:          postUrl,
         postDate:         String(kv['Post Date'] || ''),
         publishTime:      String(kv['Post Publish Time'] || ''),
-        title:            '',
+        title:          '',
+        articleId:      '',
         angle:            '',
         impressions:      impressions,
         reached:          parseNum(kv['Members reached']),
@@ -2111,11 +2183,18 @@ function parseLinkedInAnalytics(file) {
         notes:            'Imported from ' + file.name + ' (' + formatDetected + ')',
       };
 
+      var autoMatch = matchArticleToPost(record.postDate);
+      if (autoMatch.article) {
+        record.articleId = autoMatch.article.id;
+        record.title = autoMatch.article.headline || autoMatch.article.ideaText || '';
+      }
+
       // Merge: if record with same ID already exists, preserve user-edited title/angle/notes
       var existingIdx = analyticsData.findIndex(function(r) { return r.id === postId; });
       if (existingIdx > -1) {
         var existing = analyticsData[existingIdx];
-        if (existing.title) record.title = existing.title;
+        if (existing.articleId) { record.articleId = existing.articleId; record.title = existing.title; }
+      else if (existing.title) record.title = existing.title;
         if (existing.angle) record.angle = existing.angle;
         if (existing.notes && !existing.notes.startsWith('Imported from')) record.notes = existing.notes;
         analyticsData[existingIdx] = record;
