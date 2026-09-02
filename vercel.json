@@ -4,7 +4,7 @@
       "maxDuration": 120
     },
     "api/write.js": {
-      "maxDuration": 60
+      "maxDuration":300
     },
     "api/debug.js": {
       "maxDuration": 10
