@@ -1816,11 +1816,24 @@ async function loadAnalytics() {
       });
     }
     analyticsData = seed;
+    backfillPublishedPlaceholders();
     renderAnalytics();
   } catch(e) {
     analyticsData = HISTORICAL_ANALYTICS.map(r => Object.assign({}, r));
+    backfillPublishedPlaceholders();
     renderAnalytics();
   }
+}
+
+// Safety net: any pipeline article already marked Published that has no matching
+// Analytics row (e.g. it was published before this feature existed, or the row was
+// somehow lost) gets a placeholder created here, every time the Analytics tab loads.
+// createAnalyticsPlaceholder() itself skips articles that already have a row, so this
+// is safe to run repeatedly.
+function backfillPublishedPlaceholders() {
+  (pipelineArticles || []).forEach(function(a) {
+    if (a.stage === 'published') createAnalyticsPlaceholder(a);
+  });
 }
 
 function renderAnalytics() {
