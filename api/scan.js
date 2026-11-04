@@ -345,10 +345,16 @@ Use at most 5 web searches. Return exactly 5 signals. Start your response with [
       storageError = kvErr.message;
     }
 
+    // Always return a usable key — in browser-only mode (no KV) the scan is
+    // archived locally under a synthetic key, otherwise the UI's currentScanKey
+    // stays null and every status update fails with "No active scan".
+    const responseKey = storageError ? `scan:local-${now.getTime()}` : scanKey;
+
     return res.status(200).json({
       signals,
-      key:          storageError ? null : scanKey,
+      key:          responseKey,
       dateLabel,
+      storageMode:  storageError ? 'browser' : 'vercel_kv',
       storageError: storageError || undefined,
       contentWindow: { from: dc.cutoffDate, to: dc.today, days: 14 }
     });

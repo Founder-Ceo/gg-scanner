@@ -1113,7 +1113,7 @@ function renderScanHistory() {
         time = d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
       }
     }
-    if (!label) label = s.key.replace('scan:','').replace('_',' ');
+    if (!label) label = (s.key || '').replace('scan:','').replace('_',' ');
     if (s.signalCount === 0) return '';
     return `<div class="history-item ${s.key === currentScanKey ? 'active':''}" onclick="loadScan('${s.key}')">
       <div>
@@ -1526,7 +1526,8 @@ async function saveArticle() {
     linkedinDate: document.getElementById('f-linkedinDate').value,
     notes: document.getElementById('f-notes').value.trim()
   };
-  if (!payload.ideaText && !payload.headline && !payload.signalTitle) { showToast('Please enter a working title or headline — or paste the signal name.'); return; }
+  if (!payload.ideaText && !payload.headline && !payload.signalTitle) { showToast('Please enter a working title or headline — or paste the signal name.'); return null; }
+  let saved = null;
   try {
     if (currentModalId) {
             const resp = await patchArticleResilient(currentModalId, payload);
@@ -1534,6 +1535,7 @@ async function saveArticle() {
       const data = await resp.json();
       const idx = pipelineArticles.findIndex(a => a.id === currentModalId);
       if (idx !== -1) pipelineArticles[idx] = data.article;
+      saved = data.article || pipelineArticles[idx] || null;
       if (payload.stage === 'published') createAnalyticsPlaceholder(data.article);
       savePipelineLocal();
       showToast('Article updated');
@@ -1542,13 +1544,15 @@ async function saveArticle() {
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) throw new Error(data.error || 'Create failed');
       pipelineArticles.unshift(data.article);
+      saved = data.article;
       if (payload.stage === 'published') createAnalyticsPlaceholder(data.article);
       currentModalId = data.article.id;
       savePipelineLocal();
       showToast(data.persisted === false ? 'Article saved in this browser' : 'Article added to pipeline');
     }
     closeModal(); renderPipeline(); updatePipelineBadge();
-  } catch(err) { showToast('Error: ' + err.message); }
+    return saved;
+  } catch(err) { showToast('Error: ' + err.message); return null; }
 }
 
 async function deleteCurrentArticle() {
@@ -1588,13 +1592,17 @@ function addSignalToPipelineByIndex(signalIdx, ideaIdx) {
 let writeArticleId = null, writeBriefText = '', writeParsedHeadlines = [], writeStep = 1;
 
 async function generateBriefFromModal() {
-  await saveArticle();
-  const article = pipelineArticles.find(a => a.id === currentModalId) || pipelineArticles[0];
+  // Capture the target BEFORE saveArticle — saveArticle calls closeModal(),
+  // which nulls currentModalId, so reading it afterwards always failed and
+  // fell back to pipelineArticles[0] (an unrelated old article with an old brief).
+  const targetId = currentModalId;
+  const saved = await saveArticle();
+  const article = saved || pipelineArticles.find(a => a.id === targetId);
   if (!article) { showToast('Could not locate article — please save it first and try again.'); return; }
-  writeArticleId = article.id; closeModal(); openWritePanel(article);
+  writeArticleId = article.id; closeModal(); openWritePanel(article, true);
 }
 
-function openWritePanel(article) {
+function openWritePanel(article, forceGenerate = false) {
   writeStep = 1;
   writeBriefText = article.brief || '';
   writeParsedHeadlines = article.brief ? extractHeadlines(article.brief) : [];
@@ -1617,7 +1625,7 @@ function openWritePanel(article) {
     return;
   }
 
-  if (article.brief) {
+  if (article.brief && !forceGenerate) {
     document.getElementById('write-brief-output').textContent = article.brief;
     renderHeadlineOptions(writeParsedHeadlines);
     document.getElementById('write-headlines-section').style.display = 'block';
