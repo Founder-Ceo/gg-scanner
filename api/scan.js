@@ -200,17 +200,18 @@ export default async function handler(req, res) {
     try {
       const db   = kv();
       const keys = await db.lrange('scan:index', 0, 49);
-      if (!keys || keys.length === 0) return res.status(200).json({ scans: [] });
+      const mode = process.env.UPSTASH_REDIS_REST_URL ? 'vercel_kv' : 'browser';
+      if (!keys || keys.length === 0) return res.status(200).json({ scans: [], storageMode: mode });
       const scans = (await Promise.all(keys.map(async key => {
         try {
           const meta = await db.hgetall(key + ':meta');
           return { key, date: meta?.date || null, dateLabel: meta?.dateLabel || null, signalCount: parseInt(meta?.signalCount || '0') };
         } catch { return null; }
       }))).filter(Boolean);
-      return res.status(200).json({ scans });
+      return res.status(200).json({ scans, storageMode: mode });
     } catch (err) {
       console.error('GET /scan error:', err.message);
-      return res.status(200).json({ scans: [], error: err.message });
+      return res.status(200).json({ scans: [], error: err.message, storageMode: process.env.UPSTASH_REDIS_REST_URL ? 'vercel_kv' : 'browser' });
     }
   }
 

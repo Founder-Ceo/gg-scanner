@@ -1290,11 +1290,20 @@ function esc(str) {
 
 // ══ STATUS ══
 async function updateStatus(idx, status) {
-  if (!currentScanKey) { showToast('No active scan'); return; }
   const signal = currentSignals[idx];
-  if (!signal) return;
+  if (!signal) { showToast('No active scan'); return; }
   try {
     signal.status = status;
+    // If the current scan has no key (legacy browser-only session), mint a
+    // local one so the status is still archived and later actions work.
+    if (!currentScanKey) {
+      currentScanKey = 'scan:local-' + Date.now();
+      const archive0 = loadScanArchive();
+      archive0.signalsByKey[currentScanKey] = currentSignals;
+      archive0.scans.unshift({ key: currentScanKey, date: Date.now(), dateLabel: 'Restored session', signalCount: currentSignals.length });
+      saveScanArchive(archive0);
+      renderScanHistory();
+    }
     const archive = loadScanArchive();
     if (archive.signalsByKey[currentScanKey]) {
       archive.signalsByKey[currentScanKey] = currentSignals;
