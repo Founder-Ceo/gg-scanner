@@ -1399,6 +1399,16 @@ async function loadPipeline() {
     pipelineArticles = serverArticles;
     if (serverArticles.length) savePipelineLocal();
   }
+  // Repair legacy articles that lost their title (sparse-PATCH wipe): pull the
+  // first WORKING HEADLINE out of the saved brief when headline is empty.
+  let repaired = false;
+  for (const a of pipelineArticles) {
+    if (!a.headline && a.brief) {
+      const h = extractHeadlines(a.brief)[0];
+      if (h && h !== 'Untitled' && !h.startsWith('(See brief')) { a.headline = h; repaired = true; }
+    }
+  }
+  if (repaired) savePipelineLocal();
   renderPipeline();
   updatePipelineBadge();
 }
@@ -1588,6 +1598,7 @@ async function deleteCurrentArticle() {
 }
 
 document.getElementById('article-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+document.getElementById('write-custom-headline').addEventListener('change', persistHeadline);
 
 // ══ SCANNER → PIPELINE BRIDGE ══
 function addSignalToPipeline(signalIdx, ideaText, angle) {
@@ -1660,7 +1671,7 @@ function openWritePanel(article, forceGenerate = false) {
   fetchBrief(article);
 }
 
-function closeWritePanel() { document.getElementById('write-panel').classList.remove('open'); loadPipeline(); }
+function closeWritePanel() { persistHeadline(); document.getElementById('write-panel').classList.remove('open'); loadPipeline(); }
 
 async function backToTopics() {
   document.getElementById('write-panel').classList.remove('open');
@@ -1687,10 +1698,15 @@ async function fetchBrief(article) {
     writeParsedHeadlines = extractHeadlines(data.brief);
     document.getElementById('write-brief-output').textContent = data.brief;
     if (writeArticleId) {
-            const patchResp = await patchArticleResilient(writeArticleId, { brief: data.brief, stage: 'briefed' });
+      // Auto-title from the brief's first extracted headline if the article
+      // has none, so the pipeline card never shows Untitled after a brief.
+      const autoHeadline = (!article.headline && writeParsedHeadlines[0] && !writeParsedHeadlines[0].startsWith('(See brief'))
+        ? writeParsedHeadlines[0] : null;
+      const patchBody = { brief: data.brief, stage: 'briefed', ...(autoHeadline ? { headline: autoHeadline } : {}) };
+      const patchResp = await patchArticleResilient(writeArticleId, patchBody);
       const patchData = await patchResp.json().catch(() => ({}));
       const idx = pipelineArticles.findIndex(a => a.id === writeArticleId);
-      applyArticlePatch(idx, patchData, { brief: data.brief, stage: 'briefed' });
+      applyArticlePatch(idx, patchData, patchBody);
       savePipelineLocal();
       if (patchData.persisted === false) showToast('Brief saved in this browser');
     }
@@ -1729,6 +1745,20 @@ function selectHeadline(el) {
   document.querySelectorAll('.hl-option').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
   document.getElementById('write-custom-headline').value = '';
+  persistHeadline();
+}
+
+// Persist the chosen headline immediately — previously it was only saved when
+// clicking "Write Article →", so briefs that were closed early had no title.
+async function persistHeadline() {
+  if (!writeArticleId) return;
+  const h = getSelectedHeadline();
+  if (!h || h === 'Untitled' || h.startsWith('(See brief')) return;
+  const idx = pipelineArticles.findIndex(a => a.id === writeArticleId);
+  if (idx === -1 || pipelineArticles[idx].headline === h) return;
+  pipelineArticles[idx].headline = h;
+  savePipelineLocal(); renderPipeline();
+  try { await patchArticleResilient(writeArticleId, { headline: h }); } catch (_) {}
 }
 
 function getSelectedHeadline() {
