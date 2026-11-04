@@ -4,7 +4,7 @@
 
 export const config = { maxDuration: 120 };
 
-const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
+const { callWithWebSearch, extractText } = require('./integrity');
 
 // ── UPSTASH REST HELPERS ──────────────────────────────────────────────────────
 // Uses UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
@@ -216,8 +216,8 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+  const apiKey = process.env.MISTRAL_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'MISTRAL_API_KEY not configured' });
 
   const { sources = [], themes = [] } = req.body || {};
   const dc = dateCtx();
@@ -282,25 +282,19 @@ SEARCH QUERIES:
 ${queries.map((q, i) => `${i + 1}. ${q}`).join('\n')}
 
 Verify each result: date within 14 days, URL real. Discard if either fails.
-Return exactly 5 signals. Start your response with [ and nothing else.`;
+Use at most 5 web searches. Return exactly 5 signals. Start your response with [ and nothing else.`;
 
   try {
-    const aiResp = await fetch(ANTHROPIC_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 6000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5, blocked_domains: ['travelandtourworld.com'] }],
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userMsg }]
-      })
+    // Mistral Conversations API — web_search built-in runs server-side.
+    // The travelandtourworld.com exclusion is enforced in the system prompt
+    // (the Conversations API has no blocked_domains parameter).
+    const data = await callWithWebSearch(apiKey, {
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMsg }],
+      maxTokens: 6000,
     });
 
-    if (!aiResp.ok) throw new Error(`Anthropic ${aiResp.status}: ${await aiResp.text()}`);
-
-    const data    = await aiResp.json();
-    const rawText = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const rawText = extractText(data);
     if (!rawText) throw new Error('No text content returned from AI');
 
     // Robust extraction — find outermost [ ... ]

@@ -1,7 +1,7 @@
 export const config = { maxDuration: 10 };
 
 module.exports = async function handler(req, res) {
-  const key = process.env.ANTHROPIC_API_KEY;
+  const key = process.env.MISTRAL_API_KEY;
   
   const result = {
     has_key: !!key,

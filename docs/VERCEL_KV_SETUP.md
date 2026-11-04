@@ -1,6 +1,6 @@
 # Vercel KV setup for gg-scanner
 
-The scanner works with **only** `ANTHROPIC_API_KEY` — pipeline, scans, and config are stored in **this browser** via `localStorage`.
+The scanner works with **only** `MISTRAL_API_KEY` — pipeline, scans, and config are stored in **this browser** via `localStorage`.
 
 For **cloud persistence** (same data on every device and after clearing browser data), add Upstash Redis through Vercel.
 
@@ -22,8 +22,8 @@ After redeploy, the red **Browser-only storage** notice in the header should dis
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
-| `ANTHROPIC_API_KEY` | Yes | Intelligence scan, briefs, articles |
+| `MISTRAL_API_KEY` | Yes | Intelligence scan, briefs, articles |
 | `KV_REST_API_URL` or `UPSTASH_REDIS_REST_URL` | No (cloud sync) | Persist scans, pipeline, config |
 | `KV_REST_API_TOKEN` or `UPSTASH_REDIS_REST_TOKEN` | No (cloud sync) | Same |
 
-Optional model overrides: `ANTHROPIC_MODEL`, `ANTHROPIC_VERIFY_MODEL`.
+Optional model overrides: `MISTRAL_MODEL` (scan/brief/article, default `mistral-large-latest`), `MISTRAL_VERIFY_MODEL` (integrity checks, default `mistral-small-latest`). The scan uses Mistral's Conversations API with the built-in `web_search` tool; briefs, articles, and verification use Chat Completions.

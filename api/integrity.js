@@ -1,27 +1,22 @@
 /**
  * Editorial integrity helpers — live web search + URL verification.
+ * LLM provider: Mistral AI (Chat Completions + Conversations web_search).
  * Used by scan.js (signal discovery) and write.js (brief/article gate).
  */
 
-// Sonnet 4 (20250514) deprecated 14 Apr 2026, retires 15 Jun 2026 → use Sonnet 4.6
-// Haiku 3.5 retired 19 Feb 2026 → use Haiku 4.5
-const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
-const VERIFY_MODEL = process.env.ANTHROPIC_VERIFY_MODEL || 'claude-haiku-4-5-20251001';
+// Model roles mirror the repo-wide convention in web/lib/modelConfig.ts:
+// large model for generation/scan, small model for verification. Override via env.
+const DEFAULT_MODEL = process.env.MISTRAL_MODEL || 'mistral-large-latest';
+const VERIFY_MODEL = process.env.MISTRAL_VERIFY_MODEL || 'mistral-small-latest';
 
-function webSearchTool(maxUses = 5) {
-  return {
-    type: 'web_search_20250305',
-    name: 'web_search',
-    max_uses: maxUses,
-    user_location: {
-      type: 'approximate',
-      country: 'GB',
-      timezone: 'Europe/London',
-    },
-  };
-}
+const MISTRAL_CHAT_API = 'https://api.mistral.ai/v1/chat/completions';
+const MISTRAL_CONVERSATIONS_API = 'https://api.mistral.ai/v1/conversations';
 
-const WEB_SEARCH_TOOL = webSearchTool(5);
+/**
+ * Mistral built-in web search. Only available on the Conversations/Agents API —
+ * NOT on Chat Completions (those responses carry no search references).
+ */
+const WEB_SEARCH_TOOLS = [{ type: 'web_search' }];
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -37,101 +32,129 @@ function parseRetryAfterMs(response, attempt) {
   return Math.min(15000 * 2 ** attempt, 60000);
 }
 
-function friendlyAnthropicError(status, errBody) {
+function friendlyMistralError(status, errBody) {
   if (status === 429) {
     return (
-      'Anthropic rate limit reached (organisation input-token cap per minute). ' +
+      'Mistral rate limit reached (requests or tokens per minute). ' +
       'Wait 60 seconds and run the scan again. This is separate from account credit balance.'
     );
   }
-  return `Anthropic API error ${status}: ${errBody}`;
+  return `Mistral API error ${status}: ${errBody}`;
 }
 
-async function callAnthropic(apiKey, body, attempt = 0) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+/** Mistral Chat Completions — used for briefs, articles, and verification (no web search). */
+async function callMistral(apiKey, body, attempt = 0) {
+  const response = await fetch(MISTRAL_CHAT_API, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({ model: DEFAULT_MODEL, ...body }),
   });
 
   if (response.status === 429 && attempt < 3) {
     await sleep(parseRetryAfterMs(response, attempt));
-    return callAnthropic(apiKey, body, attempt + 1);
+    return callMistral(apiKey, body, attempt + 1);
   }
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(friendlyAnthropicError(response.status, err));
+    throw new Error(friendlyMistralError(response.status, err));
   }
   return response.json();
 }
 
 /** Lightweight call (no web search) — separate model/rate-limit bucket for write verification. */
-async function callAnthropicLite(apiKey, body, attempt = 0) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+async function callMistralLite(apiKey, body, attempt = 0) {
+  const response = await fetch(MISTRAL_CHAT_API, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({ model: VERIFY_MODEL, ...body }),
   });
 
   if (response.status === 429 && attempt < 2) {
     await sleep(parseRetryAfterMs(response, attempt));
-    return callAnthropicLite(apiKey, body, attempt + 1);
+    return callMistralLite(apiKey, body, attempt + 1);
   }
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(friendlyAnthropicError(response.status, err));
+    throw new Error(friendlyMistralError(response.status, err));
   }
   return response.json();
 }
 
-function extractText(data) {
-  if (!data?.content) return '';
-  return data.content
+/** Mistral Conversations API — required for the server-executed web_search built-in tool. */
+async function callMistralConversation(apiKey, body, attempt = 0) {
+  const response = await fetch(MISTRAL_CONVERSATIONS_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (response.status === 429 && attempt < 3) {
+    await sleep(parseRetryAfterMs(response, attempt));
+    return callMistralConversation(apiKey, body, attempt + 1);
+  }
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(friendlyMistralError(response.status, err));
+  }
+  return response.json();
+}
+
+function contentToText(content) {
+  if (!content) return '';
+  if (typeof content === 'string') return content;
+  return content
     .filter((b) => b.type === 'text')
     .map((b) => b.text)
     .join('');
 }
 
+/** Extract assistant text from a Mistral Chat Completions or Conversations response. */
+function extractText(data) {
+  const choice = data?.choices?.[0]?.message;
+  if (choice) return contentToText(choice.content);
+  if (Array.isArray(data?.outputs)) {
+    const msgs = data.outputs.filter((o) => o.type === 'message.output');
+    const last = msgs[msgs.length - 1];
+    return last ? contentToText(last.content) : '';
+  }
+  return '';
+}
+
 /**
- * Call Claude with Anthropic server-executed web search.
- * Handles pause_turn by continuing the assistant turn (no client tool_result).
+ * Call Mistral with the server-executed web_search built-in tool.
+ * Uses the Conversations API: search rounds run server-side and the final
+ * assistant message is returned in `outputs` (no client tool loop needed).
+ * `maxUses` has no API equivalent — enforce the search budget in the prompt.
  */
 async function callWithWebSearch(apiKey, {
   messages,
+  system,
   maxTokens = 4096,
-  maxRounds = 3,
-  maxUses = 5,
 }) {
-  const tool = webSearchTool(maxUses);
-  const baseBody = {
+  const inputs = [
+    ...(system ? [{ role: 'system', content: system }] : []),
+    ...messages,
+  ];
+
+  return callMistralConversation(apiKey, {
+    model: DEFAULT_MODEL,
+    inputs,
+    tools: WEB_SEARCH_TOOLS,
     max_tokens: maxTokens,
-    tools: [tool],
-    messages,
-  };
-
-  let data = await callAnthropic(apiKey, baseBody);
-  let rounds = 0;
-
-  while (data.stop_reason === 'pause_turn' && rounds < maxRounds) {
-    rounds += 1;
-    await sleep(500);
-    data = await callAnthropic(apiKey, {
-      ...baseBody,
-      messages: [...messages, { role: 'assistant', content: data.content }],
-    });
-  }
-
-  return data;
+    store: false,
+  });
 }
 
 function isValidHttpUrl(url) {
@@ -382,7 +405,7 @@ This gate targets AI-hallucinated sources, not commentary timing.
 
 Return ONLY one line JSON: {"verified":true|false,"reason":"..."}`;
 
-  const data = await callAnthropicLite(apiKey, {
+  const data = await callMistralLite(apiKey, {
     max_tokens: 256,
     messages: [{ role: 'user', content: prompt }],
   });
@@ -505,10 +528,12 @@ async function filterVerifiedSignals(signals, options = {}) {
 }
 
 module.exports = {
-  WEB_SEARCH_TOOL,
-  webSearchTool,
-  callAnthropic,
-  callAnthropicLite,
+  WEB_SEARCH_TOOLS,
+  MISTRAL_CHAT_API,
+  MISTRAL_CONVERSATIONS_API,
+  callMistral,
+  callMistralLite,
+  callMistralConversation,
   callWithWebSearch,
   extractText,
   checkUrlReachable,

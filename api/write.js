@@ -26,10 +26,10 @@ const ARTICLE_SPEC = `PERMANENT ARTICLE SPECIFICATION:
 - Then section header: SUGGESTED HASHTAGS
 - List 5–8 relevant hashtags (one per line, each starting with #) for LinkedIn distribution`;
 
-const { callAnthropic: callAnthropicApi, extractText } = require('./integrity');
+const { callMistral, extractText } = require('./integrity');
 
-async function callAnthropic(apiKey, messages, maxTokens) {
-  const data = await callAnthropicApi(apiKey, { max_tokens: maxTokens, messages });
+async function callMistralText(apiKey, messages, maxTokens) {
+  const data = await callMistral(apiKey, { max_tokens: maxTokens, messages });
   return extractText(data);
 }
 
@@ -41,9 +41,9 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
   if (req.method !== 'POST') { res.status(405).end('Method not allowed'); return; }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.MISTRAL_API_KEY;
   if (!apiKey) {
-    res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured on server' }); return;
+    res.status(500).json({ error: 'MISTRAL_API_KEY not configured on server' }); return;
   }
 
   try {
@@ -129,7 +129,7 @@ Produce a structured article brief with EXACTLY these sections:
 
 Be specific and intelligent. Write as someone who deeply understands European tourism policy and B2B SaaS.`;
 
-      const briefText = await callAnthropic(apiKey, [{ role: 'user', content: prompt }], 2800);
+      const briefText = await callMistralText(apiKey, [{ role: 'user', content: prompt }], 2800);
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.status(200).json({ brief: briefText });
       return;
@@ -202,7 +202,7 @@ Write the COMPLETE article in one response. Do not stop early. Follow the specif
 
 Start directly with the article title as # heading.`;
 
-      const articleText = await callAnthropic(apiKey, [{ role: 'user', content: prompt }], 8192);
+      const articleText = await callMistralText(apiKey, [{ role: 'user', content: prompt }], 8192);
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.status(200).json({ article: articleText });
       return;
