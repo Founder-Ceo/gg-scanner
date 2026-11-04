@@ -136,23 +136,29 @@ function extractText(data) {
  * Call Mistral with the server-executed web_search built-in tool.
  * Uses the Conversations API: search rounds run server-side and the final
  * assistant message is returned in `outputs` (no client tool loop needed).
- * `maxUses` has no API equivalent — enforce the search budget in the prompt.
+ *
+ * Conversations API constraints (validated against the live 422 schema):
+ * - `inputs` entries only accept role "user"/"assistant" — no system role.
+ *   The system prompt is folded into the first user message instead.
+ * - completion args (max_tokens etc.) go under `completion_args`, not top level.
  */
 async function callWithWebSearch(apiKey, {
   messages,
   system,
   maxTokens = 4096,
 }) {
-  const inputs = [
-    ...(system ? [{ role: 'system', content: system }] : []),
-    ...messages,
-  ];
+  const inputs = messages.map((m) => ({ role: m.role, content: m.content }));
+  if (system) {
+    const firstUser = inputs.find((m) => m.role === 'user');
+    if (firstUser) firstUser.content = `${system}\n\n---\n\n${firstUser.content}`;
+    else inputs.unshift({ role: 'user', content: system });
+  }
 
   return callMistralConversation(apiKey, {
     model: DEFAULT_MODEL,
     inputs,
     tools: WEB_SEARCH_TOOLS,
-    max_tokens: maxTokens,
+    completion_args: { max_tokens: maxTokens },
     store: false,
   });
 }
