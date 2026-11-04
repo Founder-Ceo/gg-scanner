@@ -6,58 +6,12 @@ export const config = { maxDuration: 120 };
 
 const { callWithWebSearch, extractText } = require('./integrity');
 
-// ── UPSTASH REST HELPERS ──────────────────────────────────────────────────────
-// Uses UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
-// (set these two variables in Vercel project settings)
+// ── KV via shared helpers (accepts KV_REST_API_* or UPSTASH_REDIS_REST_*) ─────
+// Storage schema is shared with api/signals.js: scan:<id>:summary + scan:<id>:signals
+const { kvConfigured, kvGet, kvSet, kvList, safeParse } = require('./kv');
 
-function kv() {
-  const url   = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) throw new Error('UPSTASH_REDIS_REST_URL / TOKEN not set');
-
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-
-  async function call(path, method = 'GET', body = undefined) {
-    const resp = await fetch(`${url}${path}`, {
-      method,
-      headers,
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {})
-    });
-    if (!resp.ok) throw new Error(`Upstash ${method} ${path} → ${resp.status}`);
-    return resp.json();
-  }
-
-  return {
-    async set(key, value) {
-      const v = typeof value === 'string' ? value : JSON.stringify(value);
-      return call(`/set/${encodeURIComponent(key)}`, 'POST', v);
-    },
-    async get(key) {
-      const d = await call(`/get/${encodeURIComponent(key)}`);
-      return d.result;
-    },
-    async hset(key, fields) {
-      return call(`/hset/${encodeURIComponent(key)}`, 'POST', Object.entries(fields).flat());
-    },
-    async hgetall(key) {
-      const d = await call(`/hgetall/${encodeURIComponent(key)}`);
-      const r = d.result;
-      if (!Array.isArray(r)) return null;
-      const obj = {};
-      for (let i = 0; i < r.length; i += 2) obj[r[i]] = r[i + 1];
-      return obj;
-    },
-    async lpush(key, value) {
-      return call(`/lpush/${encodeURIComponent(key)}`, 'POST', [value]);
-    },
-    async lrange(key, start, stop) {
-      const d = await call(`/lrange/${encodeURIComponent(key)}/${start}/${stop}`);
-      return d.result || [];
-    },
-    async ltrim(key, start, stop) {
-      return call(`/ltrim/${encodeURIComponent(key)}/${start}/${stop}`, 'POST');
-    }
-  };
+function kvMode() {
+  return kvConfigured() ? 'vercel_kv' : 'browser';
 }
 
 // ── DATE WINDOW ───────────────────────────────────────────────────────────────
@@ -198,20 +152,21 @@ export default async function handler(req, res) {
   // ── GET: scan history ──
   if (req.method === 'GET') {
     try {
-      const db   = kv();
-      const keys = await db.lrange('scan:index', 0, 49);
-      const mode = process.env.UPSTASH_REDIS_REST_URL ? 'vercel_kv' : 'browser';
-      if (!keys || keys.length === 0) return res.status(200).json({ scans: [], storageMode: mode });
-      const scans = (await Promise.all(keys.map(async key => {
+      if (!kvConfigured()) return res.status(200).json({ scans: [], storageMode: 'browser' });
+      const keys = await kvList('scan:');
+      const summaryKeys = keys.filter((k) => k.endsWith(':summary'));
+      const scans = [];
+      for (const k of summaryKeys.slice(0, 50)) {
         try {
-          const meta = await db.hgetall(key + ':meta');
-          return { key, date: meta?.date || null, dateLabel: meta?.dateLabel || null, signalCount: parseInt(meta?.signalCount || '0') };
-        } catch { return null; }
-      }))).filter(Boolean);
-      return res.status(200).json({ scans, storageMode: mode });
+          const summary = safeParse(await kvGet(k));
+          if (summary && summary.key) scans.push(summary);
+        } catch { /* skip unreadable entry */ }
+      }
+      scans.sort((a, b) => (b.date || 0) - (a.date || 0));
+      return res.status(200).json({ scans, storageMode: 'vercel_kv' });
     } catch (err) {
       console.error('GET /scan error:', err.message);
-      return res.status(200).json({ scans: [], error: err.message, storageMode: process.env.UPSTASH_REDIS_REST_URL ? 'vercel_kv' : 'browser' });
+      return res.status(200).json({ scans: [], error: err.message, storageMode: kvMode() });
     }
   }
 
@@ -225,8 +180,12 @@ export default async function handler(req, res) {
 
   let publishedTopics = '';
   try {
-    const raw = await kv().get('config:published-topics');
-    if (raw) publishedTopics = typeof raw === 'string' ? raw : JSON.stringify(raw);
+    if (kvConfigured()) {
+      const raw = await kvGet('config:published-topics');
+      const parsed = safeParse(raw);
+      if (typeof parsed === 'string' && parsed.trim()) publishedTopics = parsed;
+      else if (parsed && typeof parsed.publishedTopics === 'string') publishedTopics = parsed.publishedTopics;
+    }
   } catch { /* non-fatal */ }
 
   const queries = buildQueries(sources, themes, dc);
@@ -335,15 +294,25 @@ Use at most 5 web searches. Return exactly 5 signals. Start your response with [
     const dateLabel = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     let storageError = null;
 
-    try {
-      const db = kv();
-      await db.set(scanKey, { signals, dateLabel, date: now.toISOString() });
-      await db.hset(scanKey + ':meta', { date: now.toISOString(), dateLabel, signalCount: String(signals.length) });
-      await db.lpush('scan:index', scanKey);
-      await db.ltrim('scan:index', 0, 99);
-    } catch (kvErr) {
-      console.error('KV storage error (non-fatal):', kvErr.message);
-      storageError = kvErr.message;
+    // Same schema api/signals.js reads: <scanKey>:summary + <scanKey>:signals
+    if (kvConfigured()) {
+      try {
+        const summary = {
+          key: scanKey,
+          date: now.getTime(),
+          dateLabel,
+          signalCount: signals.length,
+          sources: (req.body?.sources || []).slice(0, 10),
+          themes: (req.body?.themes || []).slice(0, 8),
+        };
+        await kvSet(scanKey + ':summary', JSON.stringify(summary));
+        await kvSet(scanKey + ':signals', JSON.stringify(signals));
+      } catch (kvErr) {
+        console.error('KV storage error (non-fatal):', kvErr.message);
+        storageError = kvErr.message;
+      }
+    } else {
+      storageError = 'KV not configured';
     }
 
     // Always return a usable key — in browser-only mode (no KV) the scan is

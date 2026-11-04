@@ -1,34 +1,7 @@
 export const config = { maxDuration: 10 };
 
-// ── Upstash KV helpers (raw REST — @vercel/kv must never be imported) ─────────
-function kvConfigured() {
-  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
-}
-
-async function kvGet(key) {
-  if (!kvConfigured()) return null;
-  const url   = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  const res = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`KV get failed: ${res.status}`);
-  const data = await res.json();
-  return data.result;   // null if key does not exist
-}
-
-async function kvSet(key, value) {
-  if (!kvConfigured()) return null;
-  const url   = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  const res = await fetch(`${url}/set/${encodeURIComponent(key)}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(value),  // Upstash stores this as-is
-  });
-  if (!res.ok) throw new Error(`KV set failed: ${res.status}`);
-  return res.json();
-}
+// ── KV via shared helpers (accepts KV_REST_API_* or UPSTASH_REDIS_REST_*) ─────
+const { kvConfigured, kvGet, kvSet } = require('./kv');
 
 // ── Safe parse — handles double-serialised or character-indexed legacy values ─
 // The bug: previous config.js did JSON.stringify(obj) before passing to kvSet,

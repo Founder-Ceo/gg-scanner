@@ -1,42 +1,7 @@
 export const config = { maxDuration: 30 };
 
-// ── Upstash KV helpers (raw REST — @vercel/kv is not installed) ──────────────
-async function kvSet(key, value) {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('KV env vars not configured');
-  const res = await fetch(`${url}/set/${encodeURIComponent(key)}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(value),
-  });
-  if (!res.ok) throw new Error(`KV set failed: ${res.status}`);
-  return res.json();
-}
-
-async function kvList(prefix) {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('KV env vars not configured');
-  const res = await fetch(`${url}/keys/${encodeURIComponent(prefix + '*')}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`KV list failed: ${res.status}`);
-  const data = await res.json();
-  return data.result || [];
-}
-
-async function kvGet(key) {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  if (!url || !token) throw new Error('KV env vars not configured');
-  const res = await fetch(`${url}/get/${encodeURIComponent(key)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) throw new Error(`KV get failed: ${res.status}`);
-  const data = await res.json();
-  return data.result;
-}
+// ── KV via shared helpers (accepts KV_REST_API_* or UPSTASH_REDIS_REST_*) ─────
+const { kvConfigured, kvGet, kvSet, kvList } = require('./kv');
 
 // ── docx generation ───────────────────────────────────────────────────────────
 // Uses the docx npm package (must be in package.json)

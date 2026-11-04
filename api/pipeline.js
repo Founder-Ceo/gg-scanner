@@ -71,7 +71,8 @@ module.exports = async function handler(req, res) {
       const articles = kvConfigured() ? await loadArticles() : [];
       res.status(200).json({ articles, ...meta });
     } catch (err) {
-      res.status(500).json({ error: err.message, ...meta, persisted: false });
+      // KV unreachable — still respond 200 so the UI falls back to localStorage
+      res.status(200).json({ articles: [], error: err.message, ...meta, persisted: false });
     }
     return;
   }
@@ -82,13 +83,20 @@ module.exports = async function handler(req, res) {
       const id = body.id || ('art-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7));
       const article = buildArticleFromBody(body, id);
 
+      let persisted = meta.persisted;
       if (kvConfigured()) {
-        const articles = await loadArticles();
-        articles.unshift(article);
-        await saveArticles(articles);
+        try {
+          const articles = await loadArticles();
+          articles.unshift(article);
+          await saveArticles(articles);
+        } catch (kvErr) {
+          // KV unreachable — still accept the article, browser-persisted
+          console.error('KV save failed (non-fatal):', kvErr.message);
+          persisted = false;
+        }
       }
 
-      res.status(201).json({ article, ...meta, persisted: meta.persisted });
+      res.status(201).json({ article, ...meta, persisted });
     } catch (err) {
       res.status(500).json({ error: err.message, ...meta, persisted: false });
     }
@@ -104,13 +112,17 @@ module.exports = async function handler(req, res) {
         return;
       }
 
-      if (!kvConfigured()) {
+      const buildLocal = () => {
         const article = { ...buildArticleFromBody(body, id), id, updatedAt: Date.now() };
         ARTICLE_FIELDS.forEach((f) => {
           if (updates[f] !== undefined) article[f] = updates[f];
         });
+        return article;
+      };
+
+      if (!kvConfigured()) {
         res.status(200).json({
-          article,
+          article: buildLocal(),
           ...meta,
           persisted: false,
           hint: 'Saved in this browser only — add Vercel KV for cloud sync.',
@@ -118,18 +130,29 @@ module.exports = async function handler(req, res) {
         return;
       }
 
-      const articles = await loadArticles();
-      const idx = articles.findIndex((a) => a.id === id);
-      if (idx === -1) {
-        res.status(404).json({ error: 'Article not found' });
-        return;
+      try {
+        const articles = await loadArticles();
+        const idx = articles.findIndex((a) => a.id === id);
+        if (idx === -1) {
+          res.status(404).json({ error: 'Article not found' });
+          return;
+        }
+        ARTICLE_FIELDS.forEach((f) => {
+          if (updates[f] !== undefined) articles[idx][f] = updates[f];
+        });
+        articles[idx].updatedAt = Date.now();
+        await saveArticles(articles);
+        res.status(200).json({ article: articles[idx], ...meta });
+      } catch (kvErr) {
+        // KV unreachable — still accept the update, browser-persisted
+        console.error('KV update failed (non-fatal):', kvErr.message);
+        res.status(200).json({
+          article: buildLocal(),
+          ...meta,
+          persisted: false,
+          hint: 'Saved in this browser only — KV unreachable.',
+        });
       }
-      ARTICLE_FIELDS.forEach((f) => {
-        if (updates[f] !== undefined) articles[idx][f] = updates[f];
-      });
-      articles[idx].updatedAt = Date.now();
-      await saveArticles(articles);
-      res.status(200).json({ article: articles[idx], ...meta });
     } catch (err) {
       res.status(500).json({ error: err.message, ...meta, persisted: false });
     }
