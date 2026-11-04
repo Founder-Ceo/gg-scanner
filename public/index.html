@@ -1452,14 +1452,26 @@ async function patchArticleResilient(id, updates) {
   return resp;
 }
 
+// Apply a PATCH result to the local pipeline. When the server could not
+// persist (persisted:false — browser mode / KV down) it echoes a SPARSE
+// article built only from the patch body; wholesale-replacing the local
+// article with it wipes fields like signalUrl, which then breaks the
+// /api/write integrity gate ("Source URL is required"). So: replace only
+// when truly persisted, otherwise merge the patch into the local article.
+function applyArticlePatch(idx, data, fallbackUpdates) {
+  if (idx === -1) return;
+  if (data.article && data.persisted !== false) pipelineArticles[idx] = data.article;
+  else Object.assign(pipelineArticles[idx], fallbackUpdates);
+}
+
 async function advanceStage(id, stage) {
   try {
     const resp = await patchArticleResilient(id, { stage });
     if (!resp.ok) throw new Error('Failed');
     const data = await resp.json();
     const idx = pipelineArticles.findIndex(a => a.id === id);
-    if (idx !== -1) pipelineArticles[idx] = data.article;
-    if (stage === 'published') createAnalyticsPlaceholder(data.article);
+    applyArticlePatch(idx, data, { stage });
+    if (stage === 'published') createAnalyticsPlaceholder(pipelineArticles[idx] || data.article);
     renderPipeline(); showToast('Moved to ' + STAGE_LABELS[stage]);
   } catch(err) { showToast('Error: ' + err.message); }
 }
@@ -1543,8 +1555,8 @@ async function saveArticle() {
       if (!resp.ok) throw new Error('Update failed');
       const data = await resp.json();
       const idx = pipelineArticles.findIndex(a => a.id === currentModalId);
-      if (idx !== -1) pipelineArticles[idx] = data.article;
-      saved = data.article || pipelineArticles[idx] || null;
+      applyArticlePatch(idx, data, payload);
+      saved = data.persisted !== false && data.article ? data.article : pipelineArticles[idx] || null;
       if (payload.stage === 'published') createAnalyticsPlaceholder(data.article);
       savePipelineLocal();
       showToast('Article updated');
@@ -1678,12 +1690,7 @@ async function fetchBrief(article) {
             const patchResp = await patchArticleResilient(writeArticleId, { brief: data.brief, stage: 'briefed' });
       const patchData = await patchResp.json().catch(() => ({}));
       const idx = pipelineArticles.findIndex(a => a.id === writeArticleId);
-      if (patchResp.ok && patchData.article) {
-        pipelineArticles[idx] = patchData.article;
-      } else if (idx !== -1) {
-        pipelineArticles[idx].brief = data.brief;
-        pipelineArticles[idx].stage = 'briefed';
-      }
+      applyArticlePatch(idx, patchData, { brief: data.brief, stage: 'briefed' });
       savePipelineLocal();
       if (patchData.persisted === false) showToast('Brief saved in this browser');
     }
@@ -1763,11 +1770,7 @@ async function fetchArticle(headline) {
       const patchResp = await patchArticleResilient(writeArticleId, patchBody);
       const patchData = await patchResp.json().catch(() => ({}));
       const idx = pipelineArticles.findIndex(a => a.id === writeArticleId);
-      if (patchResp.ok && patchData.article) {
-        pipelineArticles[idx] = patchData.article;
-      } else if (idx !== -1) {
-        pipelineArticles[idx] = { ...pipelineArticles[idx], ...patchBody, id: writeArticleId };
-      }
+      applyArticlePatch(idx, patchData, { ...patchBody, id: writeArticleId });
       savePipelineLocal();
       if (patchData.persisted === false || !patchResp.ok) showToast('Article saved in this browser');
     }
