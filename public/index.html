@@ -904,6 +904,10 @@ main{max-width:1480px;margin:0 auto;padding:32px 40px;}
         <div class="write-section-label">Article Brief</div>
         <div class="brief-display" id="write-brief-output">Generating brief…</div>
       </div>
+      <div class="write-section">
+        <div class="write-section-label">Source Grounding (optional but recommended)</div>
+        <textarea class="field-textarea" id="write-source-text" style="min-height:90px;" placeholder="Paste the full source document text (e.g. the Commission PDF's content)… Every factual claim in the generated article will be verified against this before it is saved. Leave empty to skip the hard grounding check."></textarea>
+      </div>
       <div class="write-section" id="write-headlines-section" style="display:none;">
         <div class="write-section-label">Choose Your Headline</div>
         <div class="headline-options" id="write-headline-list"></div>
@@ -1790,8 +1794,16 @@ async function proceedWritePanel() {
 async function fetchArticle(headline) {
   const article = pipelineArticles.find(a => a.id === writeArticleId);
   try {
-    const resp = await fetch('/api/write', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'article', headline, brief: writeBriefText, signalTitle: article?.signalTitle || '', signalSource: article?.signalSource || '', signalUrl: article?.signalUrl || '', signalDate: article?.signalDate || '', publishDate: article?.scheduledDate || '', angle: article?.angle || '' }) });
+    const body = JSON.stringify({ action:'article', headline, brief: writeBriefText, signalTitle: article?.signalTitle || '', signalSource: article?.signalSource || '', signalUrl: article?.signalUrl || '', signalDate: article?.signalDate || '', publishDate: article?.scheduledDate || '', angle: article?.angle || '', sourceText: (document.getElementById('write-source-text')?.value || '').trim() });
+    const resp = await fetch('/api/write', { method:'POST', headers:{'Content-Type':'application/json'}, body });
     const data = await resp.json();
+    if (!resp.ok && data.grounding_failed) {
+      const issues = (data.issues || []).map(i => `<li style="margin-bottom:8px;"><b>"${esc(i.quote)}"</b> — ${esc(i.problem || 'not supported by the source text')}</li>`).join('');
+      document.getElementById('write-article-output').innerHTML = `<div style="color:var(--orange);padding:20px;"><b style="font-size:14px;">Source grounding check failed</b><p style="margin:10px 0 12px;">These article claims are not supported by the source text:</p><ul style="padding-left:20px;font-size:12px;line-height:1.7;">${issues || '<li>(no details returned)</li>'}</ul><p style="margin-top:12px;">Rewrite the brief, check the source text, or clear the source box to generate without the hard grounding check.</p></div>`;
+      document.getElementById('write-stage-label').textContent = 'STEP 2 — GROUNDING FAILED';
+      showToast('Grounding check failed — see unsupported claims');
+      return;
+    }
     if (!resp.ok || data.error) throw new Error(data.error || ('Article writing failed: ' + resp.status));
     renderArticleOutput(data.article);
     if (writeArticleId) {
@@ -1806,7 +1818,7 @@ async function fetchArticle(headline) {
     }
     document.getElementById('write-copy-btn').style.display = 'inline-block';
     document.getElementById('write-stage-label').textContent = 'STEP 2 — ARTICLE ✓';
-    showToast('Article written · moved to Written');
+    showToast(data.grounding && data.grounding.grounded ? 'Article written · source-grounded ✓ · moved to Written' : 'Article written · moved to Written');
   } catch(err) { document.getElementById('write-article-output').innerHTML = `<div style="color:var(--orange);padding:20px;">Error: ${esc(err.message)}</div>`; showToast('Article writing failed'); }
 }
 
@@ -2373,5 +2385,6 @@ function renderCalendar() {
     }).join('') + '</tbody></table>';
 }
 </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" nonce="54826DmL3HTnUNqX0ACH2Q==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
