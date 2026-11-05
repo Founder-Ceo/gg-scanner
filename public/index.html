@@ -1241,6 +1241,8 @@ function renderSignals(signals, dateLabel) {
           <div class="signal-meta">
             <span class="signal-source">${esc(s.source)}</span>
             <span class="signal-date">${esc(s.date)}</span>
+            ${s.gated ? `<span class="status-pill status-discarded" title="Full article may be behind a paywall or login — verify before shortlisting">GATED</span>` : ''}
+            ${s.sourceType === 'extended' ? `<span class="status-pill status-shortlisted" title="From a reputable publication outside your selected sources — access was verified as open">OPEN ACCESS +</span>` : ''}
             ${s.url ? `<a class="signal-url" href="${esc(s.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(shortUrl)}</a>` : ''}
             <span class="status-pill ${statusClass}">${statusLabel}</span>
           </div>
@@ -1255,6 +1257,7 @@ function renderSignals(signals, dateLabel) {
       </div>
       <div class="signal-detail" id="detail-${i}">
         ${s.url ? `<div class="detail-section"><div class="detail-label">Source URL</div><a class="url-link" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url)}</a></div>` : ''}
+        ${s.gateReason ? `<div class="detail-section"><div class="detail-label">Access Check</div><div style="font-size:12px;color:${s.gated ? 'var(--orange)' : 'var(--sage)'};">${s.gated ? '⚠ Gated or unreachable — ' : '✓ Openly accessible — '}${esc(s.gateReason || '')}${s.sourceType === 'extended' ? ' · extended source (outside your selected list, verified open)' : ''}</div></div>` : ''}
         <div class="detail-section">
           <div class="detail-label">Article Opportunities</div>
           ${(s.ideas || []).map(idea => `
@@ -2385,6 +2388,6 @@ function renderCalendar() {
     }).join('') + '</tbody></table>';
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" nonce="54826DmL3HTnUNqX0ACH2Q==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" nonce="uqEQmZ+4cMmkxla73URpfg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
