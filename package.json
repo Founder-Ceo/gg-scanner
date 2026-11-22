@@ -1,0 +1,12 @@
+{
+  "name": "gg-scanner-app",
+  "version": "1.0.0",
+  "description": "Guest Guide Scanner App - Intelligence layer for tourism signals",
+  "main": "api/scan.js",
+  "dependencies": {
+    "node-fetch": "^2.6.12"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
