@@ -3,6 +3,15 @@
  * Accepts Vercel KV names (KV_REST_API_*) or Upstash integration (UPSTASH_REDIS_REST_*).
  */
 
+// FIX: Ensure fetch is available in Vercel Serverless Functions
+let fetch;
+try {
+  fetch = require('node-fetch');
+} catch (e) {
+  fetch = globalThis.fetch;
+}
+globalThis.fetch = fetch;
+
 function kvRestConfig() {
   const url =
     process.env.KV_REST_API_URL

@@ -1,5 +1,19 @@
 export const config = { maxDuration: 300 };
 
+// FIX: Ensure fetch is available in Vercel Serverless Functions
+let fetch;
+try {
+  fetch = require('node-fetch');
+  console.log('[BRIEF] Using node-fetch polyfill');
+} catch (e) {
+  fetch = globalThis.fetch;
+  if (!fetch) {
+    throw new Error('fetch is not available - install node-fetch for Vercel');
+  }
+  console.log('[BRIEF] Using global fetch');
+}
+globalThis.fetch = fetch;
+
 const { enforceEditorialIntegrity } = require('./integrity');
 
 const GG_CONTEXT = `Guest Guide Interactive is a European tourism technology company founded by Walt Cudlip, operating across Europe with no single country market prioritised over another in content or framing (Walt is based in Arezzo, Tuscany). The platform uses AI-driven visitor dispersion technology — operating as an intelligence layer over a verified, locally curated destination dataset — to help DMOs redirect visitor flows from overcrowded areas toward under-visited destinations, authentic operators, and off-season periods. Target customers: DMOs and regional tourism boards (Segment A), authentic local operators including agriturismi, guides and artisans (Segment B), travellers seeking authentic experiences (Segment C). Policy alignment: EU Transition Pathway for Tourism, Interreg Central Europe Priority 2, NBTC Perspective 2030, ENIT and other national tourism frameworks across Europe. Core claim: produces redistribution evidence that EU funding bodies require — not just redistribution itself. Governance tool, not a marketing or itinerary tool. Never describe the internal ranking or curation mechanism. DEFAULT STANCE: write as general, pan-European industry thought leadership on tourism, technology and policy — not as a company update. Do not treat Italy, or any other single market, as the lens for the article. Do not frame the piece around Guest Guide's operational stage, fundraising status, or market entry timing.`;
@@ -138,6 +152,20 @@ Write as someone who understands European tourism policy and B2B SaaS.`;
       console.log('[BRIEF] Signal URL:', signalUrl);
       console.log('[BRIEF] Signal Title:', signalTitle);
       
+      // TEST: Check if fetch works to Mistral API
+      try {
+        const testResponse = await fetch('https://api.mistral.ai/v1/models', {
+          headers: { 'Authorization': `Bearer ${apiKey}` },
+          signal: AbortSignal.timeout(5000)
+        });
+        const testData = await testResponse.json();
+        console.log('[BRIEF] Direct fetch test status:', testResponse.status);
+        console.log('[BRIEF] Available models:', testData.data?.map(m => m.id).join(', ') || 'none');
+      } catch (testErr) {
+        console.error('[BRIEF] FETCH TEST FAILED:', testErr.message);
+        console.error('[BRIEF] This is the root cause - fetch() is not working in Vercel!');
+      }
+
       const briefStart = Date.now();
       console.log('[BRIEF] Calling Mistral with maxTokens: 1000');
       const briefText = await callMistralText(apiKey, [{ role: 'user', content: prompt }], 1000);

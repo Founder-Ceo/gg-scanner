@@ -9,15 +9,6 @@
 const DEFAULT_MODEL = process.env.MISTRAL_MODEL || 'mistral-large-latest';
 const VERIFY_MODEL = process.env.MISTRAL_VERIFY_MODEL || 'mistral-small-latest';
 
-const MISTRAL_CHAT_API = 'https://api.mistral.ai/v1/chat/completions';
-const MISTRAL_CONVERSATIONS_API = 'https://api.mistral.ai/v1/conversations';
-
-/**
- * Mistral built-in web search. Only available on the Conversations/Agents API —
- * NOT on Chat Completions (those responses carry no search references).
- */
-const WEB_SEARCH_TOOLS = [{ type: 'web_search' }];
-
 // Trusted public domains that block HEAD requests - use GET directly
 const TRUSTED_DOMAINS = new Set([
   'ec.europa.eu',
@@ -43,6 +34,29 @@ const TRUSTED_DOMAINS = new Set([
   'phocuswire.com',
   'phocuswright.com',
 ]);
+
+// FIX: Ensure fetch is available in Vercel Serverless Functions
+let fetch;
+try {
+  fetch = require('node-fetch');
+  console.log('[INTEGRITY] Using node-fetch polyfill');
+} catch (e) {
+  fetch = globalThis.fetch;
+  if (!fetch) {
+    throw new Error('fetch is not available - install node-fetch for Vercel');
+  }
+  console.log('[INTEGRITY] Using global fetch');
+}
+globalThis.fetch = fetch;
+
+const MISTRAL_CHAT_API = 'https://api.mistral.ai/v1/chat/completions';
+const MISTRAL_CONVERSATIONS_API = 'https://api.mistral.ai/v1/conversations';
+
+/**
+ * Mistral built-in web search. Only available on the Conversations/Agents API —
+ * NOT on Chat Completions (those responses carry no search references).
+ */
+const WEB_SEARCH_TOOLS = [{ type: 'web_search' }];
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
