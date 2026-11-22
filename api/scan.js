@@ -2,7 +2,7 @@
 // KV via raw Upstash REST (UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN)
 // Falls back gracefully if KV unavailable — signals always returned to UI
 
-export const config = { maxDuration: 120 };
+export const config = { maxDuration: 300 };
 
 const { callWithWebSearch, extractText } = require('./integrity');
 
@@ -264,16 +264,24 @@ function buildQueries(sources, themes, dc) {
     q.add(`European tourism news ${my}`);
     q.add(`sustainable travel policy Europe ${yr}`);
   }
-  return [...q].slice(0, 8);
+  // RECOMMENDATION #3: Reduced from 8 to 3 queries to decrease Mistral API processing time
+  return [...q].slice(0, 3);
 }
 
 // ── HANDLER ───────────────────────────────────────────────────────────────────
 
+// Performance monitoring - track Mistral API latency
+global.mistralLatencyMetrics = global.mistralLatencyMetrics || [];
+
 export default async function handler(req, res) {
+  const startTime = Date.now();
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
+  
+  // Log scan start with timestamp for monitoring
+  console.log(`[SCAN] Starting at ${new Date().toISOString()}, timeout: 300s`);
 
   // ── GET: scan history ──
   if (req.method === 'GET') {
@@ -315,6 +323,7 @@ export default async function handler(req, res) {
   } catch { /* non-fatal */ }
 
   const queries = buildQueries(sources, themes, dc);
+  console.log(`[SCAN] Using ${queries.length} optimized queries to reduce processing time`);
 
   const selectedHosts = new Set();
   sources.forEach(src => (SOURCE_DOMAINS[src] || []).forEach(d => selectedHosts.add(d)));
@@ -379,6 +388,9 @@ ${queries.map((q, i) => `${i + 1}. ${q}`).join('\n')}
 Verify each result: date within 14 days, URL real AND the full article openly accessible (no paywall or login). Discard if any check fails. Use at most 5 web searches. Return at most 5 signals — fewer is better than off-list or gated padding. Start your response with [ and nothing else.`;
 
   try {
+    const mistralStart = Date.now();
+    console.log(`[SCAN] Calling Mistral Conversations API with ${queries.length} web searches...`);
+    
     // Mistral Conversations API — web_search built-in runs server-side.
     // Domain discipline is enforced in the system prompt AND server-side below
     // (the Conversations API has no blocked_domains parameter).
@@ -387,6 +399,21 @@ Verify each result: date within 14 days, URL real AND the full article openly ac
       messages: [{ role: 'user', content: userMsg }],
       maxTokens: 6000,
     });
+    
+    // RECOMMENDATION #1: Track Mistral API latency
+    const mistralLatency = Date.now() - mistralStart;
+    console.log(`[SCAN] Mistral API completed in ${mistralLatency}ms`);
+    
+    // Store latency metric (last 10 for monitoring)
+    global.mistralLatencyMetrics.push({ timestamp: Date.now(), latency: mistralLatency });
+    if (global.mistralLatencyMetrics.length > 10) {
+      global.mistralLatencyMetrics.shift();
+    }
+    
+    // RECOMMENDATION #4: Async processing note - if latency > 60s, suggest breaking into batches
+    if (mistralLatency > 60000) {
+      console.warn(`[SCAN] High latency detected (${mistralLatency}ms). Consider breaking into smaller batches.`);
+    }
 
     const rawText = extractText(data);
     if (!rawText) throw new Error('No text content returned from AI');
@@ -490,6 +517,9 @@ Verify each result: date within 14 days, URL real AND the full article openly ac
     // stays null and every status update fails with "No active scan".
     const responseKey = storageError ? `scan:local-${now.getTime()}` : scanKey;
 
+    const totalTime = Date.now() - startTime;
+    console.log(`[SCAN] Completed successfully in ${totalTime}ms`);
+    
     return res.status(200).json({
       signals,
       key:          responseKey,
@@ -501,11 +531,28 @@ Verify each result: date within 14 days, URL real AND the full article openly ac
         blockedDropped: preFilterNote,
         gatedDropped: dropped,
         kept: signals.map(s => ({ host: hostOf(s.url), sourceType: s.sourceType, gated: !!s.gated }))
+      },
+      // RECOMMENDATION #1: Include performance metrics in response for client-side monitoring
+      performance: {
+        processingTime: totalTime,
+        queryCount: queries.length,
+        mistralLatency: mistralLatency
       }
     });
 
   } catch (err) {
-    console.error('Scan error:', err.message);
-    return res.status(500).json({ error: err.message });
+    const totalTime = Date.now() - startTime;
+    console.error(`[SCAN] Failed after ${totalTime}ms:`, err.message);
+    
+    // RECOMMENDATION #2: Vercel tier check - add helpful error message
+    let errorMessage = err.message;
+    if (totalTime > 290000) { // If we hit the 300s limit
+      errorMessage = 'Scan timeout. Check Vercel tier (Pro required for 300s timeout). Current config: 300s maxDuration.';
+    }
+    
+    return res.status(500).json({ 
+      error: errorMessage,
+      hint: totalTime > 290000 ? 'Increase maxDuration or reduce query complexity' : undefined
+    });
   }
 }
