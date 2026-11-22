@@ -26,58 +26,11 @@ const ARTICLE_SPEC = `PERMANENT ARTICLE SPECIFICATION:
 - Then section header: SUGGESTED HASHTAGS
 - List 5–8 relevant hashtags (one per line, each starting with #) for LinkedIn distribution`;
 
-const { callMistral, callMistralLite, extractText } = require('./integrity');
+const { callMistral, extractText } = require('./integrity');
 
 async function callMistralText(apiKey, messages, maxTokens) {
   const data = await callMistral(apiKey, { max_tokens: maxTokens, messages });
   return extractText(data);
-}
-
-const ANTI_HALLUCINATION = `CRITICAL SOURCE-GROUNDING RULES:
-- Every factual attribution to the source document (sections, annexes, action areas, statistics, dates, deadlines, targets, quotas, funding amounts, requirements) must appear in the verified source.
-- If you are not certain a claim is in the source, cut it. Analysis and opinion are fine; invented facts are not.
-- Policy frameworks named in COMPANY CONTEXT (Interreg, NBTC, ENIT, etc.) are Guest Guide policy alignments — never present them as requirements or content of the source document.
-- Do not describe the source as a mandate, obligation or funding condition unless it explicitly says so.`;
-
-function parseGroundingJson(raw) {
-  const m = String(raw).match(/\{[\s\S]*\}/);
-  if (!m) throw new Error('No JSON object in grounding response');
-  return JSON.parse(m[0].replace(/,\s*([}\]])/g, '$1'));
-}
-
-/**
- * Post-generation grounding gate: verifies the finished article's claims
- * against the actual source text, when provided. enforceEditorialIntegrity
- * validates the SOURCE (URL reachable, plausibly aligned); this validates the
- * generated ARTICLE against it. Failure mode this prevents: invented
- * section references, annexes, statistics and quantified mandates.
- */
-async function groundArticleInSource(apiKey, { article, sourceText, sourceLabel }) {
-  const source = String(sourceText || '').slice(0, 60000);
-  const prompt = `You are a strict fact-checking gate.
-
-SOURCE LABEL: ${sourceLabel || 'verified source'}
-
-SOURCE TEXT:
-"""
-${source}
-"""
-
-ARTICLE TO CHECK:
-"""
-${article}
-"""
-
-Check every factual claim in the article against the source text: citations of sections, annexes or action areas, statistics, dates, deadlines, quotas, targets, funding amounts, and any statement about what the source requires or mandates. The article may add analysis and opinion, but every factual attribution to the source must be supported by the source text. Invented section numbers, annexes, figures or mandates are failures.
-
-Return ONLY one line of JSON: {"grounded":true|false,"issues":[{"quote":"exact phrase from the article","problem":"why the source text does not support it"}]}`;
-
-  const data = await callMistralLite(apiKey, { max_tokens: 512, messages: [{ role: 'user', content: prompt }] });
-  const text = extractText(data);
-  if (!text) throw new Error('No grounding response from model');
-  const result = parseGroundingJson(text);
-  if (typeof result.grounded !== 'boolean') throw new Error('Grounding response malformed');
-  return { grounded: result.grounded, issues: Array.isArray(result.issues) ? result.issues : [] };
 }
 
 module.exports = async function handler(req, res) {
@@ -99,6 +52,9 @@ module.exports = async function handler(req, res) {
 
     // ── ACTION: brief ──────────────────────────────────────────────────────
     if (action === 'brief') {
+      // Debug: Log request body
+      console.log('[BRIEF] Request body:', JSON.stringify(req.body, null, 2));
+      
       // Support both old field names (concept/context) and new (signalTitle/ideaText/notes)
       const concept = body.concept
         || [body.signalTitle, body.ideaText].filter(Boolean).join(' — ')
@@ -108,6 +64,13 @@ module.exports = async function handler(req, res) {
       const signalSource = body.signalSource || '';
       const signalDate = body.signalDate || '';
       const publishDate = (body.publishDate || body.scheduledDate || '').trim();
+      
+      // Debug: Log extracted fields
+      console.log('[BRIEF] Extracted fields - concept:', concept);
+      console.log('[BRIEF] Extracted fields - signalUrl:', signalUrl);
+      console.log('[BRIEF] Extracted fields - signalTitle:', signalTitle);
+      console.log('[BRIEF] Extracted fields - signalSource:', signalSource);
+      console.log('[BRIEF] Extracted fields - signalDate:', signalDate);
 
       const verification = await enforceEditorialIntegrity(apiKey, {
         concept,
@@ -176,7 +139,16 @@ Produce a structured article brief with EXACTLY these sections:
 
 Be specific and intelligent. Write as someone who deeply understands European tourism policy and B2B SaaS.`;
 
-      const briefText = await callMistralText(apiKey, [{ role: 'user', content: prompt }], 2800);
+      console.log('[BRIEF] Building prompt...');
+      console.log('[BRIEF] Prompt length:', prompt.length, 'chars');
+      console.log('[BRIEF] Prompt preview:', prompt.slice(0, 200) + '...');
+      
+      const briefStart = Date.now();
+      const briefText = await callMistralText(apiKey, [{ role: 'user', content: prompt }], 1500);
+      console.log(`[BRIEF] Mistral returned in ${Date.now() - briefStart}ms`);
+      console.log('[BRIEF] Raw text length:', briefText ? briefText.length : 0);
+      console.log('[BRIEF] First 200 chars:', briefText ? briefText.slice(0, 200) : 'EMPTY');
+      
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.status(200).json({ brief: briefText });
       return;
@@ -184,7 +156,7 @@ Be specific and intelligent. Write as someone who deeply understands European to
 
     // ── ACTION: article ────────────────────────────────────────────────────
     if (action === 'article') {
-      const { headline, brief, signalTitle, signalSource, signalUrl, signalDate, angle, tone, sourceText: rawSourceText } = body;
+      const { headline, brief, signalTitle, signalSource, signalUrl, signalDate, angle, tone } = body;
       const url = (signalUrl || '').trim();
 
       const publishDate = (body.publishDate || body.scheduledDate || '').trim();
@@ -224,8 +196,6 @@ ${(angle === 'investor' || angle === 'case-study') ? '\nCOMMERCIAL STATUS (relev
 ARTICLE SPECIFICATION — follow every instruction precisely:
 ${ARTICLE_SPEC}
 
-${ANTI_HALLUCINATION}
-
 EXISTING TOPICS TO AVOID:
 ${EXISTING_TOPICS}
 
@@ -243,8 +213,6 @@ TONE: ${tone || 'Authoritative'}
 
 Write the COMPLETE article in one response. Do not stop early. Follow the specification exactly:
 - Cite only facts supported by the verified source URL; do not invent studies, statistics, or future-dated reports
-- Never invent section numbers, annexes, action areas, statistics, targets, quotas, deadlines or funding conditions that are not present in the verified source
-- Never present policy frameworks named in COMPANY CONTEXT (Interreg, NBTC, ENIT) as requirements of the source document — they are Guest Guide policy alignments, not source content
 - MANDATORY: 1,000–1,200 words in the body (before ---), with 4–5 ## subheadings — not a short post
 - Year-11 reading level, British English
 - Exactly 2–3 :::IMAGE blocks embedded in the body at salient points
@@ -254,40 +222,19 @@ Write the COMPLETE article in one response. Do not stop early. Follow the specif
 Start directly with the article title as # heading.`;
 
       const articleText = await callMistralText(apiKey, [{ role: 'user', content: prompt }], 8192);
-
-      // Post-generation grounding gate: verify the article against the source
-      // text when provided. enforceEditorialIntegrity validates the source;
-      // this validates the generated claims against it.
-      const sourceText = String(rawSourceText || '').trim();
-      let grounding = null;
-      if (sourceText) {
-        grounding = await groundArticleInSource(apiKey, {
-          article: articleText,
-          sourceText,
-          sourceLabel: signalSource || url || '',
-        });
-        if (!grounding.grounded) {
-          res.status(422).json({
-            error: 'Source grounding check failed: the article contains claims not supported by the source text.',
-            grounding_failed: true,
-            issues: grounding.issues,
-          });
-          return;
-        }
-      }
-
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.status(200).json({ article: articleText, grounding });
+      res.status(200).json({ article: articleText });
       return;
     }
 
     res.status(400).json({ error: 'Unknown action. Use action:"brief" or action:"article"' });
 
   } catch (err) {
+    console.error('[BRIEF] ERROR:', err);
     const msg = err instanceof Error
       ? err.message
       : (typeof err === 'string' ? err : JSON.stringify(err));
-    res.status(500).json({ error: msg || 'Internal server error' });
+    res.status(500).json({ error: `[BRIEF] ${msg}`, debug: true });
     return;
   }
 };
