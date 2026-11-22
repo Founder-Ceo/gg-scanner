@@ -109,42 +109,38 @@ module.exports = async function handler(req, res) {
         'manifesto':          'A bold, declarative position on the future of European tourism — Guest Guide as a visionary voice',
       };
 
-      const prompt = `You are a specialist content strategist for Guest Guide Interactive.
+      // FIX: Use concise prompt to avoid token overflow (5254 chars -> ~1200 chars)
+      const prompt = `You are a content strategist for Guest Guide Interactive, a European tourism tech startup using AI for visitor dispersion.
 
-COMPANY CONTEXT:
-${GG_CONTEXT}
-${(angle === 'investor' || angle === 'case-study') ? '\nCOMMERCIAL STATUS (relevant to this angle only):\n' + COMMERCIAL_STATUS : ''}
+Write a structured brief for: "${concept}"
 
-ARTICLE SPECIFICATION:
-${ARTICLE_SPEC}
-
-EXISTING TOPICS TO AVOID:
-${EXISTING_TOPICS}
-
-BRIEF REQUEST:
-Concept / Signal: ${concept}
+Signal: "${signalTitle}"
+Source: ${signalSource}
+Date: ${signalDate}
+URL: ${signalUrl}
 Guest Guide Angle: ${ANGLE_DESCRIPTIONS[angle] || angle}
-Tone: ${tone}
-${context ? 'Additional context:\n' + context : ''}
+${context ? '\nAdditional context:\n' + context : ''}
 
-Produce a structured article brief with EXACTLY these sections:
-1. WORKING HEADLINES — exactly 3 strong options (label A, B, C)
-2. HOOK — 2-sentence opening that stops a LinkedIn reader mid-scroll
-3. CORE ARGUMENT — central thesis in 3-4 sentences
-4. KEY POINTS — 4-5 bullet points of main arguments
-5. GUEST GUIDE POSITIONING — how and where Guest Guide enters the article naturally (in dialogue with DMOs, no signed partners yet)
-6. DATA & SOURCES — anchor only to the verified source URL and facts confirmed in the integrity check; do not invent reports or statistics
-7. RECOMMENDED STRUCTURE — brief outline (Intro → 3-4 sections → Conclusion → CTA)
-8. CONTENT NOTES — tone guidance, what to avoid, what to amplify
+Produce EXACTLY these sections:
+1. WORKING HEADLINES — 3 strong options (label A, B, C)
+2. HOOK — 2-sentence opening
+3. CORE ARGUMENT — 3-4 sentences
+4. KEY POINTS — 4-5 bullet points
+5. GUEST GUIDE POSITIONING — how Guest Guide fits
+6. RECOMMENDED STRUCTURE — brief outline (Intro → 3-4 sections → Conclusion → CTA)
+7. CONTENT NOTES — tone guidance, what to avoid/amplify
 
-Be specific and intelligent. Write as someone who deeply understands European tourism policy and B2B SaaS.`;
+Write as someone who understands European tourism policy and B2B SaaS.`;
 
       console.log('[BRIEF] Building prompt...');
-      console.log('[BRIEF] Prompt length:', prompt.length, 'chars');
+      console.log('[BRIEF] Prompt length:', prompt.length, 'chars (~' + Math.round(prompt.length / 4) + ' tokens)');
       console.log('[BRIEF] Prompt preview:', prompt.slice(0, 200) + '...');
+      console.log('[BRIEF] Signal URL:', signalUrl);
+      console.log('[BRIEF] Signal Title:', signalTitle);
       
       const briefStart = Date.now();
-      const briefText = await callMistralText(apiKey, [{ role: 'user', content: prompt }], 1500);
+      console.log('[BRIEF] Calling Mistral with maxTokens: 1000');
+      const briefText = await callMistralText(apiKey, [{ role: 'user', content: prompt }], 1000);
       console.log(`[BRIEF] Mistral returned in ${Date.now() - briefStart}ms`);
       console.log('[BRIEF] Raw text length:', briefText ? briefText.length : 0);
       console.log('[BRIEF] First 200 chars:', briefText ? briefText.slice(0, 200) : 'EMPTY');
